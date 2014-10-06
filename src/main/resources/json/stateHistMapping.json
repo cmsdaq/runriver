@@ -1,0 +1,64 @@
+{
+  "state-hist": {
+    "_parent": {
+      "type": "run"
+    },
+    "_timestamp": {
+      "enabled": "true",
+      "store": "yes"
+    },
+    "properties": {
+      "hmini": {
+        "properties": {
+          "entries": {
+            "properties": {
+              "key": {
+                "type": "long"
+              },
+              "count": {
+                "type": "long"
+              }
+            }
+          },
+          "total": {
+            "type": "long"
+          }
+        }
+      },
+      "hmicro": {
+        "properties": {
+          "entries": {
+            "properties": {
+              "key": {
+                "type": "long"
+              },
+              "count": {
+                "type": "long"
+              }
+            }
+          },
+          "total": {
+            "type": "long"
+          }
+        }
+      },
+      "hmacro": {
+        "properties": {
+          "entries": {
+            "properties": {
+              "key": {
+                "type": "long"
+              },
+              "count": {
+                "type": "long"
+              }
+            }
+          }
+        },
+        "total": {
+          "type": "long"
+        }
+      }
+    }
+  }
+}

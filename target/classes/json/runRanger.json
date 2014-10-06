@@ -1,0 +1,15 @@
+{
+   "size": 100,
+   "filter": {
+      "missing": {
+         "field": "endTime"
+      }
+   },
+   "sort": [
+      {
+         "_timestamp": {
+            "order": "desc"
+         }
+      }
+   ]
+}

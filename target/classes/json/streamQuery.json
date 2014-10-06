@@ -1,0 +1,43 @@
+{  "query": {
+      "match_all": {}
+   },
+   "size": 0,
+   "sort": {
+      "ls": "desc"
+   },
+   "aggs": {
+      "streams": {
+         "terms": {
+            "field": "stream"
+         },
+         "aggs": {
+            "ls": {
+               "terms": {
+                  "size": 30,
+                  "field": "ls",
+                  "order": {
+                     "_term": "desc"
+                  }
+               },
+               "aggs": {
+                  "in": {
+                     "sum": {
+                        "field": "data.in"
+                     }
+                  },
+                  "out": {
+                     "sum": {
+                        "field": "data.out"
+                     }
+                  },
+                  "filesize": {
+                     "sum": {
+                        "field": "data.filesize"
+                     }
+                  }
+               }
+            }
+         }
+      }
+   }
+}

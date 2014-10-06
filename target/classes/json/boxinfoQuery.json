@@ -1,0 +1,15 @@
+{
+   "size": 1,
+   "query": {
+      "range": {
+         "fm_date": {
+            "from": "now-1m"
+         }
+      }
+   },
+   "filter": {
+      "term": {
+         "activeRuns": "890001"
+      }
+   }
+}
