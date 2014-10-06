@@ -33,12 +33,13 @@ curl -XPUT localhost:9200/_river/_mapping/runriver -d '{"dynamic":true}'  #for i
 curl -XPUT localhost:9200/_river/runriver/_meta -d '{
     "type": "runriver",
     "es_tribe_host" : "es-tribe",
-    "es_tribe_cluster" : "srv-c2a11-33-01",
+    "es_tribe_cluster" : "es-tribe",
     "polling_interval" : 30,
     "fetching_interval" : 5,
     "runIndex_read" : "runindex_cdaq_read",
     "runIndex_write" : "runindex_cdaq_write",
-    "boxinfo_write" : "boxinfo_cdaq_write"
+    "boxinfo_write" : "boxinfo_cdaq_write",
+    "enable_stats"  : true
 }'
 
 ##Deleting the river
