@@ -32,7 +32,7 @@
                   },
                   "filesize": {
                      "sum": {
-                        "field": "data.filesize"
+                        "field": "data.fileSize"
                      }
                   }
                }

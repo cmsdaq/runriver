@@ -14,6 +14,7 @@ cd 'packagefolder'
 mvn3 package
 
 Install:
+PLEASE NOTE: If you are upgrading from a previous version, please remove all existing runriver documents before to install. Then remove the old version and install the new one. (See below for the related commands).
 
 sudo /usr/share/elasticsearch/bin/plugin -url file:'packagefolder'/target/releases/river-runriver-1.3.2-plugin.zip -i river-runriver
 
