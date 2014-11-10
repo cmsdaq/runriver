@@ -8,6 +8,7 @@
    "aggs": {
       "streams": {
          "terms": {
+            "size": 100,
             "field": "stream"
          },
          "aggs": {

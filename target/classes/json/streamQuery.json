@@ -8,6 +8,7 @@
    "aggs": {
       "streams": {
          "terms": {
+            "size": 100,
             "field": "stream"
          },
          "aggs": {
@@ -32,7 +33,7 @@
                   },
                   "filesize": {
                      "sum": {
-                        "field": "data.filesize"
+                        "field": "data.fileSize"
                      }
                   }
                }
