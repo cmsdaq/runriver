@@ -27,7 +27,7 @@ Remove:
 sudo /usr/share/elasticsearch/bin/plugin  -r river-runriver
 
 
-##Adding the river
+##Adding the river (central)
 
 curl -XPUT localhost:9200/_river/_mapping/runriver -d '{"dynamic":true}'  #for index.mapper.dynamic false
 
@@ -43,8 +43,25 @@ curl -XPUT localhost:9200/_river/runriver/_meta -d '{
     "enable_stats"  : true
 }'
 
-##Deleting the river
+##Deleting the river (central)
 
 curl -XDELETE localhost:9200/_river/runriver/
 
+##Adding the river (minidaq)
+
+curl -XPUT localhost:9200/_river/runriver_minidaq/_meta -d '{
+    "type": "runriver",
+    "es_tribe_host" : "es-tribe",
+    "es_tribe_cluster" : "es-tribe",
+    "polling_interval" : 30,
+    "fetching_interval" : 5,
+    "runIndex_read" : "runindex_minidaq_read",
+    "runIndex_write" : "runindex_minidaq_write",
+    "boxinfo_write" : "boxinfo_minidaq_write",
+    "enable_stats" : true 
+}'
+
+##Deleting the river (minidaq)
+
+curl -XDELETE localhost:9200/_river/runriver_minidaq/
 
