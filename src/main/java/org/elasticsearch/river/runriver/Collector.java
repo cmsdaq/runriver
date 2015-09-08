@@ -4,6 +4,7 @@ package org.elasticsearch.river.runriver;
 import java.io.IOException;
 import java.util.Map;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 
@@ -60,6 +61,7 @@ public class Collector extends AbstractRunRiverThread {
     Boolean EoR=false;
     String tribeIndex;
     Boolean firstTime=true;
+    Integer ustatesReserved=-1;
 
     //queries
     JSONObject streamQuery;
@@ -210,15 +212,42 @@ public class Collector extends AbstractRunRiverThread {
             logger.info("streamQuery returns 0 hits");
             return;
         }
+        if (ustatesReserved==-1) {
+          SearchResponse sResponseUstates = client.prepareSearch(runIndex_read).setTypes("microstatelegend").setRouting(runNumber).setQuery(QueryBuilders.termQuery("_parent", runNumber)).setSize(1).execute().actionGet();
+          SearchHit[] searchHits = sResponseUstates.getHits().getHits();
+          if(searchHits.length != 0) {
+            logger.info("microstatelegend query returns hits");
+            //List<String> keys = new ArrayList<String>(searchHits[0].sourceAsMap().keySet());
+            //for (String key: keys) { logger.info("key:");logger.info(key);}
+            if (searchHits[0].sourceAsMap().get("reserved")!=null) {
+              Integer reservedVal = (Integer) searchHits[0].sourceAsMap().get("reserved");
+              //Integer reservedVal = sResponseUstates.getHits().getHits()[0].getSource().field("reserved");
+              ustatesReserved = reservedVal;
+              //if (reservedVal>=0) ustatesReserved = reservedVal;
+            }
+            else {
+              logger.info("reserved field in microstatelegend is not present. Disabling checks.");
+              //use default value
+              ustatesReserved = 33;
+            }
+          }
+        }
 
         if(sResponse.getAggregations().asList().isEmpty()){return;}
 
         XContentBuilder xb = XContentFactory.jsonBuilder().startObject(); 
+        XContentBuilder xbSummary = XContentFactory.jsonBuilder().startObject(); 
         
         for (Aggregation agg : sResponse.getAggregations()) {
             String name = agg.getName();
+            Boolean doSummary = false;
+            if (name.equals("hmicro") && ustatesReserved>=0)
+              doSummary = true;
             Long total = 0L;
+            Long totalBusy = 0L;
             xb.startObject(name).startArray("entries"); 
+            if (doSummary)
+                xbSummary.startObject(name).startArray("entries"); 
             Histogram hist = sResponse.getAggregations().get(name);
             for ( Histogram.Bucket bucket : hist.getBuckets() ){
                 Number key = bucket.getKeyAsNumber();
@@ -228,11 +257,32 @@ public class Collector extends AbstractRunRiverThread {
                 xb.field("key",key);
                 xb.field("count",doc_count);
                 xb.endObject();
+                if (doSummary) {
+                  if (key.intValue() < ustatesReserved) {
+                    xbSummary.startObject();
+                    xbSummary.field("key",key);
+                    xbSummary.field("count",doc_count);
+                    xbSummary.endObject();
+                  }
+                  else
+                    totalBusy += doc_count;
+                }
             }
             xb.endArray();
             xb.field("total",total);
             xb.endObject();
-            
+           
+            if (doSummary) { 
+              xbSummary.startObject();
+              Number maxKey = 33;
+              xbSummary.field("key",maxKey);
+              xbSummary.field("count",totalBusy);
+              xbSummary.endObject();
+              xbSummary.endArray();
+              xbSummary.field("total",total);
+              xbSummary.endObject();
+            }
+ 
         }
         xb.endObject();
         client.prepareIndex(runIndex_write, "state-hist")
@@ -240,8 +290,15 @@ public class Collector extends AbstractRunRiverThread {
             .setSource(xb)
             .execute();                  
 
+        xbSummary.endObject();
+        client.prepareIndex(runIndex_write, "state-hist-summary")
+            .setParent(runNumber)
+            .setSource(xbSummary)
+            .execute();                  
+
+
 //        DO NOT DELETE. SNIPPET FOR RESPONSE TO JSON CONVERSION
-//        XContentBuilder builder = XContentFactory.contentBuilder(XContentType.JSON); 
+//        XContentBuilder builder = XContentFactory.contentBuilder(XContentType.JSON);
 //        builder.startObject();
 //        sResponse.toXContent(builder, ToXContent.EMPTY_PARAMS);
 //        builder.endObject();

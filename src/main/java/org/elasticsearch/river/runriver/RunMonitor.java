@@ -36,6 +36,7 @@ public class RunMonitor extends AbstractRunRiverThread {
         
     JSONObject streamHistMapping;
     JSONObject stateHistMapping;
+    JSONObject stateHistSummaryMapping;
     JSONObject statsMapping;
     JSONObject runQuery;
 
@@ -45,7 +46,7 @@ public class RunMonitor extends AbstractRunRiverThread {
 
     @Override
     public void beforeLoop(){
-        logger.info("RunMonitor Started v1.3.3");
+        logger.info("RunMonitor Started v1.3.4");
         getQueries();
         prepareServer(client,runIndex_write);
         this.interval = polling_interval;
@@ -121,6 +122,7 @@ public class RunMonitor extends AbstractRunRiverThread {
         try {
                 runQuery = getJson("runRanger");
                 stateHistMapping = getJson("stateHistMapping");
+                stateHistSummaryMapping = getJson("stateHistSummaryMapping");
                 streamHistMapping = getJson("streamHistMapping"); 
                 statsMapping = getJson("statsMapping"); 
             } catch (Exception e) {
@@ -133,6 +135,7 @@ public class RunMonitor extends AbstractRunRiverThread {
         //runindexCheck(client,runIndex);
         createStreamMapping(client,runIndex);
         createStateMapping(client,runIndex);
+        createStateSummaryMapping(client,runIndex);
         createStatIndex(client,"runriver_stats"); 
     }
 
@@ -148,6 +151,20 @@ public class RunMonitor extends AbstractRunRiverThread {
             .setSource(stateHistMapping)
             .execute().actionGet();
     }
+
+    public void createStateSummaryMapping(Client client, String runIndex){
+        client.admin().cluster().prepareHealth().setWaitForYellowStatus().execute().actionGet();
+        GetMappingsResponse response = client.admin().indices().prepareGetMappings(runIndex_write)
+            .setTypes("state-hist-summary").execute().actionGet();
+        if (!response.mappings().isEmpty()){ logger.info("State Summary Mapping already exists"); return; }
+        logger.info("createStateSummaryMapping");
+        client.admin().indices().preparePutMapping()
+            .setIndices(runIndex_write)
+            .setType("state-hist-summary")
+            .setSource(stateHistSummaryMapping)
+            .execute().actionGet();
+    }
+
 
     public void createStreamMapping(Client client, String runIndex){
         client.admin().cluster().prepareHealth().setWaitForYellowStatus().execute().actionGet();
