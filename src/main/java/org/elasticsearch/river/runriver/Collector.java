@@ -324,7 +324,10 @@ public class Collector extends AbstractRunRiverThread {
         collectStats(riverName.getName(),"boxinfoQuery",boxinfo_write,response);            
         
         logger.info("Boxinfo: "+ String.valueOf(response.getHits().getTotalHits()));
-        if (response.getHits().getTotalHits() == 0 ) { selfDelete(); }
+        if (response.getHits().getTotalHits() == 0 ) {
+          execRunClose();
+          selfDelete();
+        }
     }
 
     public void setRemoteClient(){
@@ -344,5 +347,25 @@ public class Collector extends AbstractRunRiverThread {
            logger.error("Collector getQueries Exception: ", e);
         }
         
+    }
+
+    public void execRunClose(){
+        logger.info("closing indices for run "+runNumber.toString());
+	String myuid = System.getProperty("userid");
+        try {
+            Process p = Runtime.getRuntime().exec("/usr/bin/php /opt/fff/closeRunIndices.php "+es_tribe_host+" "+runNumber.toString()+" &>> /tmp/closeRunIndices_"+myuid+".log");
+            int retcode = p.waitFor();
+            if (retcode==0)
+                logger.error("index close script call returned with exit code "+Integer.toString(retcode));
+            else
+                logger.info("closed indices for run "+runNumber.toString());
+        }
+        catch (IOException e) {
+            logger.error("IOException in execRunClose");
+        }
+        catch (InterruptedException e) {
+            logger.error("Interrupted execRunClose");
+        }
+
     }
 }
