@@ -21,8 +21,17 @@
       "out": {
         "type": "float"
       },
+      "error": {
+        "type": "float"
+      },
       "filesize": {
         "type": "float"
+      },
+      "completion":{
+        "type": "double"
+      },
+      "fm_date":{
+        "type": "date"
       }
     }
   }
