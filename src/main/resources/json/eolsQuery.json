@@ -1,0 +1,22 @@
+{  "query": {
+      "term": {"ls":0}
+   },
+   "size": 0,
+   "aggs": {
+           "NEvents": {
+                   "sum": {
+                           "field": "data.NEvents"
+                   }
+           },
+           "NLostEvents": {
+                   "sum": {
+                           "field": "data.NLostEvents"
+                   }
+           },
+           "TotalEvents": {
+                   "max": {
+                           "field": "data.TotalEvents"
+                   }
+           }
+   }
+}

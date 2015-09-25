@@ -28,6 +28,7 @@ import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.search.aggregations.metrics.sum.Sum;
+import org.elasticsearch.search.aggregations.metrics.max.Max;
 import org.elasticsearch.search.aggregations.Aggregation;
 //import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -55,16 +56,24 @@ public class Collector extends AbstractRunRiverThread {
     Map<String, Long> known_streams = new HashMap<String, Long>();
     Map<String, Map<String, Double>> fuinlshist = new HashMap<String, Map<String, Double>>();
     Map<String, Map<String, Double>> fuoutlshist = new HashMap<String, Map<String, Double>>();
+    Map<String, Map<String, Double>> fuerrlshist = new HashMap<String, Map<String, Double>>();
     Map<String, Map<String, Double>> fufilesizehist = new HashMap<String, Map<String, Double>>();
+    Map<String, Map<String, Double>> futimestamplshist = new HashMap<String, Map<String, Double>>();
+    Map<String, Double> eolEventsList = new HashMap<String, Double>();
+    Map<String, Double> eolLostEventsList = new HashMap<String, Double>();
+    Map<String, Double> eolTotalEventsList = new HashMap<String, Double>();
 
     Client remoteClient;
     Boolean EoR=false;
     String tribeIndex;
     Boolean firstTime=true;
     Integer ustatesReserved=-1;
+    Integer ustatesSpecial=-1;
+    Integer ustatesOutput=-1;
 
     //queries
     JSONObject streamQuery;
+    JSONObject eolsQuery;
     JSONObject statesQuery;
     JSONObject boxinfoQuery;
         
@@ -134,29 +143,70 @@ public class Collector extends AbstractRunRiverThread {
         
             fuinlshist.put(streamName, new HashMap<String, Double>());
             fuoutlshist.put(streamName, new HashMap<String, Double>());
+            fuerrlshist.put(streamName, new HashMap<String, Double>());
             fufilesizehist.put(streamName, new HashMap<String, Double>());
+            futimestamplshist.put(streamName, new HashMap<String, Double>());
 
             Terms lss = stream.getAggregations().get("ls");
-            
+           
             for (Terms.Bucket ls : lss.getBuckets()) {
 
                 String lsName = ls.getKey();
                 
                 Sum inSum = ls.getAggregations().get("in");
                 Sum outSum = ls.getAggregations().get("out");
+                Sum errSum = ls.getAggregations().get("error");
                 Sum filesizeSum = ls.getAggregations().get("filesize");
+                Max fm_date = ls.getAggregations().get("fm_date");
 
                 fuinlshist.get(streamName).put(lsName,inSum.getValue());
                 fuoutlshist.get(streamName).put(lsName,outSum.getValue());
+                fuerrlshist.get(streamName).put(lsName,errSum.getValue());
                 fufilesizehist.get(streamName).put(lsName,filesizeSum.getValue());
+                futimestamplshist.get(streamName).put(lsName,fm_date.getValue());
   
             } 
         }
+
         for (String stream : known_streams.keySet()){
             for (String ls : fuoutlshist.get(stream).keySet()){
+        
+                //EoLS aggregation for this LS
+                //GetResponse sresponseEoL = client.prepareGet(runIndex_write, "eols", id)
+                //                                .setRouting(runNumber)
+                //                                .setRefresh(true).execute().actionGet();
+                Double eventsVal;
+                Double lostEventsVal;
+                Double totalEventsVal;
+                if (eolEventsList.get(ls) == null) {
+
+                    eolsQuery.getJSONObject("query").getJSONObject("term")
+                             .put("ls",Integer.valueOf(ls));
+                    SearchResponse sResponseEoLS = remoteClient.prepareSearch(tribeIndex).setTypes("eols")
+                                                               .setRouting(runNumber)
+                                                               .setSource(eolsQuery).execute().actionGet();
+                    if(sResponseEoLS.getHits().getTotalHits() == 0L){ 
+                        logger.info("eolsQuery returns 0 hits for LS " + ls + ", skipping collection without EoLS docs");
+                        continue;
+                    }
+                    Sum eolEvents = sResponseEoLS.getAggregations().get("NEvents");
+                    Sum eolLostEvents = sResponseEoLS.getAggregations().get("NLostEvents");
+                    Max eolTotalEvents = sResponseEoLS.getAggregations().get("TotalEvents");
+                    eventsVal = eolEvents.getValue();    
+                    lostEventsVal = eolLostEvents.getValue();
+                    totalEventsVal = eolTotalEvents.getValue();
+                    eolEventsList.put(ls,eventsVal); 
+                    eolLostEventsList.put(ls,lostEventsVal); 
+                    eolTotalEventsList.put(ls,totalEventsVal); 
+                }
+                else {
+                    eventsVal = eolEventsList.get(ls);
+                    lostEventsVal = eolLostEventsList.get(ls);
+                    totalEventsVal = eolTotalEventsList.get(ls);
+                }
+                //continue with stream aggregation
 
                 String id = String.format("%06d", Integer.parseInt(runNumber))+stream+ls;
-
 
                 //Check if data is changed (to avoid to update timestamp if not necessary)
                 GetResponse sresponse = client.prepareGet(runIndex_write, "stream-hist", id)
@@ -167,16 +217,40 @@ public class Collector extends AbstractRunRiverThread {
                 if (sresponse.isExists()){ 
                     Double in = Double.parseDouble(sresponse.getSource().get("in").toString());
                     Double out = Double.parseDouble(sresponse.getSource().get("out").toString());
+                    //new field, allow to be missing if log entry updated by the new plugin version
+                    Double error = -1.;
+                    if (sresponse.getSource().get("error").toString()!=null) {
+                      error = Double.parseDouble(sresponse.getSource().get("error").toString());
+                    }
+                    Double lastCompletion = 0.;
+                    if (sresponse.getSource().get("completion")!=null) {
+                      lastCompletion = Double.parseDouble(sresponse.getSource().get("completion").toString());
+                    }
 
-                    if (   in.compareTo(fuinlshist.get(stream).get(ls))==0 
-                        && out.compareTo(fuoutlshist.get(stream).get(ls))==0){
+                    if (lastCompletion==1.0
+                        && in.compareTo(fuinlshist.get(stream).get(ls))==0 
+                        && out.compareTo(fuoutlshist.get(stream).get(ls))==0
+                        && error.compareTo(fuerrlshist.get(stream).get(ls))==0){
                         dataChanged = false;
                     } else { logger.info(id+" already exists and will be updated."); }
                 }
+
+                Double newCompletion = 1.;
+                //calculate completion as (Nprocessed / Nbuilt) * (Nbuilt+Nlost)/Ntriggered
+                if (eventsVal>0)
+                    newCompletion = (fuinlshist.get(stream).get(ls) + fuerrlshist.get(stream).get(ls))/eventsVal;
+
+                if (eventsVal +  lostEventsVal != totalEventsVal) {
+                  if (totalEventsVal>0) {
+                    newCompletion = newCompletion * (eventsVal +  lostEventsVal / totalEventsVal);
+                  }
+                  else logger.error("This should not happen: mismatch between NEvents + NLostEvents is not zero, but TotalEvents is for ls "+ls);
+                }
+
                 
                 //Update Data
                 if (dataChanged){
-                    logger.info("stream-hist update for ls,stream: "+ls+","+stream+" in:"+fuinlshist.get(stream).get(ls).toString()+" out:"+fuoutlshist.get(stream).get(ls).toString());
+                    logger.info("stream-hist update for ls,stream: "+ls+","+stream+" in:"+fuinlshist.get(stream).get(ls).toString()+" out:"+fuoutlshist.get(stream).get(ls).toString()+" err:"+fuerrlshist.get(stream).get(ls).toString());
                     IndexResponse iResponse = client.prepareIndex(runIndex_write, "stream-hist").setRefresh(true)
                     .setParent(runNumber)
                     .setId(id)
@@ -186,7 +260,10 @@ public class Collector extends AbstractRunRiverThread {
                         .field("ls", Integer.parseInt(ls))
                         .field("in", fuinlshist.get(stream).get(ls))
                         .field("out", fuoutlshist.get(stream).get(ls))
+                        .field("error", fuerrlshist.get(stream).get(ls))
                         .field("filesize", fufilesizehist.get(stream).get(ls))
+                        .field("fm_date", futimestamplshist.get(stream).get(ls))
+                        .field("completion", newCompletion)
                         .endObject())
                     .execute()
                     .actionGet();    
@@ -220,10 +297,20 @@ public class Collector extends AbstractRunRiverThread {
             //List<String> keys = new ArrayList<String>(searchHits[0].sourceAsMap().keySet());
             //for (String key: keys) { logger.info("key:");logger.info(key);}
             if (searchHits[0].sourceAsMap().get("reserved")!=null) {
-              Integer reservedVal = (Integer) searchHits[0].sourceAsMap().get("reserved");
               //Integer reservedVal = sResponseUstates.getHits().getHits()[0].getSource().field("reserved");
+              Integer reservedVal = (Integer) searchHits[0].sourceAsMap().get("reserved");
               ustatesReserved = reservedVal;
-              //if (reservedVal>=0) ustatesReserved = reservedVal;
+
+              if (searchHits[0].sourceAsMap().get("special")!=null)
+                ustatesSpecial = (Integer) searchHits[0].sourceAsMap().get("special");
+
+              if (searchHits[0].sourceAsMap().get("output")!=null)
+                ustatesOutput = (Integer) searchHits[0].sourceAsMap().get("output");
+
+              if (ustatesOutput<0 || ustatesSpecial<0) {
+                ustatesOutput=-1;
+                ustatesSpecial=-1;
+              }
             }
             else {
               logger.info("reserved field in microstatelegend is not present. Disabling checks.");
@@ -241,10 +328,15 @@ public class Collector extends AbstractRunRiverThread {
         for (Aggregation agg : sResponse.getAggregations()) {
             String name = agg.getName();
             Boolean doSummary = false;
-            if (name.equals("hmicro") && ustatesReserved>=0)
+            Boolean doSummaryOutputs = false;
+            if (name.equals("hmicro") && ustatesReserved>=0) {
               doSummary = true;
+              if (ustatesOutput>=0)
+                doSummaryOutputs=true;
+            }
             Long total = 0L;
             Long totalBusy = 0L;
+            Long totalOutputs = 0L;
             xb.startObject(name).startArray("entries"); 
             if (doSummary)
                 xbSummary.startObject(name).startArray("entries"); 
@@ -259,10 +351,14 @@ public class Collector extends AbstractRunRiverThread {
                 xb.endObject();
                 if (doSummary) {
                   if (key.intValue() < ustatesReserved) {
-                    xbSummary.startObject();
-                    xbSummary.field("key",key);
-                    xbSummary.field("count",doc_count);
-                    xbSummary.endObject();
+                    if (doSummaryOutputs && key.intValue() >= ustatesSpecial)
+                      totalOutputs+=doc_count; 
+                    else {
+                      xbSummary.startObject();
+                      xbSummary.field("key",key);
+                      xbSummary.field("count",doc_count);
+                      xbSummary.endObject();
+                    }
                   }
                   else
                     totalBusy += doc_count;
@@ -272,10 +368,17 @@ public class Collector extends AbstractRunRiverThread {
             xb.field("total",total);
             xb.endObject();
            
+            if (doSummaryOutputs) { 
+              xbSummary.startObject();
+              Number outputKey = ustatesSpecial;
+              xbSummary.field("key",outputKey);
+              xbSummary.field("count",totalOutputs);
+              xbSummary.endObject();
+            }
+
             if (doSummary) { 
               xbSummary.startObject();
-              Number maxKey = 33;
-              xbSummary.field("key",maxKey);
+              xbSummary.field("key",ustatesReserved);
               xbSummary.field("count",totalBusy);
               xbSummary.endObject();
               xbSummary.endArray();
@@ -341,12 +444,13 @@ public class Collector extends AbstractRunRiverThread {
     public void getQueries(){
         try{
             streamQuery = getJson("streamQuery");
-            statesQuery = getJson("statesQuery");    
-            boxinfoQuery = getJson("boxinfoQuery");    
+            eolsQuery = getJson("eolsQuery");
+            statesQuery = getJson("statesQuery");
+            boxinfoQuery = getJson("boxinfoQuery");
         } catch (Exception e) {
            logger.error("Collector getQueries Exception: ", e);
         }
-        
+
     }
 
     public void execRunClose(){

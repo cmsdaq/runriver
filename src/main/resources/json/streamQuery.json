@@ -31,9 +31,19 @@
                         "field": "data.out"
                      }
                   },
+                  "error": {
+                     "sum": {
+                        "field": "data.ErrorEvents"
+                     }
+                  },
                   "filesize": {
                      "sum": {
                         "field": "data.fileSize"
+                     }
+                  },
+                  "fm_date": {
+                     "max": {
+                        "field": "data.fm_date"
                      }
                   }
                }
