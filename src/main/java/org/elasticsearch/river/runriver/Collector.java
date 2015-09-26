@@ -66,6 +66,7 @@ public class Collector extends AbstractRunRiverThread {
     Client remoteClient;
     Boolean EoR=false;
     String tribeIndex;
+    String runStrPrefix;
     Boolean firstTime=true;
     Integer ustatesReserved=-1;
     Integer ustatesSpecial=-1;
@@ -87,6 +88,11 @@ public class Collector extends AbstractRunRiverThread {
         logger.info("Collector started.");
         this.interval = fetching_interval;
         this.tribeIndex = "run"+String.format("%06d", Integer.parseInt(runNumber))+"*";
+        if (runNumber.length()<6)
+            runStrPrefix = "run" + "000000".substring(runNumber.length()) + runNumber + "_ls";
+        else
+            runStrPrefix = "run" + runNumber + "_ls";
+
         setRemoteClient();
         getQueries();
 
@@ -179,12 +185,19 @@ public class Collector extends AbstractRunRiverThread {
                 Double lostEventsVal;
                 Double totalEventsVal;
                 if (eolEventsList.get(ls) == null) {
+                    String idStr;
+                    int lsStrLen = ls.length(); 
+                    Integer delta = 4 - lsStrLen;
+                    if (lsStrLen<4)
+                      idStr = runStrPrefix + "0000".substring(lsStrLen)+ls;
+                    else
+                      idStr = runStrPrefix + ls;
 
-                    eolsQuery.getJSONObject("query").getJSONObject("term")
-                             .put("ls",Integer.valueOf(ls));
-                    SearchResponse sResponseEoLS = remoteClient.prepareSearch(tribeIndex).setTypes("eols")
-                                                               .setRouting(runNumber)
-                                                               .setSource(eolsQuery).execute().actionGet();
+                    eolsQuery.getJSONObject("query").getJSONObject("prefix").put("_id",idStr);
+
+                    SearchResponse sResponseEoLS = client.prepareSearch(runIndex_write).setTypes("eols")
+                                                         .setRouting(runNumber)
+                                                         .setSource(eolsQuery).execute().actionGet();
                     if(sResponseEoLS.getHits().getTotalHits() == 0L){ 
                         logger.info("eolsQuery returns 0 hits for LS " + ls + ", skipping collection without EoLS docs");
                         continue;
@@ -226,7 +239,8 @@ public class Collector extends AbstractRunRiverThread {
                     if (sresponse.getSource().get("completion")!=null) {
                       lastCompletion = Double.parseDouble(sresponse.getSource().get("completion").toString());
                     }
-
+                    //logger.info("old" + in.toString() + " " + out.toString() + " " + error.toString() + " compl "+lastCompletion.toString());
+                    //logger.info("new" + fuinlshist.get(stream).get(ls).toString() + " " + fuoutlshist.get(stream).get(ls).toString() + " " + fuerrlshist.get(stream).get(ls).toString() );
                     if (lastCompletion==1.0
                         && in.compareTo(fuinlshist.get(stream).get(ls))==0 
                         && out.compareTo(fuoutlshist.get(stream).get(ls))==0
@@ -237,20 +251,30 @@ public class Collector extends AbstractRunRiverThread {
 
                 Double newCompletion = 1.;
                 //calculate completion as (Nprocessed / Nbuilt) * (Nbuilt+Nlost)/Ntriggered
-                if (eventsVal>0)
-                    newCompletion = (fuinlshist.get(stream).get(ls) + fuerrlshist.get(stream).get(ls))/eventsVal;
+                Double output_count = fuinlshist.get(stream).get(ls) + fuerrlshist.get(stream).get(ls);
+                //logger.info("output_count:" + output_count.toString() + " eventsVal:"+eventsVal.toString());
+                
+                if (eventsVal>0 && output_count!=eventsVal)
+                    newCompletion = output_count/eventsVal;
 
                 if (eventsVal +  lostEventsVal != totalEventsVal) {
                   if (totalEventsVal>0) {
-                    newCompletion = newCompletion * (eventsVal +  lostEventsVal / totalEventsVal);
+                    Double evb_count = eventsVal +  lostEventsVal;
+                    //logger.info("evb_count:" + evb_count.toString() + " totalEventsVal:"+totalEventsVal.toString());
+                    if (evb_count != totalEventsVal)
+                      newCompletion = newCompletion * ((evb_count) / totalEventsVal);
                   }
-                  else logger.error("This should not happen: mismatch between NEvents + NLostEvents is not zero, but TotalEvents is for ls "+ls);
+                  else //logger.error("This should not happen: mismatch between NEvents + NLostEvents is not zero, but TotalEvents is for ls "+ls);
+                    logger.error("This should not happen: mismatch between NEvents + NLostEvents is not zero, but TotalEvents is for ls "+ls
+                                 + " values: " + eventsVal.toString() + " " + lostEventsVal.toString()  + " " + totalEventsVal.toString());
                 }
-
                 
                 //Update Data
                 if (dataChanged){
-                    logger.info("stream-hist update for ls,stream: "+ls+","+stream+" in:"+fuinlshist.get(stream).get(ls).toString()+" out:"+fuoutlshist.get(stream).get(ls).toString()+" err:"+fuerrlshist.get(stream).get(ls).toString());
+                  logger.info("stream-hist update for ls,stream: "+ls+","+stream+" in:"+fuinlshist.get(stream).get(ls).toString()
+                              +" out:"+fuoutlshist.get(stream).get(ls).toString()+" err:"+fuerrlshist.get(stream).get(ls).toString() + " completion " + newCompletion.toString());
+                  Double retDate = futimestamplshist.get(stream).get(ls);
+                  if (retDate >  Double.NEGATIVE_INFINITY) {
                     IndexResponse iResponse = client.prepareIndex(runIndex_write, "stream-hist").setRefresh(true)
                     .setParent(runNumber)
                     .setId(id)
@@ -262,11 +286,30 @@ public class Collector extends AbstractRunRiverThread {
                         .field("out", fuoutlshist.get(stream).get(ls))
                         .field("error", fuerrlshist.get(stream).get(ls))
                         .field("filesize", fufilesizehist.get(stream).get(ls))
-                        .field("fm_date", futimestamplshist.get(stream).get(ls))
+                        .field("fm_date", retDate)
+                        .field("completion", newCompletion)
+                        .endObject())
+                    .execute()
+                    .actionGet();
+                  }
+                  else {
+                    IndexResponse iResponse = client.prepareIndex(runIndex_write, "stream-hist").setRefresh(true)
+                    .setParent(runNumber)
+                    .setId(id)
+                    .setSource(jsonBuilder()
+                        .startObject()
+                        .field("stream", stream)
+                        .field("ls", Integer.parseInt(ls))
+                        .field("in", fuinlshist.get(stream).get(ls))
+                        .field("out", fuoutlshist.get(stream).get(ls))
+                        .field("error", fuerrlshist.get(stream).get(ls))
+                        .field("filesize", fufilesizehist.get(stream).get(ls))
                         .field("completion", newCompletion)
                         .endObject())
                     .execute()
                     .actionGet();    
+                  }
+ 
                 }
                 
             }

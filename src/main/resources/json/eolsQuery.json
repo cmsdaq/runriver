@@ -5,17 +5,17 @@
    "aggs": {
            "NEvents": {
                    "sum": {
-                           "field": "data.NEvents"
+                           "field": "NEvents"
                    }
            },
            "NLostEvents": {
                    "sum": {
-                           "field": "data.NLostEvents"
+                           "field": "NLostEvents"
                    }
            },
            "TotalEvents": {
                    "max": {
-                           "field": "data.TotalEvents"
+                           "field": "TotalEvents"
                    }
            }
    }
