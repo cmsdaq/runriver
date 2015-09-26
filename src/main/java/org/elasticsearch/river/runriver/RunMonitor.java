@@ -46,7 +46,7 @@ public class RunMonitor extends AbstractRunRiverThread {
 
     @Override
     public void beforeLoop(){
-        logger.info("RunMonitor Started v1.3.4");
+        logger.info("RunMonitor Started v1.3.5");
         getQueries();
         prepareServer(client,runIndex_write);
         this.interval = polling_interval;
