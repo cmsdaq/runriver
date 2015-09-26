@@ -1,6 +1,4 @@
-{  "query": {
-      "term": {"ls":0}
-   },
+{  "query": {"prefix": {"_id":"0"}},
    "size": 0,
    "aggs": {
            "NEvents": {
