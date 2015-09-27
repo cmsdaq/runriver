@@ -143,8 +143,8 @@ public class RunMonitor extends AbstractRunRiverThread {
         client.admin().cluster().prepareHealth().setWaitForYellowStatus().execute().actionGet();
         GetMappingsResponse response = client.admin().indices().prepareGetMappings(runIndex_write)
             .setTypes("state-hist").execute().actionGet();
-        if (!response.mappings().isEmpty()){ logger.info("State Mapping already exists"); return; }
-        logger.info("createStateMapping");
+        //if (!response.mappings().isEmpty()){ logger.info("State Mapping already exists"); return; }
+        logger.info("create/update StateMapping");
         client.admin().indices().preparePutMapping()
             .setIndices(runIndex_write)
             .setType("state-hist")
@@ -157,7 +157,7 @@ public class RunMonitor extends AbstractRunRiverThread {
         GetMappingsResponse response = client.admin().indices().prepareGetMappings(runIndex_write)
             .setTypes("state-hist-summary").execute().actionGet();
         if (!response.mappings().isEmpty()){ logger.info("State Summary Mapping already exists"); return; }
-        logger.info("createStateSummaryMapping");
+        logger.info("create/update StateSummaryMapping");
         client.admin().indices().preparePutMapping()
             .setIndices(runIndex_write)
             .setType("state-hist-summary")
@@ -170,8 +170,8 @@ public class RunMonitor extends AbstractRunRiverThread {
         client.admin().cluster().prepareHealth().setWaitForYellowStatus().execute().actionGet();
         GetMappingsResponse response = client.admin().indices().prepareGetMappings(runIndex_write)
             .setTypes("stream-hist").execute().actionGet();
-        if (!response.mappings().isEmpty()){ logger.info("Stream Mapping already exists"); return; }
-        logger.info("createStreamMapping"); 
+        //if (!response.mappings().isEmpty()){ logger.info("Stream Mapping already exists"); return; }
+        logger.info("create/update StreamMapping"); 
         client.admin().indices().preparePutMapping()
             .setIndices(runIndex_write)
             .setType("stream-hist")
