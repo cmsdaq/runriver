@@ -232,8 +232,8 @@ public class Collector extends AbstractRunRiverThread {
                     Double out = Double.parseDouble(sresponse.getSource().get("out").toString());
                     //new field, allow to be missing if log entry updated by the new plugin version
                     Double error = -1.;
-                    if (sresponse.getSource().get("error").toString()!=null) {
-                      error = Double.parseDouble(sresponse.getSource().get("error").toString());
+                    if (sresponse.getSource().get("err").toString()!=null) {
+                      error = Double.parseDouble(sresponse.getSource().get("err").toString());
                     }
                     Double lastCompletion = 0.;
                     if (sresponse.getSource().get("completion")!=null) {
@@ -284,7 +284,7 @@ public class Collector extends AbstractRunRiverThread {
                         .field("ls", Integer.parseInt(ls))
                         .field("in", fuinlshist.get(stream).get(ls))
                         .field("out", fuoutlshist.get(stream).get(ls))
-                        .field("error", fuerrlshist.get(stream).get(ls))
+                        .field("err", fuerrlshist.get(stream).get(ls))
                         .field("filesize", fufilesizehist.get(stream).get(ls))
                         .field("fm_date", retDate)
                         .field("completion", newCompletion)
@@ -302,7 +302,7 @@ public class Collector extends AbstractRunRiverThread {
                         .field("ls", Integer.parseInt(ls))
                         .field("in", fuinlshist.get(stream).get(ls))
                         .field("out", fuoutlshist.get(stream).get(ls))
-                        .field("error", fuerrlshist.get(stream).get(ls))
+                        .field("err", fuerrlshist.get(stream).get(ls))
                         .field("filesize", fufilesizehist.get(stream).get(ls))
                         .field("completion", newCompletion)
                         .endObject())

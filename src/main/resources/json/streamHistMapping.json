@@ -21,7 +21,7 @@
       "out": {
         "type": "float"
       },
-      "error": {
+      "err": {
         "type": "float"
       },
       "filesize": {
