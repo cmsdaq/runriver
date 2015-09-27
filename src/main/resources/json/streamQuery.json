@@ -43,7 +43,7 @@
                   },
                   "fm_date": {
                      "max": {
-                        "field": "data.fm_date"
+                        "field": "fm_date"
                      }
                   }
                }
