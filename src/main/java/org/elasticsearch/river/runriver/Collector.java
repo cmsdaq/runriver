@@ -248,17 +248,6 @@ public class Collector extends AbstractRunRiverThread {
                         dataChanged = false;
                     } else { logger.info(id+" already exists and will be updated."); }
 
-                    Double newCompletion = 1. 
-                    //calculate completion as (Nprocessed / Nbuilt) * (Nbuilt+Nlost)/Ntriggered
-                    if (eolEvents.getValue()>0)
-                        newCompletion = (fuinlshist.get(stream).get(ls) + fuerrlshist.get(stream).get(ls))/eoLEvents.getValue();
-
-                    if (!(eolEvents.getValue() +  eolLostEvents.getValue() != eolTotalEvents.getValue()) {
-                      if (eolTotalEvents.getValue()>0) {
-                        newCompletion = newCompletion * (eolEvents.getValue() +  eolLostEvents.getValue() / eolTotalEvents.getValue());
-                      }
-                      else logger.error("This should not happen: mismatch between NEvents + NLostEvents is not zero, but TotalEvents is for ls "+ls)
-                    }
 
                 }
 

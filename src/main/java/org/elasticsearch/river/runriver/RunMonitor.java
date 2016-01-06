@@ -156,7 +156,7 @@ public class RunMonitor extends AbstractRunRiverThread {
         client.admin().cluster().prepareHealth().setWaitForYellowStatus().execute().actionGet();
         GetMappingsResponse response = client.admin().indices().prepareGetMappings(runIndex_write)
             .setTypes("state-hist-summary").execute().actionGet();
-        if (!response.mappings().isEmpty()){ logger.info("State Summary Mapping already exists"); return; }
+        //if (!response.mappings().isEmpty()){ logger.info("State Summary Mapping already exists"); return; }
         logger.info("create/update StateSummaryMapping");
         client.admin().indices().preparePutMapping()
             .setIndices(runIndex_write)
