@@ -2,14 +2,14 @@
    "size": 0,
    "sort": [
       {
-         "_timestamp": {
+         "fm_date": {
             "order": "desc"
          }
       }
    ],
    "query": {
       "range": {
-         "_timestamp": {
+         "fm_date": {
             "from": "now-3s",
             "to": "now-1s"
          }
