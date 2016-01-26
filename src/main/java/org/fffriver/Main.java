@@ -21,9 +21,6 @@ import org.elasticsearch.common.xcontent.support.XContentMapValues;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.settings.Settings;
 
-//ES 1.4 only!
-import org.elasticsearch.common.settings.ImmutableSettings;
-
 //TODO:logging
 import org.elasticsearch.common.logging.Loggers;
 
@@ -61,13 +58,9 @@ public class Main {
     /*this.*/
     try {
 
-      //ES 1.4 API:
-      Settings settings = ImmutableSettings.settingsBuilder().put("cluster.name", river_escluster).build();
-      client = new TransportClient(settings).addTransportAddress(new InetSocketTransportAddress(river_eshost, 9300));
- 
       //ES 2.X API:
-      //Settings settings = Settings.settingsBuilder().put("cluster.name", river_escluster).build();
-      //client = TransportClient.builder().settings(settings).build().addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(InetAddress.getByName(river_eshost), 9300)));
+      Settings settings = Settings.settingsBuilder().put("cluster.name", river_escluster).build();
+      client = TransportClient.builder().settings(settings).build().addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(InetAddress.getByName(river_eshost), 9300)));
     }
     catch (Exception e) {
       logger.error("elasticizeStat exception: ", e);

@@ -36,9 +36,6 @@ import org.elasticsearch.search.aggregations.Aggregation;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 
-//ES 1.4 only:
-import org.elasticsearch.common.settings.ImmutableSettings;
-
 //org.json
 import net.sf.json.JSONObject;
 import net.sf.json.JSONSerializer;
@@ -142,10 +139,7 @@ public class Collector extends AbstractRunRiverThread {
         
         if(streams.getBuckets().isEmpty()){return;}
         for (Terms.Bucket stream : streams.getBuckets()){
-            //ES 1.X
-            String streamName = stream.getKey();
-            //ES 2.X:
-            //String streamName = stream.getKeyAsString();
+            String streamName = stream.getKeyAsString();
 
             known_streams.put(streamName,stream.getDocCount());
         
@@ -159,10 +153,7 @@ public class Collector extends AbstractRunRiverThread {
            
             for (Terms.Bucket ls : lss.getBuckets()) {
 
-            //ES 1.X
-                String lsName = ls.getKey();
-            //ES 2.X:
-                //String lsName = ls.getKeyAsString();
+                String lsName = ls.getKeyAsString();
                 
                 Sum inSum = ls.getAggregations().get("in");
                 Sum outSum = ls.getAggregations().get("out");
@@ -401,11 +392,8 @@ public class Collector extends AbstractRunRiverThread {
                 xbSummary.startObject(name).startArray("entries");
             Histogram hist = sResponse.getAggregations().get(name);
             for ( Histogram.Bucket bucket : hist.getBuckets() ){
-              //ES 1.4:
-                Number key = bucket.getKeyAsNumber();
-              //ES 2.X:
-                //Long keyl = (Long)(bucket.getKey());
-                //long key = keyl.longValue();
+                Long keyl = (Long)(bucket.getKey());
+                long key = keyl.longValue();
                 Long doc_count = bucket.getDocCount();            
                 total =  total + doc_count;
                 xb.startObject();
@@ -413,12 +401,8 @@ public class Collector extends AbstractRunRiverThread {
                 xb.field("count",doc_count);
                 xb.endObject();
                 if (doSummary) {
-                //ES 1.4
-                  if (key.intValue() < ustatesReserved) {
-                    if (doSummaryOutputs && key.intValue() >= ustatesSpecial)
-                //ES 2.X
-                  //if (key < ustatesReserved) {
-                  //  if (doSummaryOutputs && key >= ustatesSpecial)
+                  if (key < ustatesReserved) {
+                    if (doSummaryOutputs && key >= ustatesSpecial)
                       totalOutputs+=doc_count; 
                     else {
                       xbSummary.startObject();
@@ -505,17 +489,10 @@ public class Collector extends AbstractRunRiverThread {
     }
 
     public void setRemoteClient() throws UnknownHostException{
-        //ES 1.4 
-        Settings settings = ImmutableSettings.settingsBuilder()
+        Settings settings = Settings.settingsBuilder()
             .put("cluster.name", es_tribe_cluster).build();
-        remoteClient = new TransportClient(settings)
-            .addTransportAddress(new InetSocketTransportAddress(es_tribe_host, 9300));
-
-        //ES 2.X 
-        //Settings settings = Settings.settingsBuilder()
-        //    .put("cluster.name", es_tribe_cluster).build();
-        //remoteClient = TransportClient.builder().settings(settings).build()
-        //    .addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(InetAddress.getByName(es_tribe_host), 9300)));
+        remoteClient = TransportClient.builder().settings(settings).build()
+            .addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(InetAddress.getByName(es_tribe_host), 9300)));
  
     }
 
