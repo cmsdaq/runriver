@@ -5,59 +5,65 @@
     },
     "_timestamp": {
       "enabled": "true",
-      "store": "yes"
     },
+    '_all': {'enabled': "false" },
     "properties": {
-      "hmini": {
+      "hminiv": {
         "properties": {
           "entries": {
             "properties": {
               "key": {
-                "type": "long"
+                "type": "integer"
               },
               "count": {
-                "type": "long"
+                "type": "integer"
               }
             }
           },
           "total": {
-            "type": "long"
+            "type": "integer"
           }
         }
       },
-      "hmicro": {
+      "hmicrov": {
         "properties": {
           "entries": {
             "properties": {
               "key": {
-                "type": "long"
+                "type": "integer"
               },
               "count": {
-                "type": "long"
+                "type": "integer"
               }
             }
           },
           "total": {
-            "type": "long"
+            "type": "integer"
           }
         }
       },
-      "hmacro": {
+      "hmacrov": {
         "properties": {
           "entries": {
             "properties": {
               "key": {
-                "type": "long"
+                "type": "integer"
               },
               "count": {
-                "type": "long"
+                "type": "integer"
               }
             }
+          },
+          "total": {
+            "type": "integer"
           }
-        },
-        "total": {
-          "type": "long"
         }
+      },
+      "date":{
+        "type":"date"
+      },
+      "fm_date":{
+        "type":"date"
       }
     }
   }

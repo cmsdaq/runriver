@@ -5,8 +5,8 @@
     },
     "_timestamp": {
       "enabled": "true",
-      "store": "yes"
     },
+    '_all': {'enabled': "false" },
     "properties": {
       "hmini": {
         "properties": {
@@ -14,15 +14,15 @@
             "type" : "nested",
             "properties": {
               "key": {
-                "type": "long"
+                "type": "integer"
               },
               "count": {
-                "type": "long"
+                "type": "integer"
               }
             }
           },
           "total": {
-            "type": "long"
+            "type": "integer"
           }
         }
       },
@@ -32,15 +32,15 @@
             "type" : "nested",
             "properties": {
               "key": {
-                "type": "long"
+                "type": "integer"
               },
               "count": {
-                "type": "long"
+                "type": "integer"
               }
             }
           },
           "total": {
-            "type": "long"
+            "type": "integer"
           }
         }
       },
@@ -50,17 +50,23 @@
             "type" : "nested",
             "properties": {
               "key": {
-                "type": "long"
+                "type": "integer"
               },
               "count": {
-                "type": "long"
+                "type": "integer"
               }
             }
+          },
+          "total": {
+            "type": "integer"
           }
-        },
-        "total": {
-          "type": "long"
         }
+      },
+      "date":{
+        "type":"date"
+      },
+      "fm_date":{
+        "type":"date"
       }
     }
   }

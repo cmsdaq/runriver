@@ -27,41 +27,50 @@ Remove:
 sudo /usr/share/elasticsearch/bin/plugin  -r river-runriver
 
 
-##Adding the river (central)
 
+#setting dynamic mapping (no more needed if mapping exists)
 curl -XPUT localhost:9200/_river/_mapping/runriver -d '{"dynamic":true}'  #for index.mapper.dynamic false
 
-curl -XPUT localhost:9200/_river/runriver/_meta -d '{
-    "type": "runriver",
+##Adding the river (central)
+
+curl -XPUT es-cdaq:9200/river/instance/river_cdaq_main -d '{
+    "es_central_cluster":"es-cdaq",
     "es_tribe_host" : "es-tribe",
     "es_tribe_cluster" : "es-tribe",
-    "polling_interval" : 30,
+    "polling_interval" : 15,
     "fetching_interval" : 5,
     "runIndex_read" : "runindex_cdaq_read",
     "runIndex_write" : "runindex_cdaq_write",
     "boxinfo_write" : "boxinfo_cdaq_write",
-    "enable_stats"  : true
+    "enable_stats" : false,
+    "node":{"status":"created"},
+    "subsystem":"cdaq", 
+    "instance_name":"river_cdaq_main"
 }'
 
-##Deleting the river (central)
+##Deleting the river (central) - not yet working..
 
 curl -XDELETE localhost:9200/_river/runriver/
 
 ##Adding the river (minidaq)
 
-curl -XPUT localhost:9200/_river/runriver_minidaq/_meta -d '{
-    "type": "runriver",
+
+curl -XPUT es-cdaq:9200/river/instance/river_minidaq_main -d '{
+    "es_central_cluster":"es-cdaq",
     "es_tribe_host" : "es-tribe",
     "es_tribe_cluster" : "es-tribe",
-    "polling_interval" : 30,
+    "polling_interval" : 15,
     "fetching_interval" : 5,
     "runIndex_read" : "runindex_minidaq_read",
     "runIndex_write" : "runindex_minidaq_write",
     "boxinfo_write" : "boxinfo_minidaq_write",
-    "enable_stats" : true 
+    "enable_stats" : false,
+    "node":{"status":"created"},
+    "subsystem":"minidaq", 
+    "instance_name":"river_minidaq_main"
 }'
 
-##Deleting the river (minidaq)
+##Deleting the river (minidaq) - not yet working..
 
-curl -XDELETE localhost:9200/_river/runriver_minidaq/
+#curl -XDELETE localhost:9200/_river/runriver_minidaq/
 

@@ -33,6 +33,12 @@
             "field": "mini",
             "interval": 1
          }
+      },
+      "fm_date": {
+        "max": {
+          "field": "fm_date"
+        }
       }
+
    }
 }

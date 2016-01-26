@@ -5,7 +5,6 @@
     },
     "_timestamp": {
       "enabled": "true",
-      "store": "yes"
     },
     "properties": {
       "stream": {
@@ -31,6 +30,9 @@
         "type": "double"
       },
       "fm_date":{
+        "type": "date"
+      },
+      "date":{
         "type": "date"
       }
     }

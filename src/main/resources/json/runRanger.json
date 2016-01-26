@@ -7,7 +7,7 @@
    },
    "sort": [
       {
-         "_timestamp": {
+         "startTime": {
             "order": "desc"
          }
       }
