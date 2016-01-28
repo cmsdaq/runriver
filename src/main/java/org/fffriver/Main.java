@@ -74,7 +74,7 @@ public class Main {
 
     Map <String, Object> settings = new HashMap<String, Object>();
     settings.put("role",role);
-    settings.put("role",river_subsys);
+    settings.put("subsystem",river_subsys);
     settings.put("runNumber",river_runnumber);
     settings.put("es_tribe_host", response.getSource().get("es_tribe_host"));
     settings.put("es_tribe_cluster", response.getSource().get("es_tribe_cluster"));
