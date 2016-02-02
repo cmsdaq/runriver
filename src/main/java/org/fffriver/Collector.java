@@ -226,7 +226,7 @@ public class Collector extends AbstractRunRiverThread {
                 }
                 //continue with stream aggregation
 
-                String id = String.format("%06d", Integer.parseInt(runNumber))+stream+ls;
+                String id = String.format("%06d", Integer.parseInt(runNumber))+"_"+stream+"_"+ls;
 
                 //Check if data is changed (to avoid to update timestamp if not necessary)
                 GetResponse sresponse = client.prepareGet(runIndex_write, "stream-hist", id)
@@ -253,7 +253,7 @@ public class Collector extends AbstractRunRiverThread {
                         && out.compareTo(fuoutlshist.get(stream).get(ls))==0
                         && error.compareTo(fuerrlshist.get(stream).get(ls))==0){
                         dataChanged = false;
-                    } else { logger.info(id+" already exists and will be updated."); }
+                    } else { logger.info(id+" with completion " + lastCompletion.toString() + " already exists and will be updated."); }
 
 
                 }
@@ -282,6 +282,7 @@ public class Collector extends AbstractRunRiverThread {
                 if (dataChanged){
                   logger.info("stream-hist update for ls,stream: "+ls+","+stream+" in:"+fuinlshist.get(stream).get(ls).toString()
                               +" out:"+fuoutlshist.get(stream).get(ls).toString()+" err:"+fuerrlshist.get(stream).get(ls).toString() + " completion " + newCompletion.toString());
+                  logger.info("Totals numbers - eventsVal:"+eventsVal.toString() + " lostEventsVal:" + lostEventsVal.toString() + " totalEventsVal:" + totalEventsVal.toString());
                   Double retDate = futimestamplshist.get(stream).get(ls);
                   if (retDate >  Double.NEGATIVE_INFINITY) {
                     IndexResponse iResponse = client.prepareIndex(runIndex_write, "stream-hist").setRefresh(true)
