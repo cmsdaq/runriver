@@ -12,6 +12,7 @@ import java.net.UnknownHostException;
 
 //ELASTICSEARCH
 import org.elasticsearch.client.Client;
+import org.elasticsearch.client.Requests;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexResponse;
@@ -537,7 +538,11 @@ public class Collector extends AbstractRunRiverThread {
           return;
         }
         logger.info("closing indices for run "+runNumber.toString());
-	String myuid = System.getProperty("userid");
+	//close index using JAVA API
+        remoteClient.admin().indices().close(Requests.closeIndexRequest("run"+runNumber.toString()+"_"+subsystem));
+        return;
+        /*
+	//String myuid = System.getProperty("userid");
         try {
             Process p = Runtime.getRuntime().exec("/usr/bin/php /opt/fff/closeRunIndices.php "+es_tribe_host+" "+runNumber.toString()+" &>> /tmp/closeRunIndices_"+myuid+".log");
             int retcode = p.waitFor();
@@ -552,6 +557,7 @@ public class Collector extends AbstractRunRiverThread {
         catch (InterruptedException e) {
             logger.error("Interrupted execRunClose");
         }
+        */
 
     }
 }
