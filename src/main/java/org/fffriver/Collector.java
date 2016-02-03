@@ -12,6 +12,7 @@ import java.net.UnknownHostException;
 
 //ELASTICSEARCH
 import org.elasticsearch.client.Client;
+import org.elasticsearch.client.Requests;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexResponse;
@@ -217,7 +218,7 @@ public class Collector extends AbstractRunRiverThread {
                 }
                 //continue with stream aggregation
 
-                String id = String.format("%06d", Integer.parseInt(runNumber))+stream+ls;
+                String id = String.format("%06d", Integer.parseInt(runNumber))+"_"+stream+"_"+ls;
 
                 //Check if data is changed (to avoid to update timestamp if not necessary)
                 GetResponse sresponse = client.prepareGet(runIndex_write, "stream-hist", id)
@@ -244,7 +245,7 @@ public class Collector extends AbstractRunRiverThread {
                         && out.compareTo(fuoutlshist.get(stream).get(ls))==0
                         && error.compareTo(fuerrlshist.get(stream).get(ls))==0){
                         dataChanged = false;
-                    } else { logger.info(id+" already exists and will be updated."); }
+                    } else { logger.info(id+" with completion " + lastCompletion.toString() + " already exists and will be updated."); }
 
 
                 }
@@ -273,6 +274,7 @@ public class Collector extends AbstractRunRiverThread {
                 if (dataChanged){
                   logger.info("stream-hist update for ls,stream: "+ls+","+stream+" in:"+fuinlshist.get(stream).get(ls).toString()
                               +" out:"+fuoutlshist.get(stream).get(ls).toString()+" err:"+fuerrlshist.get(stream).get(ls).toString() + " completion " + newCompletion.toString());
+                  logger.info("Totals numbers - eventsVal:"+eventsVal.toString() + " lostEventsVal:" + lostEventsVal.toString() + " totalEventsVal:" + totalEventsVal.toString());
                   Double retDate = futimestamplshist.get(stream).get(ls);
                   if (retDate >  Double.NEGATIVE_INFINITY) {
                     IndexResponse iResponse = client.prepareIndex(runIndex_write, "stream-hist").setRefresh(true)
@@ -513,7 +515,11 @@ public class Collector extends AbstractRunRiverThread {
           return;
         }
         logger.info("closing indices for run "+runNumber.toString());
-	String myuid = System.getProperty("userid");
+	//close index using JAVA API
+        remoteClient.admin().indices().close(Requests.closeIndexRequest("run"+runNumber.toString()+"_"+subsystem));
+        return;
+        /*
+	//String myuid = System.getProperty("userid");
         try {
             Process p = Runtime.getRuntime().exec("/usr/bin/php /opt/fff/closeRunIndices.php "+es_tribe_host+" "+runNumber.toString()+" &>> /tmp/closeRunIndices_"+myuid+".log");
             int retcode = p.waitFor();
@@ -528,6 +534,7 @@ public class Collector extends AbstractRunRiverThread {
         catch (InterruptedException e) {
             logger.error("Interrupted execRunClose");
         }
+        */
 
     }
 }
