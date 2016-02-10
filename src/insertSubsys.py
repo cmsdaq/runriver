@@ -17,7 +17,7 @@ except:
 
 conn = httplib.HTTPConnection(host='localhost',port=9200)
 
-q = { "es_central_cluster":"es-cdaq","es_tribe_host" : "es-tribe", "es_tribe_cluster" : "es-tribe", "polling_interval" : 15, "fetching_interval" : 5, "runIndex_read" : "runindex_"+subsys+"_read", "runIndex_write" : "runindex_"+subsys+"_write", "boxinfo_write" : "boxinfo_"+subsys+"_write", "enable_stats" : False, "node":{"status":"created"},"subsystem":subsys, "instance_name":"river_"+subsys+"_main","close_indices": True }
+q = { "es_central_cluster":"es-cdaq","es_tribe_host" : "es-tribe", "es_tribe_cluster" : "es-tribe", "polling_interval" : 15, "fetching_interval" : 5, "runIndex_read" : "runindex_"+subsys+"_read", "runIndex_write" : "runindex_"+subsys+"_write", "boxinfo_read" : "boxinfo_"+subsys+"_read", "enable_stats" : False, "node":{"status":"created"},"subsystem":subsys, "instance_name":"river_"+subsys+"_main","close_indices": True }
 
 print json.dumps(q),'\n'
 

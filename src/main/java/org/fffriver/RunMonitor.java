@@ -101,7 +101,8 @@ public class RunMonitor extends AbstractRunRiverThread {
                         .field("fetching_interval", fetching_interval)
                         .field("runIndex_read", runIndex_read)
                         .field("runIndex_write", runIndex_write)
-                        .field("boxinfo_write", boxinfo_write)
+                        .field("boxinfo_read", boxinfo_read)
+                        .field("boxinfo_write", boxinfo_read)//fallback option
                         .field("enable_stats", statsEnabled)
                         .field("close_indices", closeIndices)
                         .field("es_central_cluster", es_central_cluster)

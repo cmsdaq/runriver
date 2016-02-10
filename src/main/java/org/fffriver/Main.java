@@ -82,7 +82,12 @@ public class Main {
     settings.put("fetching_interval",response.getSource().get("fetching_interval"));
     settings.put("runIndex_read",response.getSource().get("runIndex_read"));
     settings.put("runIndex_write",response.getSource().get("runIndex_write"));
-    settings.put("boxinfo_write",response.getSource().get("boxinfo_write"));
+    try {
+      settings.put("boxinfo_read",response.getSource().get("boxinfo_read"));
+    catch (Exception e) {
+      //fallback to old name
+      settings.put("boxinfo_read",response.getSource().get("boxinfo_write"));
+    }
     settings.put("enable_stats",response.getSource().get("enable_stats"));
     settings.put("close_indices",response.getSource().get("close_indices"));
     settings.put("river_esindex",river_esindex);

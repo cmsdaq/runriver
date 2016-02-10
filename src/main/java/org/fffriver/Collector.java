@@ -478,10 +478,10 @@ public class Collector extends AbstractRunRiverThread {
         boxinfoQuery.getJSONObject("filter").getJSONObject("term")
                 .put("activeRuns",runNumber);
 
-        SearchResponse response = client.prepareSearch(boxinfo_write).setSource(boxinfoQuery)
+        SearchResponse response = client.prepareSearch(boxinfo_read).setSource(boxinfoQuery)
             .execute().actionGet();
         
-        collectStats(riverName,"boxinfoQuery",boxinfo_write,response);            
+        collectStats(riverName,"boxinfoQuery",boxinfo_read,response);
         
         logger.info("Boxinfo: "+ String.valueOf(response.getHits().getTotalHits()));
         if (response.getHits().getTotalHits() == 0 ) {
