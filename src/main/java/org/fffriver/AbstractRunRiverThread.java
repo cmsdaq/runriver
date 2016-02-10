@@ -62,7 +62,7 @@ public class AbstractRunRiverThread extends Thread  {
     public String runNumber;
     public String runIndex_read;
     public String runIndex_write;
-    public String boxinfo_write;
+    public String boxinfo_read;
     public Boolean statsEnabled; 
     public Boolean closeIndices; 
     public String subsystem;
@@ -100,7 +100,7 @@ public class AbstractRunRiverThread extends Thread  {
         runNumber = XContentMapValues.nodeStringValue(rSettings.get("runNumber"), "0");
         runIndex_read = XContentMapValues.nodeStringValue(rSettings.get("runIndex_read"), "runindex_cdaq_read");
         runIndex_write = XContentMapValues.nodeStringValue(rSettings.get("runIndex_write"), "runindex_cdaq_write");
-        boxinfo_write = XContentMapValues.nodeStringValue(rSettings.get("boxinfo_write"), "boxinfo_cdaq_write");
+        boxinfo_read = XContentMapValues.nodeStringValue(rSettings.get("boxinfo_read"), "boxinfo_cdaq_read");
         statsEnabled = Boolean.valueOf(XContentMapValues.nodeStringValue(rSettings.get("enable_stats"), "false"));
         closeIndices = Boolean.valueOf(XContentMapValues.nodeStringValue(rSettings.get("close_indices"), "true"));
         river_esindex = XContentMapValues.nodeStringValue(rSettings.get("river_esindex"), "river");
