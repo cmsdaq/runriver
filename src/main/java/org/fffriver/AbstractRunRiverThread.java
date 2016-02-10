@@ -122,10 +122,12 @@ public class AbstractRunRiverThread extends Thread  {
         } catch (IOException e) {
           logger.error("beforeLoop IOEception: ", e);
           inError = true;
+          System.exit(3);
           return;
         } catch (Exception e) {
           logger.error("beforeLoop Exception: ", e);
           inError = true;
+          System.exit(3);
           return;
         }
         //main loop
@@ -135,12 +137,12 @@ public class AbstractRunRiverThread extends Thread  {
                 mainLoop();
             } catch (IOException e) {
                logger.error("Mainloop IOEception: ", e);
-               selfDelete();
                inError = true;
+               System.exit(3);
                break;
             } catch (Exception e) {
                logger.error("Mainloop Exception: ", e);
-               selfDelete();
+               System.exit(3);
                inError = true;
                break;
             }   
@@ -151,12 +153,6 @@ public class AbstractRunRiverThread extends Thread  {
             } catch (InterruptedException e) {}
         }
         //afterLoop();
-    }
-
-    public void selfDelete(){
-        isRunning = false;
-        //client.admin().indices().prepareDeleteMapping("_river").setType(riverName).execute();
-        //done by service
     }
 
     public void mainLoop() throws Exception {
