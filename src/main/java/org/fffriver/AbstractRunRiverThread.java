@@ -25,7 +25,6 @@ import org.elasticsearch.common.xcontent.XContentFactory.*;
 import org.elasticsearch.action.update.*;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-
 import static org.elasticsearch.common.xcontent.XContentFactory.*;
 
 //Remote query stuff
@@ -110,7 +109,7 @@ public class AbstractRunRiverThread extends Thread  {
         
         //Thread settings
         isRunning = true;
-        inError = true;
+        inError = false;
     }
 
 
@@ -172,10 +171,6 @@ public class AbstractRunRiverThread extends Thread  {
     public String riverName() {
         return riverName;
     }
-
-    //public String nodeName() {
-    //    return settings.globalSettings().get("name", "");
-    //}
 
     public JSONObject getJson(String queryName) throws Exception {
         String filename = queryName + ".json" ;

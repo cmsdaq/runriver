@@ -486,7 +486,8 @@ public class Collector extends AbstractRunRiverThread {
         logger.info("Boxinfo: "+ String.valueOf(response.getHits().getTotalHits()));
         if (response.getHits().getTotalHits() == 0 ) {
           execRunClose();
-          selfDelete();
+          setRunning(false);
+          //selfDelete();
         }
     }
 
@@ -518,23 +519,5 @@ public class Collector extends AbstractRunRiverThread {
 	//close index using JAVA API
         remoteClient.admin().indices().close(Requests.closeIndexRequest("run"+runNumber.toString()+"_"+subsystem));
         return;
-        /*
-	//String myuid = System.getProperty("userid");
-        try {
-            Process p = Runtime.getRuntime().exec("/usr/bin/php /opt/fff/closeRunIndices.php "+es_tribe_host+" "+runNumber.toString()+" &>> /tmp/closeRunIndices_"+myuid+".log");
-            int retcode = p.waitFor();
-            if (retcode==0)
-                logger.error("index close script call returned with exit code "+Integer.toString(retcode));
-            else
-                logger.info("closed indices for run "+runNumber.toString());
-        }
-        catch (IOException e) {
-            logger.error("IOException in execRunClose");
-        }
-        catch (InterruptedException e) {
-            logger.error("Interrupted execRunClose");
-        }
-        */
-
     }
 }

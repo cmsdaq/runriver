@@ -1,0 +1,75 @@
+{
+  "state-hist-summary": {
+    "_parent": {
+      "type": "run"
+    },
+    "_timestamp": {
+      "enabled": "true",
+    },
+    '_all': {'enabled': "false" },
+    "properties": {
+      "hmini": {
+        "properties": {
+          "entries": {
+            "type" : "nested",
+            "properties": {
+              "key": {
+                "type": "integer"
+              },
+              "count": {
+                "type": "integer"
+              }
+            }
+          },
+          "total": {
+            "type": "integer"
+          }
+        }
+      },
+      "hmicro": {
+        "properties": {
+          "entries": {
+            "type" : "nested",
+            "properties": {
+              "key": {
+                "type": "integer"
+              },
+              "count": {
+                "type": "integer"
+              }
+            }
+          },
+          "total": {
+            "type": "integer"
+          }
+        }
+      },
+      "hmacro": {
+        "properties": {
+          "entries": {
+            "type" : "nested",
+            "properties": {
+              "key": {
+                "type": "integer"
+              },
+              "count": {
+                "type": "integer"
+              }
+            }
+          },
+          "total": {
+            "type": "integer"
+          }
+        }
+      },
+      "date":{
+        "type":"date",
+        "format":"strict_date_optional_time||epoch_millis"
+      },
+      "fm_date":{
+        "type":"date",
+        "format":"strict_date_optional_time||epoch_millis"
+      }
+    }
+  }
+}
