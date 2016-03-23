@@ -1,37 +1,35 @@
-elasticsearch-river-RunRiver
+elasticsearch-river-RunRiver service
 ==========================
 
 ##Requirements
 
-Maven3, java-7, elasticsearch
+Maven3, java-8 (Oracle or OpenJDK), elasticsearch
 
 ##Compile and Install
 
-Compile:
+Maven is used for building the service jar. If appropriate version is not available on the host OS, a custom version can be installed.
+These are instructions for installing the tool in /opt as root user:
 
-cd 'packagefolder'
+cd /opt
+wget http://mirrors.gigenet.com/apache/maven/maven-3/3.3.9/binaries/apache-maven-3.3.9-bin.tar.gz
+tar xzf apache-maven-3.3.9-bin.tar.gz
+ln -s apache-maven-3.3.9-bin maven
+rm -rf apache-maven-3.3.9-bin.tar.gz
 
-mvn3 package
+edit /etc/profile.d/maven.sh and add the following lines:
 
-Install:
-PLEASE NOTE: If you are upgrading from a previous version, please remove all existing runriver documents before to install. Then remove the old version and install the new one. (See below for the related commands).
+export M2_HOME=/opt/maven
+export M2=$M2_HOME/bin
+PATH=$M2:$PATH
 
-sudo /usr/share/elasticsearch/bin/plugin -url file:'packagefolder'/target/releases/river-runriver-1.3.2-plugin.zip -i river-runriver
+##Building jar (on a first run, Maven will pull all depencies):
 
-Check:
+mvn package
 
-sudo /usr/share/elasticsearch/bin/plugin  -l
-
-Remove:
-
-sudo /usr/share/elasticsearch/bin/plugin  -r river-runriver
+##Building rpm:
 
 
-
-#setting dynamic mapping (no more needed if mapping exists)
-curl -XPUT localhost:9200/_river/_mapping/runriver -d '{"dynamic":true}'  #for index.mapper.dynamic false
-
-##Adding the river (central)
+##Adding the river for the subsystem (cdaq):
 
 curl -XPUT es-cdaq:9200/river/instance/river_cdaq_main -d '{
     "es_central_cluster":"es-cdaq",
@@ -48,12 +46,34 @@ curl -XPUT es-cdaq:9200/river/instance/river_cdaq_main -d '{
     "instance_name":"river_cdaq_main"
 }'
 
-##Deleting the river (central) - not yet working..
+##Adding the river for the subsystem (minidaq):
 
-curl -XDELETE localhost:9200/_river/runriver/
+curl -XPUT es-cdaq:9200/river/instance/river_cdaq_main -d '{
+    "es_central_cluster":"es-cdaq",
+    "es_tribe_host" : "es-tribe",
+    "es_tribe_cluster" : "es-tribe",
+    "polling_interval" : 15,
+    "fetching_interval" : 5,
+    "runIndex_read" : "runindex_cdaq_read",
+    "runIndex_write" : "runindex_cdaq_write",
+    "boxinfo_write" : "boxinfo_cdaq_write",
+    "enable_stats" : false,
+    "node":{"status":"created"},
+    "subsystem":"cdaq", 
+    "instance_name":"river_cdaq_main"
 
-##Adding the river (minidaq)
 
+Restart river service on es-cdaq nodes in case there was another river instance for the modified subsystem which was previously running:
+
+sudo /sbin/service riverd restart
+
+##Deleting the cdaq river:
+
+curl -XDELETE localhost:9200/river/instance/river_cdaq_main
+
+And restart the river service.
+
+##Adding or deleting the river (minidaq)
 
 curl -XPUT es-cdaq:9200/river/instance/river_minidaq_main -d '{
     "es_central_cluster":"es-cdaq",
@@ -70,7 +90,5 @@ curl -XPUT es-cdaq:9200/river/instance/river_minidaq_main -d '{
     "instance_name":"river_minidaq_main"
 }'
 
-##Deleting the river (minidaq) - not yet working..
-
-#curl -XDELETE localhost:9200/_river/runriver_minidaq/
+curl -XDELETE localhost:9200/river/instance/runriver_minidaq_main
 
