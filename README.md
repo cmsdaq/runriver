@@ -3,7 +3,7 @@ elasticsearch-river-RunRiver service
 
 ##Requirements
 
-Maven3, java-8 (Oracle or OpenJDK), elasticsearch
+Maven3, java-8 (Oracle or OpenJDK), elasticsearch 2.2.0 or higher
 
 ##Compile and Install
 
@@ -24,71 +24,69 @@ PATH=$M2:$PATH
 
 ##Building jar (on a first run, Maven will pull all depencies):
 
-mvn package
+Target version of the River application and elasticsearch version are set in pom.xml file. Building command:
+
+source build.sh #contains:mvn clean compile assembly:single
+
+If building is successful, jar file will be found in "target" subdirectory
 
 ##Building rpm:
 
+Adjust "riverfile" name to the compiled jar version and set RPM target version in scripts/elastic-metarpm.sh. Then run the script:
+
+scripts/elastic-metarpm.sh
+
+Script will ask for parameters. Provide: prod , null, cms_rcms, HWCFG DB username and password
+For further builds this will be saved in scripts/paramcache file. Do _not_ commit this file to Github repo.
 
 ##Adding the river for the subsystem (cdaq):
 
 curl -XPUT es-cdaq:9200/river/instance/river_cdaq_main -d '{
     "es_central_cluster":"es-cdaq",
-    "es_tribe_host" : "es-tribe",
-    "es_tribe_cluster" : "es-tribe",
+    "es_tribe_host" : "es-local",
+    "es_tribe_cluster" : "es-local",
     "polling_interval" : 15,
     "fetching_interval" : 5,
     "runIndex_read" : "runindex_cdaq_read",
     "runIndex_write" : "runindex_cdaq_write",
     "boxinfo_write" : "boxinfo_cdaq_write",
+    "boxinfo_read" : "boxinfo_cdaq_read",
     "enable_stats" : false,
     "node":{"status":"created"},
     "subsystem":"cdaq", 
-    "instance_name":"river_cdaq_main"
+    "instance_name":"river_cdaq_main",
+    "close_indices" : true
 }'
 
 ##Adding the river for the subsystem (minidaq):
 
-curl -XPUT es-cdaq:9200/river/instance/river_cdaq_main -d '{
-    "es_central_cluster":"es-cdaq",
-    "es_tribe_host" : "es-tribe",
-    "es_tribe_cluster" : "es-tribe",
-    "polling_interval" : 15,
-    "fetching_interval" : 5,
-    "runIndex_read" : "runindex_cdaq_read",
-    "runIndex_write" : "runindex_cdaq_write",
-    "boxinfo_write" : "boxinfo_cdaq_write",
-    "enable_stats" : false,
-    "node":{"status":"created"},
-    "subsystem":"cdaq", 
-    "instance_name":"river_cdaq_main"
-
-
-Restart river service on es-cdaq nodes in case there was another river instance for the modified subsystem which was previously running:
-
-sudo /sbin/service riverd restart
-
-##Deleting the cdaq river:
-
-curl -XDELETE localhost:9200/river/instance/river_cdaq_main
-
-And restart the river service.
-
-##Adding or deleting the river (minidaq)
-
 curl -XPUT es-cdaq:9200/river/instance/river_minidaq_main -d '{
     "es_central_cluster":"es-cdaq",
-    "es_tribe_host" : "es-tribe",
-    "es_tribe_cluster" : "es-tribe",
+    "es_tribe_host" : "es-local",
+    "es_tribe_cluster" : "es-local",
     "polling_interval" : 15,
     "fetching_interval" : 5,
     "runIndex_read" : "runindex_minidaq_read",
     "runIndex_write" : "runindex_minidaq_write",
     "boxinfo_write" : "boxinfo_minidaq_write",
+    "boxinfo_read" : "boxinfo_minidaq_read",
     "enable_stats" : false,
     "node":{"status":"created"},
     "subsystem":"minidaq", 
-    "instance_name":"river_minidaq_main"
+    "instance_name":"river_minidaq_main",
+    "close_indices" : true
 }'
 
-curl -XDELETE localhost:9200/river/instance/runriver_minidaq_main
+Equivalent subsystem name for daq2val is "dv".
+
+Restart river service on es-cdaq nodes in case another version of the document was existing previously (i.e. it was updated):
+
+sudo /sbin/service riverd restart
+
+##Deleting the cdaq or minidaq river:
+
+curl -XDELETE localhost:9200/river/instance/river_cdaq_main
+
+And restart the river service.
+
 
