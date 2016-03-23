@@ -8,15 +8,19 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 
 //ELASTICSEARCH
+
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
+
 import org.elasticsearch.common.transport.TransportAddress;
+
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.xcontent.support.XContentMapValues;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.settings.Settings;
+
 import org.elasticsearch.common.logging.Loggers;
 
 public class Main {
@@ -42,6 +46,7 @@ public class Main {
 
     //start transport client
     try {
+
       //ES 2.X API:
       Settings settings = Settings.settingsBuilder().put("cluster.name", river_escluster).build();
       client = TransportClient.builder().settings(settings).build().addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(InetAddress.getByName(river_eshost), 9300)));
@@ -52,38 +57,30 @@ public class Main {
       return;
     }
 
-    //get document id from river index
     GetResponse response;
     try {
+      //get document in river_id in river index
       response = client.prepareGet(river_esindex,"instance",river_id).get();
-    catch (Exception e) {
-      logger.error("Main river exception (GET): ", e);
-      System.exit(3);
-      return;
-    }
-    //read params and push into settings Map
-    Map <String, Object> settings = new HashMap<String, Object>();
-    settings.put("role",role);
-    settings.put("subsystem",river_subsys);
-    settings.put("runNumber",river_runnumber);
-    settings.put("es_tribe_host", response.getSource().get("es_tribe_host"));
-    settings.put("es_tribe_cluster", response.getSource().get("es_tribe_cluster"));
-    settings.put("polling_interval",response.getSource().get("polling_interval"));
-    settings.put("fetching_interval",response.getSource().get("fetching_interval"));
-    settings.put("runIndex_read",response.getSource().get("runIndex_read"));
-    settings.put("runIndex_write",response.getSource().get("runIndex_write"));
-    try {
-      settings.put("boxinfo_read",response.getSource().get("boxinfo_read"));
-    catch (Exception e) {
-      //fallback to old name
-      settings.put("boxinfo_read",response.getSource().get("boxinfo_write"));
-    }
-    settings.put("enable_stats",response.getSource().get("enable_stats"));
-    settings.put("close_indices",response.getSource().get("close_indices"));
-    settings.put("river_esindex",river_esindex);
-    settings.put("es_central_cluster",river_escluster);
 
-    try {
+      //read params and push into settings Map
+      Map <String, Object> settings = new HashMap<String, Object>();
+      settings.put("role",role);
+      settings.put("subsystem",river_subsys);
+      settings.put("runNumber",river_runnumber);
+      settings.put("es_tribe_host", response.getSource().get("es_tribe_host"));
+      settings.put("es_tribe_cluster", response.getSource().get("es_tribe_cluster"));
+      settings.put("polling_interval",response.getSource().get("polling_interval"));
+      settings.put("fetching_interval",response.getSource().get("fetching_interval"));
+      settings.put("runIndex_read",response.getSource().get("runIndex_read"));
+      settings.put("runIndex_write",response.getSource().get("runIndex_write"));
+      settings.put("boxinfo_write",response.getSource().get("boxinfo_write"));
+      settings.put("enable_stats",response.getSource().get("enable_stats"));
+      settings.put("close_indices",response.getSource().get("close_indices"));
+      settings.put("river_esindex",river_esindex);
+      settings.put("es_central_cluster",river_escluster);
+
+      //super(riverName, settings);
+      //this.client = client;
       if (role.equals("monitor")){
         rm = new RunMonitor(river_id,settings,client);
         rm.run();
@@ -91,13 +88,23 @@ public class Main {
         cd = new Collector(river_id,settings,client);
         cd.run();
       }
-    client.close();
+
+      //stop
+      /*
+      if (role.equals("monitor")){
+        rm.setRunning(false);
+      }else if (role.equals("collector")){
+        cd.setRunning(false);
+      }*/
+      //exit
     }
     catch (Exception e) {
       logger.error("Main river exception: ", e);
       System.exit(3);
       return;
     }
+    client.close();
+
 
   }
 }

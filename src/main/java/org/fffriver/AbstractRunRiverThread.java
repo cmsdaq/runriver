@@ -25,6 +25,7 @@ import org.elasticsearch.common.xcontent.XContentFactory.*;
 import org.elasticsearch.action.update.*;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.common.xcontent.XContentBuilder;
+
 import static org.elasticsearch.common.xcontent.XContentFactory.*;
 
 //Remote query stuff
@@ -61,7 +62,7 @@ public class AbstractRunRiverThread extends Thread  {
     public String runNumber;
     public String runIndex_read;
     public String runIndex_write;
-    public String boxinfo_read;
+    public String boxinfo_write;
     public Boolean statsEnabled; 
     public Boolean closeIndices; 
     public String subsystem;
@@ -99,7 +100,7 @@ public class AbstractRunRiverThread extends Thread  {
         runNumber = XContentMapValues.nodeStringValue(rSettings.get("runNumber"), "0");
         runIndex_read = XContentMapValues.nodeStringValue(rSettings.get("runIndex_read"), "runindex_cdaq_read");
         runIndex_write = XContentMapValues.nodeStringValue(rSettings.get("runIndex_write"), "runindex_cdaq_write");
-        boxinfo_read = XContentMapValues.nodeStringValue(rSettings.get("boxinfo_read"), "boxinfo_cdaq_read");
+        boxinfo_write = XContentMapValues.nodeStringValue(rSettings.get("boxinfo_write"), "boxinfo_cdaq_write");
         statsEnabled = Boolean.valueOf(XContentMapValues.nodeStringValue(rSettings.get("enable_stats"), "false"));
         closeIndices = Boolean.valueOf(XContentMapValues.nodeStringValue(rSettings.get("close_indices"), "true"));
         river_esindex = XContentMapValues.nodeStringValue(rSettings.get("river_esindex"), "river");
@@ -121,12 +122,12 @@ public class AbstractRunRiverThread extends Thread  {
         } catch (IOException e) {
           logger.error("beforeLoop IOEception: ", e);
           inError = true;
-          System.exit(3);
+          System.exit(4);
           return;
         } catch (Exception e) {
           logger.error("beforeLoop Exception: ", e);
           inError = true;
-          System.exit(3);
+          System.exit(5);
           return;
         }
         //main loop
@@ -136,13 +137,15 @@ public class AbstractRunRiverThread extends Thread  {
                 mainLoop();
             } catch (IOException e) {
                logger.error("Mainloop IOEception: ", e);
+               selfDelete();
                inError = true;
-               System.exit(3);
+               System.exit(6);
                break;
             } catch (Exception e) {
-               logger.error("Mainloop Exception: ", e);
-               System.exit(3);
+               logger.error("Mainloop General Exception: ", e);
+               selfDelete();
                inError = true;
+               System.exit(7);
                break;
             }   
             
@@ -152,6 +155,10 @@ public class AbstractRunRiverThread extends Thread  {
             } catch (InterruptedException e) {}
         }
         //afterLoop();
+    }
+
+    public void selfDelete(){
+        isRunning = false;
     }
 
     public void mainLoop() throws Exception {
