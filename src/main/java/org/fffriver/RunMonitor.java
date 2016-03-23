@@ -177,7 +177,7 @@ public class RunMonitor extends AbstractRunRiverThread {
             .setType("state-hist")
             .setSource(stateHistMapping)
             .execute().actionGet();
-        {
+        }
 
     }
 
