@@ -56,6 +56,7 @@ public class Main {
     GetResponse response;
     try {
       response = client.prepareGet(river_esindex,"instance",river_id).get();
+    }
     catch (Exception e) {
       logger.error("Main river exception (GET): ", e);
       System.exit(3);
@@ -74,6 +75,7 @@ public class Main {
     settings.put("runIndex_write",response.getSource().get("runIndex_write"));
     try {
       settings.put("boxinfo_read",response.getSource().get("boxinfo_read"));
+    }
     catch (Exception e) {
       //fallback to old name
       settings.put("boxinfo_read",response.getSource().get("boxinfo_write"));
