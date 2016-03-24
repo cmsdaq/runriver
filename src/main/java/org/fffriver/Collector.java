@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
+import java.lang.Math;
 
 //ELASTICSEARCH
 import org.elasticsearch.client.Client;
@@ -178,10 +179,21 @@ public class Collector extends AbstractRunRiverThread {
                 //GetResponse sresponseEoL = client.prepareGet(runIndex_write, "eols", id)
                 //                                .setRouting(runNumber)
                 //                                .setRefresh(true).execute().actionGet();
-                Double eventsVal;
-                Double lostEventsVal;
-                Double totalEventsVal;
-                if (eolEventsList.get(ls) == null) {
+                Double eventsVal=0.0;
+                Double lostEventsVal=0.0;
+                Double totalEventsVal=0.0;
+                Boolean run_eols_query = true;
+                if (eolEventsList.get(ls) != null && eolLostEventsList.get(ls)!=null && eolTotalEventsList.get(ls)!=null) {
+
+                  eventsVal = eolEventsList.get(ls);
+                  lostEventsVal = eolLostEventsList.get(ls);
+                  totalEventsVal = eolTotalEventsList.get(ls);
+
+                  //require match, otherwise BU json files might not be written yet
+                  if (Math.round(totalEventsVal-eventsVal-totalEventsVal)==0) run_eols_query=false;
+                }
+
+                if (run_eols_query) {
                     String idStr;
                     int lsStrLen = ls.length(); 
                     Integer delta = 4 - lsStrLen;
@@ -210,11 +222,6 @@ public class Collector extends AbstractRunRiverThread {
                     eolEventsList.put(ls,eventsVal); 
                     eolLostEventsList.put(ls,lostEventsVal); 
                     eolTotalEventsList.put(ls,totalEventsVal); 
-                }
-                else {
-                    eventsVal = eolEventsList.get(ls);
-                    lostEventsVal = eolLostEventsList.get(ls);
-                    totalEventsVal = eolTotalEventsList.get(ls);
                 }
                 //continue with stream aggregation
 
