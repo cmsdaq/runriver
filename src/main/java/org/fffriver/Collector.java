@@ -21,6 +21,8 @@ import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.index.get.GetField;
+
 
 import org.elasticsearch.index.query.QueryBuilders;
 import static org.elasticsearch.common.xcontent.XContentFactory.*;
@@ -477,7 +479,15 @@ public class Collector extends AbstractRunRiverThread {
         if (EoR){return;}
         GetResponse response = client.prepareGet(runIndex_write, "run", runNumber).setRefresh(true).execute().actionGet();
         if (!response.isExists()){return;}
-        if (response.getSource().get("endTime") != null){ logger.info("EoR received!"); EoR = true; }
+        if (response.getSource().get("endTime") != null) { 
+            Integer activeBUs = (Integer)response.getSource().get("activeBUs");
+            if (activeBUs==null) { logger.info("EoR received!"); EoR = true; }
+            else {
+              //Integer activeBUs = (Integer)activeBUsObj;
+              if (activeBUs<=0) { logger.info("EoR received!"); EoR = true; }
+              else logger.info("EOR received, but there are still active BUs:" + Integer.toString(activeBUs));
+            }
+        }
     }
 
     public void checkBoxInfo(){
