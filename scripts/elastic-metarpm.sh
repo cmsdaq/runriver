@@ -121,13 +121,13 @@ pluginfile3="elasticsearch-kopf-2.1.1.zip"
 pluginname4="hq"
 pluginfile4="hq-v2.0.3.zip"
 
-riverfile="river-runriver-1.4.0-jar-with-dependencies.jar"
+riverfile="river-runriver-1.4.1-jar-with-dependencies.jar"
 
 cd $TOPDIR
 # we are done here, write the specs and make the fu***** rpm
 cat > fffmeta-elastic.spec <<EOF
 Name: $PACKAGENAME
-Version: 1.9.3
+Version: 1.9.4
 Release: 0
 Summary: hlt daemon
 License: gpl
