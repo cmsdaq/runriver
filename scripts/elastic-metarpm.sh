@@ -4,98 +4,7 @@ SCRIPTDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd $SCRIPTDIR/..
 BASEDIR=$PWD
 
-PARAMCACHE="paramcache"
-
-if [ -n "$1" ]; then
-  #PARAMCACHE=$1
-  PARAMCACHE=${1##*/}
-fi
-
-echo "Using cache file $PARAMCACHE"
-
-if [ -f $SCRIPTDIR/$PARAMCACHE ];
-then
-  readarray lines < $SCRIPTDIR/$PARAMCACHE
-  for (( i=0; i < 12; i++ ))
-  do
-    lines[$i]=`echo -n ${lines[$i]} | tr -d "\n"`
-  done
-else
-  for (( i=0; i < 12; i++ ))
-  do
-    lines[$i]=""
-  done
-fi
-
-echo "Enviroment (prod,vm) (press enter for \"${lines[0]}\"):"
-readin=""
-read readin
-if [ ${#readin} != "0" ]; then
-lines[0]=$readin
-fi
-
-#PACKAGENAME="fffmeta-elastic"
-if [ ${lines[0]} == "prod" ]; then
-  PACKAGENAME="fffmeta-elastic"
-elif [ ${lines[0]} == "vm" ]; then
-  PACKAGENAME="fffmeta-elastic-vm"
-else
-  echo "Environment ${lines[0]} not supported. Available: prod or vm"
-  exit 1
-fi
-
-
-nousevar=$readin
-nousevar=$readin
-lines[1]="null"
-lines[2]="null"
-
-echo "HWCFG DB server (press enter for \"${lines[3]}\"):"
-readin=""
-read readin
-if [ ${#readin} != "0" ]; then
-lines[3]=$readin
-fi
-
-echo "HWCFG DB SID (or db name in VM enviroment) (press enter for: \"${lines[4]}\"):"
-echo "(SPECIFIES address in TNSNAMES.ORA file if DB server field was \"null\"!)"
-readin=""
-read readin
-if [ ${#readin} != "0" ]; then
-lines[4]=$readin
-fi
-
-echo "HWCFG DB username (press enter for: \"${lines[5]}\"):"
-readin=""
-read readin
-if [ ${#readin} != "0" ]; then
-lines[5]=$readin
-fi
-
-echo "HWCFG DB password (press enter for: \"${lines[6]}\"):"
-readin=""
-read readin
-if [ ${#readin} != "0" ]; then
-lines[6]=$readin
-fi
-
-echo "Equipment set (press enter for: \"${lines[7]}\") - type 'latest' or enter a specific one:"
-readin=""
-read readin
-if [ ${#readin} != "0" ]; then
-lines[7]=$readin
-fi
-
-lines[8]="null"
-lines[9]="null"
-lines[10]="null"
-lines[11]="null"
-
-params=""
-for (( i=0; i < 12; i++ ))
-do
-  params="$params ${lines[i]}"
-done
+PACKAGENAME="fffmeta-elastic"
 
 # create a build area
 
@@ -175,7 +84,7 @@ cp $BASEDIR/python/daemon2.py %{buildroot}/opt/fff/daemon2.py
 cp $BASEDIR/python/river-daemon.py %{buildroot}/opt/fff/river-daemon.py
 cp $BASEDIR/python/riverd %{buildroot}/etc/init.d/riverd
 echo "#!/bin/bash" > %{buildroot}/opt/fff/configurefff.sh
-echo python2.6 /opt/fff/setupmachine.py elasticsearch $params >> %{buildroot}/opt/fff/configurefff.sh 
+echo python2.6 /opt/fff/setupmachine.py elasticsearch >> %{buildroot}/opt/fff/configurefff.sh 
 
 cp $BASEDIR/target/$riverfile %{buildroot}/opt/fff/river.jar
 cp $BASEDIR/esplugins/$pluginfile1 %{buildroot}/opt/fff/esplugins/$pluginfile1
@@ -241,7 +150,7 @@ chkconfig --add riverd
 #echo "triggered on elasticsearch update or install"
 #/sbin/service elasticsearch stop
 python2.6 /opt/fff/setupmachine.py restore,elasticsearch
-python2.6 /opt/fff/setupmachine.py elasticsearch $params
+python2.6 /opt/fff/setupmachine.py elasticsearch
 #update permissions in case new rpm changed uid/guid
 chown -R elasticsearch:elasticsearch /var/log/elasticsearch
 chown -R elasticsearch:elasticsearch /var/lib/elasticsearch
