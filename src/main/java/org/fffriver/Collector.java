@@ -192,7 +192,7 @@ public class Collector extends AbstractRunRiverThread {
                   totalEventsVal = eolTotalEventsList.get(ls);
 
                   //require match, otherwise BU json files might not be written yet
-                  if (Math.round(totalEventsVal-eventsVal-totalEventsVal)==0) run_eols_query=false;
+                  if (Math.round(totalEventsVal-eventsVal-lostEventsVal)==0) run_eols_query=false;
                 }
 
                 if (run_eols_query) {
@@ -214,6 +214,7 @@ public class Collector extends AbstractRunRiverThread {
                         logger.info("eolsQuery returns 0 hits for LS " + ls + ", skipping collection without EoLS docs");
                         continue;
                     }
+                    logger.info("eolsQuery returned " + String.valueOf(sResponseEoLS.getHits().getTotalHits()) + " hits for LS "+ ls);
                     //else logger.info(String.valueOf(sResponseEoLS.getHits().getTotalHits()));
                     Sum eolEvents = sResponseEoLS.getAggregations().get("NEvents");
                     Sum eolLostEvents = sResponseEoLS.getAggregations().get("NLostEvents");
@@ -224,6 +225,8 @@ public class Collector extends AbstractRunRiverThread {
                     eolEventsList.put(ls,eventsVal); 
                     eolLostEventsList.put(ls,lostEventsVal); 
                     eolTotalEventsList.put(ls,totalEventsVal); 
+                    if (Math.round(totalEventsVal-eventsVal-lostEventsVal)==0)
+                        logger.info("eolsQuery match for LS "+ ls + " with total of "+totalEventsVal.toString()+" events");
                 }
                 //continue with stream aggregation
 
