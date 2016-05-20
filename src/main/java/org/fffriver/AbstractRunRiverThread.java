@@ -141,17 +141,25 @@ public class AbstractRunRiverThread extends Thread  {
                break;
             } catch (Exception e) {
                logger.error("Mainloop Exception: ", e);
-               System.exit(3);
                inError = true;
+               System.exit(3);
                break;
             }   
             
 
             try {
                 Thread.sleep(interval * 1000); // needs milliseconds
-            } catch (InterruptedException e) {}
+            } catch (InterruptedException e) {} //should exit in this case
         }
-        //afterLoop();
+
+        try {
+            afterLoop();
+        } catch (Exception e) {
+           logger.error("Afterloop Exception: ", e);
+           inError = true;
+           System.exit(3);
+        }   
+ 
     }
 
     public void mainLoop() throws Exception {
@@ -160,7 +168,7 @@ public class AbstractRunRiverThread extends Thread  {
     public void beforeLoop() throws UnknownHostException {
         return;
     }
-    public void afterLoop(){
+    public void afterLoop() throws Exception {
         return;
     }
 

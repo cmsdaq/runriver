@@ -51,7 +51,7 @@ public class RunMonitor extends AbstractRunRiverThread {
         this.interval = polling_interval;
         
     }
-    public void afterLoop(){
+    public void afterLoop() throws Exception {
         logger.info("RunMonitor Stopped.");
     }
 

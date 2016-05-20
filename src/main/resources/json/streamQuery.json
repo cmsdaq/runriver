@@ -45,6 +45,13 @@
                      "max": {
                         "field": "fm_date"
                      }
+                  },
+                  "mergeType": {
+                     "terms": {
+                         "field":"data.mergeType",
+                         "size":2,
+                         "order":{"_term":"desc"}
+                     }
                   }
                }
             }

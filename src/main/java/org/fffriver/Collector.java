@@ -59,15 +59,19 @@ public class Collector extends AbstractRunRiverThread {
     Map<String, Map<String, Double>> fuerrlshist = new HashMap<String, Map<String, Double>>();
     Map<String, Map<String, Double>> fufilesizehist = new HashMap<String, Map<String, Double>>();
     Map<String, Map<String, Double>> futimestamplshist = new HashMap<String, Map<String, Double>>();
+    Map<String, Map<String, String>> fumergetypelshist = new HashMap<String, Map<String, String>>();
     Map<String, Double> eolEventsList = new HashMap<String, Double>();
     Map<String, Double> eolLostEventsList = new HashMap<String, Double>();
     Map<String, Double> eolTotalEventsList = new HashMap<String, Double>();
+
+    Map<Integer, Map<String,Double>> incompleteLumis = new HashMap<Integer, Map<String,Double>>();
 
     Client remoteClient;
     Boolean EoR=false;
     String tribeIndex;
     String runStrPrefix;
     Boolean firstTime=true;
+    Boolean shouldCloseRun = false;
     Integer ustatesReserved=-1;
     Integer ustatesSpecial=-1;
     Integer ustatesOutput=-1;
@@ -98,13 +102,19 @@ public class Collector extends AbstractRunRiverThread {
 
     }
     @Override
-    public void afterLoop(){
+    public void afterLoop() throws Exception {
+        //do a final check on all lumis if there are any incomplete
+        if (!incompleteLumis.isEmpty()) {
+          firstTime=true;
+          collectStreams();
+        }
+        if (shouldCloseRun) execRunClose();
         remoteClient.close();
         logger.info("Collector stopped.");
     }
 
     @Override
-    public void mainLoop() throws Exception {        
+    public void mainLoop() throws Exception {
         logger.info("Collector running...");
         collectStates();
         collectStreams();
@@ -139,19 +149,22 @@ public class Collector extends AbstractRunRiverThread {
 
         if(sResponse.getAggregations().asList().isEmpty()){return;}
         
-        Terms streams = sResponse.getAggregations().get("streams");            
+        Terms streams = sResponse.getAggregations().get("streams");
         
         if(streams.getBuckets().isEmpty()){return;}
         for (Terms.Bucket stream : streams.getBuckets()){
             String streamName = stream.getKeyAsString();
 
             known_streams.put(streamName,stream.getDocCount());
-        
-            fuinlshist.put(streamName, new HashMap<String, Double>());
-            fuoutlshist.put(streamName, new HashMap<String, Double>());
-            fuerrlshist.put(streamName, new HashMap<String, Double>());
-            fufilesizehist.put(streamName, new HashMap<String, Double>());
-            futimestamplshist.put(streamName, new HashMap<String, Double>());
+       
+            if (fumergetypelshist.get(streamName)==null) {
+              fuinlshist.put(streamName, new HashMap<String, Double>());
+              fuoutlshist.put(streamName, new HashMap<String, Double>());
+              fuerrlshist.put(streamName, new HashMap<String, Double>());
+              fufilesizehist.put(streamName, new HashMap<String, Double>());
+              futimestamplshist.put(streamName, new HashMap<String, Double>());
+              fumergetypelshist.put(streamName, new HashMap<String, String>());
+            }
 
             Terms lss = stream.getAggregations().get("ls");
            
@@ -165,11 +178,18 @@ public class Collector extends AbstractRunRiverThread {
                 Sum filesizeSum = ls.getAggregations().get("filesize");
                 Max fm_date = ls.getAggregations().get("fm_date");
 
+                String mergeType = "";
+                Terms mergeTypes = ls.getAggregations().get("mergeType");
+                for (Terms.Bucket mTypeBucket : mergeTypes.getBuckets()) {
+                 mergeType = mTypeBucket.getKeyAsString();
+                 break;
+                }
                 fuinlshist.get(streamName).put(lsName,inSum.getValue());
                 fuoutlshist.get(streamName).put(lsName,outSum.getValue());
                 fuerrlshist.get(streamName).put(lsName,errSum.getValue());
                 fufilesizehist.get(streamName).put(lsName,filesizeSum.getValue());
                 futimestamplshist.get(streamName).put(lsName,fm_date.getValue());
+                fumergetypelshist.get(streamName).put(lsName,mergeType);
   
             } 
         }
@@ -281,6 +301,8 @@ public class Collector extends AbstractRunRiverThread {
                     logger.error("This should not happen: mismatch between NEvents + NLostEvents is not zero, but TotalEvents is for ls "+ls
                                  + " values: " + eventsVal.toString() + " " + lostEventsVal.toString()  + " " + totalEventsVal.toString());
                 }
+                //precision rounding
+                if newCompletion>0.9999999999 && newCompletion<1.0000000001) newCompletion=1.;
                 
                 //Update Data
                 if (dataChanged){
@@ -288,6 +310,23 @@ public class Collector extends AbstractRunRiverThread {
                               +" out:"+fuoutlshist.get(stream).get(ls).toString()+" err:"+fuerrlshist.get(stream).get(ls).toString() + " completion " + newCompletion.toString());
                   logger.info("Totals numbers - eventsVal:"+eventsVal.toString() + " lostEventsVal:" + lostEventsVal.toString() + " totalEventsVal:" + totalEventsVal.toString());
                   Double retDate = futimestamplshist.get(stream).get(ls);
+                  Integer ls_num = Integer.parseInt(ls); 
+                  Map<String,Double> strcompletion = incompleteLumis.get(ls_num);
+                  if (newCompletion<1.) {
+                      if (strcompletion!=null)
+                          strcompletion.put(stream,newCompletion);
+                      else {
+                          Map<String,Double> newStreamCompletion = new HashMap<String,Double>();
+                          newStreamCompletion.put(stream,newCompletion);
+                          incompleteLumis.put(ls_num,newStreamCompletion);
+                      }
+                  } else {
+                      //clean up if completed
+                      if (strcompletion!=null) {
+                        strcompletion.remove(stream);
+                        if (strcompletion.isEmpty()) incompleteLumis.remove(ls_num);
+                      }
+                  }
                   if (retDate >  Double.NEGATIVE_INFINITY) {
                     IndexResponse iResponse = client.prepareIndex(runIndex_write, "stream-hist").setRefresh(true)
                     .setParent(runNumber)
@@ -295,11 +334,12 @@ public class Collector extends AbstractRunRiverThread {
                     .setSource(jsonBuilder()
                         .startObject()
                         .field("stream", stream)
-                        .field("ls", Integer.parseInt(ls))
+                        .field("ls", ls_num)
                         .field("in", fuinlshist.get(stream).get(ls))
                         .field("out", fuoutlshist.get(stream).get(ls))
                         .field("err", fuerrlshist.get(stream).get(ls))
                         .field("filesize", fufilesizehist.get(stream).get(ls))
+                        .field("mergeType", fumergetypelshist.get(stream).get(ls))
                         .field("fm_date", retDate.longValue()) //convert when injecting into futimestamplshist?
                         .field("date",  System.currentTimeMillis())
                         .field("completion", newCompletion)
@@ -308,7 +348,7 @@ public class Collector extends AbstractRunRiverThread {
                     .actionGet();
                   }
                   else {
-                    //if no date, create indexing date exlplicitely
+                    //if no date, create indexing date explicitely
                     long start_time_millis = System.currentTimeMillis();
                     IndexResponse iResponse = client.prepareIndex(runIndex_write, "stream-hist").setRefresh(true)
                     .setParent(runNumber)
@@ -321,6 +361,7 @@ public class Collector extends AbstractRunRiverThread {
                         .field("out", fuoutlshist.get(stream).get(ls))
                         .field("err", fuerrlshist.get(stream).get(ls))
                         .field("filesize", fufilesizehist.get(stream).get(ls))
+                        .field("mergeType", fumergetypelshist.get(stream).get(ls))
                         .field("date",start_time_millis)
                         .field("fm_date",start_time_millis)
                         .field("completion", newCompletion)
@@ -505,9 +546,9 @@ public class Collector extends AbstractRunRiverThread {
         
         logger.info("Boxinfo: "+ String.valueOf(response.getHits().getTotalHits()));
         if (response.getHits().getTotalHits() == 0 ) {
-          execRunClose();
+          //execRunClose();
+          shouldCloseRun = true;
           setRunning(false);
-          //selfDelete();
         }
     }
 
