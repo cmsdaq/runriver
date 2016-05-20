@@ -50,7 +50,7 @@ AutoReqProv: no
 Requires:elasticsearch => 2.2, cx_Oracle >= 5.1.2, java-1.8.0-oracle-headless >= 1.8.0.45, php >= 5.3.3, php-oci8 >= 1.4.9
 
 Provides:/opt/fff/configurefff.sh
-Provides:/opt/fff/setupmachine.py
+Provides:/opt/fff/essetupmachine.py
 Provides:/etc/init.d/fffmeta
 Provides:/etc/init.d/fff-es
 Provides:/opt/fff/daemon2.py
@@ -79,12 +79,12 @@ mkdir -p opt/fff/backup
 mkdir -p etc/init.d/
 mkdir -p etc/rsyslog.d
 cp $BASEDIR/etc/rsyslog.d/48-river.conf %{buildroot}/etc/rsyslog.d/48-river.conf
-cp $BASEDIR/python/setupmachine.py %{buildroot}/opt/fff/setupmachine.py
+cp $BASEDIR/python/essetupmachine.py %{buildroot}/opt/fff/essetupmachine.py
 cp $BASEDIR/python/daemon2.py %{buildroot}/opt/fff/daemon2.py
 cp $BASEDIR/python/river-daemon.py %{buildroot}/opt/fff/river-daemon.py
 cp $BASEDIR/python/riverd %{buildroot}/etc/init.d/riverd
 echo "#!/bin/bash" > %{buildroot}/opt/fff/configurefff.sh
-echo python2.6 /opt/fff/setupmachine.py elasticsearch >> %{buildroot}/opt/fff/configurefff.sh 
+echo python2.6 /opt/fff/essetupmachine.py >> %{buildroot}/opt/fff/configurefff.sh
 
 cp $BASEDIR/target/$riverfile %{buildroot}/opt/fff/river.jar
 cp $BASEDIR/esplugins/$pluginfile1 %{buildroot}/opt/fff/esplugins/$pluginfile1
@@ -116,9 +116,9 @@ echo "fi"                                >> %{buildroot}/etc/init.d/fffmeta
 %files
 %defattr(-, root, root, -)
 #/opt/fff
-%attr( 755 ,root, root) /opt/fff/setupmachine.py
-%attr( 755 ,root, root) /opt/fff/setupmachine.pyc
-%attr( 755 ,root, root) /opt/fff/setupmachine.pyo
+%attr( 755 ,root, root) /opt/fff/essetupmachine.py
+%attr( 755 ,root, root) /opt/fff/essetupmachine.pyc
+%attr( 755 ,root, root) /opt/fff/essetupmachine.pyo
 %attr( 755 ,root, root) /opt/fff/daemon2.py
 %attr( 755 ,root, root) /opt/fff/daemon2.pyc
 %attr( 755 ,root, root) /opt/fff/daemon2.pyo
@@ -149,8 +149,8 @@ chkconfig --add riverd
 %triggerin -- elasticsearch
 #echo "triggered on elasticsearch update or install"
 #/sbin/service elasticsearch stop
-python2.6 /opt/fff/setupmachine.py restore,elasticsearch
-python2.6 /opt/fff/setupmachine.py elasticsearch
+python2.6 /opt/fff/essetupmachine.py restore
+python2.6 /opt/fff/essetupmachine.py
 #update permissions in case new rpm changed uid/guid
 chown -R elasticsearch:elasticsearch /var/log/elasticsearch
 chown -R elasticsearch:elasticsearch /var/lib/elasticsearch
@@ -196,7 +196,7 @@ if [ \$1 == 0 ]; then
   /opt/fff/esplugins/uninstall.sh /usr/share/elasticsearch $pluginname4 || true
 
 
-  python2.6 /opt/fff/setupmachine.py restore,elasticsearch
+  python2.6 /opt/fff/essetupmachine.py restore
 fi
 
 #%verifyscript
