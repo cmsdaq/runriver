@@ -7,9 +7,6 @@ import shutil
 import syslog
 import time
 
-sys.path.append('/opt/hltd/python')
-#from fillresources import *
-
 backup_dir = '/opt/fff/backup'
 try:
     os.makedirs(backup_dir)
@@ -18,12 +15,6 @@ except:pass
 elasticsysconf = '/etc/sysconfig/elasticsearch'
 elasticconf = '/etc/elasticsearch/elasticsearch.yml'
 elasticlogconf = '/etc/elasticsearch/logging.yml'
-
-dbhost = 'empty'
-dbsid = 'empty'
-dblogin = 'empty'
-dbpwd = 'empty'
-equipmentSet = 'latest'
 
 es_cdaq_list = ['ncsrv-c2e42-09-02', 'ncsrv-c2e42-11-02', 'ncsrv-c2e42-13-02', 'ncsrv-c2e42-19-02']
 es_local_list =[ 'ncsrv-c2e42-21-02', 'ncsrv-c2e42-23-02', 'ncsrv-c2e42-13-03', 'ncsrv-c2e42-23-03']
@@ -205,25 +196,19 @@ def restoreFileMaybe(file):
 
 #main function
 if __name__ == "__main__":
-    argvc = 1
-    if not sys.argv[argvc]:
-        print "selection of packages to set up (hltd and/or elastic) missing"
-        sys.exit(1)
-    selection = sys.argv[argvc]
-    #print selection
-
-    if 'restore'==selection:
-        restoreFileMaybe(elasticsysconf)
-        restoreFileMaybe(elasticconf)
-        #restoreFileMaybe(elasticlogconf)
-        sys.exit(0)
+    if len(sys.argv)>0:
+        if 'restore'==sys.argv[1]:
+            print "restoring configuration..."
+            restoreFileMaybe(elasticsysconf)
+            restoreFileMaybe(elasticconf)
+            #restoreFileMaybe(elasticlogconf)
+            sys.exit(0)
 
     cluster,type,env = getmachinetype()
-
     print "running configuration for machine",os.uname()[1],"of type",type,"in cluster",cluster
 
 
-    if 'elasticsearch' in selection:
+    if True:
 
         if env=="vm":
             es_publish_host=os.uname()[1]
