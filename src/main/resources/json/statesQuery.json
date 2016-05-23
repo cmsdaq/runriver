@@ -1,25 +1,20 @@
 {
    "size": 0,
-   "sort": [
-      {
-         "fm_date": {
-            "order": "desc"
-         }
-      }
-   ],
    "query": {
       "range": {
          "fm_date": {
-            "from": "now-3s",
-            "to": "now-1s"
+            "from": "now-4s",
+            "to": "now-2s"
          }
       }
    },
    "aggs": {
       "hmicro": {
-         "histogram": {
+         "terms": {
             "field": "micro",
-            "interval": 1
+            "size": 0,
+            "order" : { "_term" : "asc" },
+            "min_doc_count":1
          }
       },
       "hmacro": {
@@ -29,9 +24,11 @@
          }
       },
       "hmini": {
-         "histogram": {
+         "terms": {
             "field": "mini",
-            "interval": 1
+            "size": 0,
+            "order" : { "_term" : "asc" },
+            "min_doc_count":1
          }
       },
       "fm_date": {
@@ -39,6 +36,5 @@
           "field": "fm_date"
         }
       }
-
    }
 }
