@@ -56,7 +56,8 @@ Provides:/etc/init.d/fff-es
 Provides:/opt/fff/daemon2.py
 Provides:/opt/fff/river-daemon.py
 Provides:/etc/init.d/riverd
-Provides:/opt/ff/river.jar
+#Provides:/opt/fff/river.jar
+Provides:/opt/fff/$riverfile
 Provides:/etc/rsyslog.d/48-river.conf
 
 %description
@@ -83,10 +84,14 @@ cp $BASEDIR/python/essetupmachine.py %{buildroot}/opt/fff/essetupmachine.py
 cp $BASEDIR/python/daemon2.py %{buildroot}/opt/fff/daemon2.py
 cp $BASEDIR/python/river-daemon.py %{buildroot}/opt/fff/river-daemon.py
 cp $BASEDIR/python/riverd %{buildroot}/etc/init.d/riverd
+#old#ln -s -f river.jar /opt/fff/river_dv.jar
+ln -s -f $riverfile /opt/fff/river.jar
+
 echo "#!/bin/bash" > %{buildroot}/opt/fff/configurefff.sh
 echo python2.6 /opt/fff/essetupmachine.py >> %{buildroot}/opt/fff/configurefff.sh
 
-cp $BASEDIR/target/$riverfile %{buildroot}/opt/fff/river.jar
+#old#cp $BASEDIR/target/$riverfile %{buildroot}/opt/fff/river.jar
+cp $BASEDIR/target/$riverfile %{buildroot}/opt/fff/$riverfile
 cp $BASEDIR/esplugins/$pluginfile1 %{buildroot}/opt/fff/esplugins/$pluginfile1
 cp $BASEDIR/esplugins/$pluginfile2 %{buildroot}/opt/fff/esplugins/$pluginfile2
 cp $BASEDIR/esplugins/$pluginfile3 %{buildroot}/opt/fff/esplugins/$pluginfile3
