@@ -28,16 +28,13 @@ Target version of the River application and elasticsearch version are set in pom
 
 source build.sh #contains:mvn clean compile assembly:single
 
-If building is successful, jar file will be found in "target" subdirectory
+If building is successful, jar file will be found in "target" subdirectory.
 
 ##Building rpm:
 
 Adjust "riverfile" name to the compiled jar version and set RPM target version in scripts/elastic-metarpm.sh. Then run the script:
 
 scripts/elastic-metarpm.sh
-
-Script will ask for parameters. Provide: prod , null, cms_rcms, HWCFG DB username and password
-For further builds this will be saved in scripts/paramcache file. Do _not_ commit this file to Github repo.
 
 ##Adding the river for the subsystem (cdaq):
 
