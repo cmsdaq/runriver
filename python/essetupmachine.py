@@ -306,6 +306,7 @@ if __name__ == "__main__":
             escfg.reg("script.engine.groovy.indexed.update", 'true')
             escfg.reg("script.engine.groovy.indexed.aggs", 'true')
             escfg.reg("script.engine.groovy.indexed.search", 'true')
+            escfg.reg("action.destructive_requires_name", 'true')
             #escfg.reg('script.inline.enabled','true')
             escfg.reg('node.master','true')
             escfg.reg('node.data','true')
