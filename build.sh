@@ -1,4 +1,5 @@
 #!/bin/bash
+rm target/*.jar -rf
 mvn clean compile assembly:single
 #set -e
 

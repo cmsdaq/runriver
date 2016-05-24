@@ -48,7 +48,7 @@
                   },
                   "mergeType": {
                      "terms": {
-                         "field":"data.mergeType",
+                         "field":"data.MergeType",
                          "size":2,
                          "order":{"_term":"desc"}
                      }

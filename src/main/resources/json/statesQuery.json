@@ -9,6 +9,24 @@
       }
    },
    "aggs": {
+      "mclass":{
+        "terms":{
+          "field":"mclass",
+          "size":0,
+          "order" : { "_term" : "asc" },
+          "min_doc_count":1
+        },
+        "aggs":{
+          "hmicro": {
+            "terms": {
+              "field": "micro",
+              "size": 0,
+              "order" : { "_term" : "asc" },
+              "min_doc_count":1
+            }
+          }
+        }
+      },
       "hmicro": {
          "terms": {
             "field": "micro",
@@ -18,9 +36,11 @@
          }
       },
       "hmacro": {
-         "histogram": {
+         "terms": {
             "field": "macro",
-            "interval": 1
+            "size": 0,
+            "order" : { "_term" : "asc" },
+            "min_doc_count":1
          }
       },
       "hmini": {

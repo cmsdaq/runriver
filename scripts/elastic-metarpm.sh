@@ -29,8 +29,16 @@ pluginname3="kopf"
 pluginfile3="elasticsearch-kopf-2.1.1.zip"
 pluginname4="hq"
 pluginfile4="hq-v2.0.3.zip"
+pluginname5="delete-by-query"
+pluginfile5="delete-by-query-2.2.0.zip"
+
 
 riverfile="river-runriver-1.4.2-jar-with-dependencies.jar"
+
+if [ ! -f $SCRIPTDIR/../target/$riverfile ]; then
+ echo "missing river file $SCRIPTDIR/../target/$riverfile"
+ exit 1
+fi
 
 cd $TOPDIR
 # we are done here, write the specs and make the fu***** rpm
@@ -56,7 +64,6 @@ Provides:/etc/init.d/fff-es
 Provides:/opt/fff/daemon2.py
 Provides:/opt/fff/river-daemon.py
 Provides:/etc/init.d/riverd
-#Provides:/opt/fff/river.jar
 Provides:/opt/fff/$riverfile
 Provides:/etc/rsyslog.d/48-river.conf
 
@@ -84,18 +91,16 @@ cp $BASEDIR/python/essetupmachine.py %{buildroot}/opt/fff/essetupmachine.py
 cp $BASEDIR/python/daemon2.py %{buildroot}/opt/fff/daemon2.py
 cp $BASEDIR/python/river-daemon.py %{buildroot}/opt/fff/river-daemon.py
 cp $BASEDIR/python/riverd %{buildroot}/etc/init.d/riverd
-#old#ln -s -f river.jar /opt/fff/river_dv.jar
-ln -s -f $riverfile /opt/fff/river.jar
 
 echo "#!/bin/bash" > %{buildroot}/opt/fff/configurefff.sh
 echo python2.6 /opt/fff/essetupmachine.py >> %{buildroot}/opt/fff/configurefff.sh
 
-#old#cp $BASEDIR/target/$riverfile %{buildroot}/opt/fff/river.jar
 cp $BASEDIR/target/$riverfile %{buildroot}/opt/fff/$riverfile
 cp $BASEDIR/esplugins/$pluginfile1 %{buildroot}/opt/fff/esplugins/$pluginfile1
 cp $BASEDIR/esplugins/$pluginfile2 %{buildroot}/opt/fff/esplugins/$pluginfile2
 cp $BASEDIR/esplugins/$pluginfile3 %{buildroot}/opt/fff/esplugins/$pluginfile3
 cp $BASEDIR/esplugins/$pluginfile4 %{buildroot}/opt/fff/esplugins/$pluginfile4
+cp $BASEDIR/esplugins/$pluginfile5 %{buildroot}/opt/fff/esplugins/$pluginfile5
 cp $BASEDIR/esplugins/install.sh %{buildroot}/opt/fff/esplugins/install.sh
 cp $BASEDIR/esplugins/uninstall.sh %{buildroot}/opt/fff/esplugins/uninstall.sh
 cp $BASEDIR/scripts/fff-es %{buildroot}/etc/init.d/fff-es
@@ -138,9 +143,10 @@ echo "fi"                                >> %{buildroot}/etc/init.d/fffmeta
 %attr( 444 ,root, root) /opt/fff/esplugins/$pluginfile2
 %attr( 444 ,root, root) /opt/fff/esplugins/$pluginfile3
 %attr( 444 ,root, root) /opt/fff/esplugins/$pluginfile4
+%attr( 444 ,root, root) /opt/fff/esplugins/$pluginfile5
 %attr( 755 ,root, root) /opt/fff/esplugins/install.sh
 %attr( 755 ,root, root) /opt/fff/esplugins/uninstall.sh
-%attr( 755 ,root, root) /opt/fff/river.jar
+%attr( 755 ,root, root) /opt/fff/$riverfile
 %attr( 444 ,root, root) /etc/rsyslog.d/48-river.conf
 
 %post
@@ -149,6 +155,12 @@ chkconfig --del fffmeta
 chkconfig --add fffmeta
 chkconfig --del riverd
 chkconfig --add riverd
+
+#make symbolic links
+ln -s -f river.jar /opt/fff/river_dv.jar
+ln -s -f $riverfile /opt/fff/river.jar
+
+
 #disabled, can be run manually for now
 
 %triggerin -- elasticsearch
@@ -169,6 +181,8 @@ echo "Installing plugins..."
 /opt/fff/esplugins/install.sh /usr/share/elasticsearch $pluginfile3 $pluginname3
 /opt/fff/esplugins/uninstall.sh /usr/share/elasticsearch $pluginname4 > /dev/null
 /opt/fff/esplugins/install.sh /usr/share/elasticsearch $pluginfile4 $pluginname4
+/opt/fff/esplugins/uninstall.sh /usr/share/elasticsearch $pluginname5 > /dev/null
+/opt/fff/esplugins/install.sh /usr/share/elasticsearch $pluginfile5 $pluginname5
 
 chkconfig --del elasticsearch
 chkconfig --add elasticsearch
@@ -193,12 +207,16 @@ if [ \$1 == 0 ]; then
   chkconfig --del riverd
   chkconfig --del elasticsearch
   /sbin/service riverd stop || true
+  #delete symbolic links
+  rm -rf /opt/fff/river_dv.jar /opt/fff/river.jar
+
 
   #/sbin/service elasticsearch stop || true
   /opt/fff/esplugins/uninstall.sh /usr/share/elasticsearch $pluginname1 || true
   /opt/fff/esplugins/uninstall.sh /usr/share/elasticsearch $pluginname2 || true
   /opt/fff/esplugins/uninstall.sh /usr/share/elasticsearch $pluginname3 || true
   /opt/fff/esplugins/uninstall.sh /usr/share/elasticsearch $pluginname4 || true
+  /opt/fff/esplugins/uninstall.sh /usr/share/elasticsearch $pluginname5 || true
 
 
   python2.6 /opt/fff/essetupmachine.py restore

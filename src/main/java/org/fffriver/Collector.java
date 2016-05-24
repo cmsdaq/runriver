@@ -302,7 +302,7 @@ public class Collector extends AbstractRunRiverThread {
                                  + " values: " + eventsVal.toString() + " " + lostEventsVal.toString()  + " " + totalEventsVal.toString());
                 }
                 //precision rounding
-                if newCompletion>0.9999999999 && newCompletion<1.0000000001) newCompletion=1.;
+                if (newCompletion>0.9999999999 && newCompletion<1.0000000001) newCompletion=1.;
                 
                 //Update Data
                 if (dataChanged){
@@ -431,6 +431,7 @@ public class Collector extends AbstractRunRiverThread {
         for (Aggregation agg : sResponse.getAggregations()) {
             String name = agg.getName();
             if (name.equals("fm_date")) continue;
+            if (name.equals("mclass")) continue;
             String namev = name + "v"; //alternate name for non-nested docs
             Boolean doSummary = false;
             Boolean doSummaryOutputs = false;
@@ -445,8 +446,8 @@ public class Collector extends AbstractRunRiverThread {
             xb.startObject(namev).startArray("entries"); 
             if (doSummary)
                 xbSummary.startObject(name).startArray("entries");
-            Histogram hist = sResponse.getAggregations().get(name);
-            for ( Histogram.Bucket bucket : hist.getBuckets() ){
+            Terms hist = sResponse.getAggregations().get(name);
+            for ( Terms.Bucket bucket : hist.getBuckets() ){
                 Long keyl = (Long)(bucket.getKey());
                 long key = keyl.longValue();
                 Long doc_count = bucket.getDocCount();            
@@ -509,6 +510,64 @@ public class Collector extends AbstractRunRiverThread {
             .setParent(runNumber)
             .setSource(xbSummary)
             .execute();                  
+
+        //class summary
+
+        Terms cpuclasses = sResponse.getAggregations().get("mclass");
+        try {
+          for (Terms.Bucket cpuclass : cpuclasses.getBuckets()) {
+            String[] cpuinfo = ((String)cpuclass.getKey()).split("_");
+            Long total = 0L;
+            Long totalBusy = 0L;
+            Long totalOutputs = 0L;
+            XContentBuilder xbClassSummary = XContentFactory.jsonBuilder().startObject(); 
+            Terms hmicro = cpuclass.getAggregations().get("hmicro");
+            xbClassSummary.startObject("hmicro").startArray("entries");
+            for ( Terms.Bucket bucket : hmicro.getBuckets()){
+              Long keyl = (Long)(bucket.getKey());
+              long key = keyl.longValue();
+              Long doc_count = bucket.getDocCount();            
+              total =  total + doc_count;
+              if (key < ustatesReserved) {
+                if (key >= ustatesSpecial)
+                  totalOutputs+=doc_count; 
+                else {
+                  xbClassSummary.startObject();
+                  xbClassSummary.field("key",key);
+                  xbClassSummary.field("count",doc_count);
+                  xbClassSummary.endObject();
+                }
+              }
+              else
+                totalBusy += doc_count;
+            }
+           
+            xbClassSummary.startObject();
+            Number outputKey = ustatesSpecial;
+            xbClassSummary.field("key",outputKey);
+            xbClassSummary.field("count",totalOutputs);
+            xbClassSummary.endObject();
+
+            xbClassSummary.startObject();
+            xbClassSummary.field("key",ustatesReserved);
+            xbClassSummary.field("count",totalBusy);
+            xbClassSummary.endObject();
+            xbClassSummary.endArray();
+            xbClassSummary.field("total",total);
+            xbClassSummary.endObject();
+            xbClassSummary.field("fm_date",fm_date.longValue());
+            xbClassSummary.field("date",start_time_millis);
+            xbClassSummary.field("cpuslotsmax",cpuinfo[0]);
+            xbClassSummary.field("cpuslots",cpuinfo[1]);
+            xbClassSummary.endObject();
+            client.prepareIndex(runIndex_write, "state-hist-summary")
+              .setParent(runNumber)
+              .setSource(xbClassSummary)
+              .execute();                  
+          }
+        } catch (Exception e) {
+           logger.error("Error getting process microstate info: ", e);
+        }
 
 //        DO NOT DELETE. SNIPPET FOR RESPONSE TO JSON CONVERSION
 //        XContentBuilder builder = XContentFactory.contentBuilder(XContentType.JSON);

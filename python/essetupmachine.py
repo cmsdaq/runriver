@@ -196,7 +196,7 @@ def restoreFileMaybe(file):
 
 #main function
 if __name__ == "__main__":
-    if len(sys.argv)>0:
+    if len(sys.argv)>1:
         if 'restore'==sys.argv[1]:
             print "restoring configuration..."
             restoreFileMaybe(elasticsysconf)
@@ -258,6 +258,9 @@ if __name__ == "__main__":
             escfg.reg("script.engine.groovy.inline.update", 'true')
             escfg.reg("script.engine.groovy.inline.aggs", 'true')
             escfg.reg("script.engine.groovy.inline.search", 'true')
+            escfg.reg("script.engine.groovy.indexed.update", 'true')
+            escfg.reg("script.engine.groovy.indexed.aggs", 'true')
+            escfg.reg("script.engine.groovy.indexed.search", 'true')
             #escfg.reg('script.inline.enabled','true')
             escfg.reg('node.master','true')
             escfg.reg('node.data','true')
@@ -300,6 +303,9 @@ if __name__ == "__main__":
             escfg.reg("script.engine.groovy.inline.update", 'true')
             escfg.reg("script.engine.groovy.inline.aggs", 'true')
             escfg.reg("script.engine.groovy.inline.search", 'true')
+            escfg.reg("script.engine.groovy.indexed.update", 'true')
+            escfg.reg("script.engine.groovy.indexed.aggs", 'true')
+            escfg.reg("script.engine.groovy.indexed.search", 'true')
             #escfg.reg('script.inline.enabled','true')
             escfg.reg('node.master','true')
             escfg.reg('node.data','true')
