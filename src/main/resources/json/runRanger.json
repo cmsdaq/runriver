@@ -1,9 +1,21 @@
 {
    "size": 100,
-   "filter": {
-      "missing": {
-         "field": "endTime"
-      }
+   "query": {
+     "bool": {
+       "should":[
+         {
+           "missing":{"field":"endTime"}
+         },
+         {
+           "range":{
+             "activeBUs":{
+               "from":1
+             }
+           }
+         }
+       ],
+       "minimum_should_match":1
+     }
    },
    "sort": [
       {

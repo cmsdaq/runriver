@@ -45,7 +45,7 @@ public class RunMonitor extends AbstractRunRiverThread {
 
     @Override
     public void beforeLoop() throws UnknownHostException {
-        logger.info("RunMonitor Started v1.4.0");
+        logger.info("RunMonitor Started v1.4.3");
         getQueries();
         prepareServer(client,runIndex_write);
         this.interval = polling_interval;

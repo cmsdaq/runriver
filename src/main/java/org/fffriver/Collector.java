@@ -126,6 +126,8 @@ public class Collector extends AbstractRunRiverThread {
     public void collectStreams() throws Exception {
         logger.info("collectStreams");
         Boolean dataChanged;
+        //long highestLumisection=-1;
+        long lowestLumisection=-1;
         
         if(firstTime){
             streamQuery.getJSONObject("aggs").getJSONObject("streams")
@@ -171,7 +173,13 @@ public class Collector extends AbstractRunRiverThread {
             for (Terms.Bucket ls : lss.getBuckets()) {
 
                 String lsName = ls.getKeyAsString();
-                
+
+                //update last LS found in the query
+                Long lsvalLong = (Long)(ls.getKey());
+                long lsval = lsvalLong.longValue();
+                //if (lsval>highestLumisection) highestLumisection=lsval;
+                if (lsval<lowestLumisection || lowestLumisection<0) lowestLumisection=lsval;
+
                 Sum inSum = ls.getAggregations().get("in");
                 Sum outSum = ls.getAggregations().get("out");
                 Sum errSum = ls.getAggregations().get("error");
@@ -195,8 +203,10 @@ public class Collector extends AbstractRunRiverThread {
         }
 
         for (String stream : known_streams.keySet()){
+            List<String> removeList = new ArrayList<String>();
+
             for (String ls : fuoutlshist.get(stream).keySet()){
-        
+       
                 //EoLS aggregation for this LS
                 //GetResponse sresponseEoL = client.prepareGet(runIndex_write, "eols", id)
                 //                                .setRouting(runNumber)
@@ -213,6 +223,13 @@ public class Collector extends AbstractRunRiverThread {
 
                   //require match, otherwise BU json files might not be written yet
                   if (Math.round(totalEventsVal-eventsVal-lostEventsVal)==0) run_eols_query=false;
+                }
+                Integer ls_num = Integer.parseInt(ls); 
+                //drop lumis more than 70 LS behind oldest one in the query range (unless EvB information is inconsistent)
+                if (ls_num+70<lowestLumisection && run_eols_query==false) {
+                  //this is old lumisection, dropping from object maps (even if incomplete)
+                  removeList.add(ls);
+                  continue;
                 }
 
                 if (run_eols_query) {
@@ -245,8 +262,10 @@ public class Collector extends AbstractRunRiverThread {
                     eolEventsList.put(ls,eventsVal); 
                     eolLostEventsList.put(ls,lostEventsVal); 
                     eolTotalEventsList.put(ls,totalEventsVal); 
-                    if (Math.round(totalEventsVal-eventsVal-lostEventsVal)==0)
+                    if (Math.round(totalEventsVal-eventsVal-lostEventsVal)==0) {
+                        run_eols_query=false;
                         logger.info("eolsQuery match for LS "+ ls + " with total of "+totalEventsVal.toString()+" events");
+                    }
                 }
                 //continue with stream aggregation
 
@@ -310,7 +329,6 @@ public class Collector extends AbstractRunRiverThread {
                               +" out:"+fuoutlshist.get(stream).get(ls).toString()+" err:"+fuerrlshist.get(stream).get(ls).toString() + " completion " + newCompletion.toString());
                   logger.info("Totals numbers - eventsVal:"+eventsVal.toString() + " lostEventsVal:" + lostEventsVal.toString() + " totalEventsVal:" + totalEventsVal.toString());
                   Double retDate = futimestamplshist.get(stream).get(ls);
-                  Integer ls_num = Integer.parseInt(ls); 
                   Map<String,Double> strcompletion = incompleteLumis.get(ls_num);
                   if (newCompletion<1.) {
                       if (strcompletion!=null)
@@ -370,6 +388,20 @@ public class Collector extends AbstractRunRiverThread {
                     .actionGet();    
                   }
                 }
+                //drop complete lumis older than query range (keep checking if EvB information is inconsistent)
+                if (newCompletion==1 && ls_num<lowestLumisection && run_eols_query==false) {
+                  //complete,dropping from maps
+                  removeList.add(ls);
+                }
+            }
+            for (String ls : removeList) {
+              logger.info("removing stream" + stream + " Map entries for LS "+ ls);
+              fuinlshist.get(stream).remove(ls);
+              fuoutlshist.get(stream).remove(ls);
+              fuerrlshist.get(stream).remove(ls);
+              fufilesizehist.get(stream).remove(ls);
+              futimestamplshist.get(stream).remove(ls);
+              fumergetypelshist.get(stream).remove(ls);
             }
         }
     }
@@ -386,7 +418,7 @@ public class Collector extends AbstractRunRiverThread {
         
         //logger.info(String.valueOf(sResponse.getHits().getTotalHits()));
         if(sResponse.getHits().getTotalHits() == 0L){ 
-            logger.info("streamQuery returns 0 hits");
+            logger.info("statesQuery returns 0 hits");
             return;
         }
         if (ustatesReserved==-1) {
