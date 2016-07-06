@@ -36,15 +36,15 @@ Adjust "riverfile" name to the compiled jar version and set RPM target version i
 ```
 scripts/elastic-metarpm.sh
 ```
-##Cleaning up river instance index for specific subsystem 
+##Cleaning and recreating "from scratch" river instance index for specific subsystem 
 
 Caution: this requires inserting "main" documents after riverd restart on es-cdaq hosts
 ```
-curl -XDELETE es-cdaq:9200/river/\_query -d'{query:{prefix:{\_id:"river\_$SUBSYSTEM"}}}'
+curl -XDELETE es-cdaq:9200/river/_query -d'{query:{prefix:{_id:"river_$SUBSYSTEM"}}}'
 ```
 Deleting individual documents:
 ```
-curl -XDELETE localhost:9200/river/instance/river_cdaq_main
+curl -XDELETE localhost:9200/river/instance/river_$SUBSYSTEM_main
 ```
 After cleanup, restart riverd service on all es-cdaq machines
 ```
@@ -94,15 +94,9 @@ Restart river service on es-cdaq nodes in case another version of the document w
 ```
 sudo /sbin/service riverd restart
 ```
-Alternatively, use "node":{"status":"restart"} to make river service handle restart of the instance (see restarting section).
+Alternatively, use restart mechanism (see restarting section).
 
-##Deleting the cdaq or minidaq river:
-```
-curl -XDELETE localhost:9200/river/instance/river_cdaq_main
-```
-And restart the river service.
-
-##Injecting run instance manually (with appropriate run number and subsystem):
+##Injecting run instance manually (cdaq, with example run number):
 ```
 curl -XPUT es-cdaq:9200/river/instance/river_cdaq_111222 -d'{
     "instance_name" : "river_cdaq_111222",
@@ -111,10 +105,10 @@ curl -XPUT es-cdaq:9200/river/instance/river_cdaq_111222 -d'{
     "es_tribe_host" : "es-local",
     "es_tribe_cluster" : "es-local",
     "fetching_interval" : 5,
-    "runIndex_read" : "runindex_minidaq_read",
-    "runIndex_write" : "runindex_minidaq_write",
-    "boxinfo_read" : "boxinfo_minidaq_read",
-    "boxinfo_write" : "boxinfo_minidaq_read",
+    "runIndex_read" : "runindex_cdaq_read",
+    "runIndex_write" : "runindex_cdaq_write",
+    "boxinfo_read" : "boxinfo_cdaq_read",
+    "boxinfo_write" : "boxinfo_cdaq_read",
     "enable_stats" : false,
     "close_indices" : true,
     "es_central_cluster" : "es-cdaq",
@@ -125,7 +119,7 @@ curl -XPUT es-cdaq:9200/river/instance/river_cdaq_111222 -d'{
 ##Restarting existing instance manually (from riverd 1.9.6):
 same method applies to either run or main instance
 ```
-curl -XPUT es-cdaq:9200/river/instance/river_cdaq_main d'{"doc":{"node":{"status":"restart"}}}'
+curl -XPUT es-cdaq:9200/river/instance/river_cdaq_main -d'{"doc":{"node":{"status":"restart"}}}'
 
-curl -XPUT es-cdaq:9200/river/instance/river_cdaq_111222 d'{"doc":{"node":{"status":"restart"}}}'
+curl -XPUT es-cdaq:9200/river/instance/river_cdaq_111222 -d'{"doc":{"node":{"status":"restart"}}}'
 ```
