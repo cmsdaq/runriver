@@ -9,7 +9,7 @@ Maven3, java-8 (Oracle or OpenJDK), elasticsearch 2.2.0 or higher
 
 Maven is used for building the service jar. If appropriate version is not available on the host OS, a custom version can be installed.
 These are instructions for installing the tool in /opt as root user:
-
+```
 cd /opt
 wget http://mirrors.gigenet.com/apache/maven/maven-3/3.3.9/binaries/apache-maven-3.3.9-bin.tar.gz
 tar xzf apache-maven-3.3.9-bin.tar.gz
@@ -21,37 +21,37 @@ edit /etc/profile.d/maven.sh and add the following lines:
 export M2_HOME=/opt/maven
 export M2=$M2_HOME/bin
 PATH=$M2:$PATH
-
+```
 ##Building jar (on a first run, Maven will pull all depencies):
 
 Target version of the River application and elasticsearch version are set in pom.xml file. Building command:
-
+```
 source build.sh #contains:mvn clean compile assembly:single
-
+```
 If building is successful, jar file will be found in "target" subdirectory.
 
 ##Building rpm:
 
 Adjust "riverfile" name to the compiled jar version and set RPM target version in scripts/elastic-metarpm.sh. Then run the script:
-
+```
 scripts/elastic-metarpm.sh
-
+```
 ##Cleaning up river instance index for specific subsystem 
 
 (caution, this requires inserting "main" documents after riverd restart on es-cdaq hosts)
-'''
+```
 curl -XDELETE es-cdaq:9200/river/\_query -d'{query:{prefix:{\_id:"river\_$SUBSYSTEM"}}}'
-'''
+```
 Deleting individual documents:
-'''
+```
 curl -XDELETE localhost:9200/river/instance/river_cdaq_main
-'''
+```
 After cleanup, restart riverd service on all es-cdaq machines
-'''
+```
 sudo /etc/init.d/riverd restart
-'''
+```
 ##Adding/modifying river for the subsystem (cdaq):
-'''
+```
 curl -XPUT es-cdaq:9200/river/instance/river_cdaq_main -d '{
     "es_central_cluster":"es-cdaq",
     "es_tribe_host" : "es-local",
@@ -68,7 +68,7 @@ curl -XPUT es-cdaq:9200/river/instance/river_cdaq_main -d '{
     "instance_name":"river_cdaq_main",
     "close_indices" : true
 }'
-'''
+```
 ##Adding the river for the subsystem (minidaq):
 
 curl -XPUT es-cdaq:9200/river/instance/river_minidaq_main -d '{
