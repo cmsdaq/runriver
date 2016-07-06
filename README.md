@@ -36,20 +36,22 @@ Adjust "riverfile" name to the compiled jar version and set RPM target version i
 
 scripts/elastic-metarpm.sh
 
-##cleaning up river instance index for specific subsystem (caution, this requires inserting "main" documents after riverd restart on es-cdaq hosts):
+##Cleaning up river instance index for specific subsystem 
 
-curl -XDELETE es-cdaq:9200/river/_query -d'{query:{prefix:{_id:"river_$SUBSYSTEM"}}}'
-
+(caution, this requires inserting "main" documents after riverd restart on es-cdaq hosts)
+'''
+curl -XDELETE es-cdaq:9200/river/\_query -d'{query:{prefix:{\_id:"river\_$SUBSYSTEM"}}}'
+'''
 Deleting individual documents:
-
+'''
 curl -XDELETE localhost:9200/river/instance/river_cdaq_main
-
+'''
 After cleanup, restart riverd service on all es-cdaq machines
-
+'''
 sudo /etc/init.d/riverd restart
-
+'''
 ##Adding/modifying river for the subsystem (cdaq):
-
+'''
 curl -XPUT es-cdaq:9200/river/instance/river_cdaq_main -d '{
     "es_central_cluster":"es-cdaq",
     "es_tribe_host" : "es-local",
@@ -66,7 +68,7 @@ curl -XPUT es-cdaq:9200/river/instance/river_cdaq_main -d '{
     "instance_name":"river_cdaq_main",
     "close_indices" : true
 }'
-
+'''
 ##Adding the river for the subsystem (minidaq):
 
 curl -XPUT es-cdaq:9200/river/instance/river_minidaq_main -d '{
