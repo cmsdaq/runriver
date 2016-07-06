@@ -208,24 +208,51 @@ class river_thread(threading.Thread):
     self.subsys = subsys
     self.riverindex = riverindex
     self.rn = rn
+    self.restart=False
+    self.restart_version=None
 
   def execute(self):
 
     #hack:if str(self.rn)!="0":return
     #start
     #run Collector
+    self.restart=False
     jpath = jar_path_dv if self.subsys=='dv' else jar_path
     print "running",["/usr/bin/java", "-jar",jpath]+self.proc_args
     self.fdo = os.open('/tmp/'+self.riverid+'.log',os.O_WRONLY | os.O_CREAT | os.O_APPEND)
     self.proc = subprocess.Popen(["/usr/bin/java", "-jar",jpath]+self.proc_args,preexec_fn=preexec_function,close_fds=True,shell=False,stdout=self.fdo,stderr=self.fdo)
     self.start() #start thread to pick up the process
     return True #if success, else False
+
+  def setRestart(self,version):
+    if self.restart:return
+    try:
+      self.proc.terminate()
+      self.restart_version=version
+      self.restart=True
+    except:
+      pass
+
    
   def run(self):
     self.proc.wait()
     if self.fdo:os.close(self.fdo)
     retcode = self.proc.returncode
     tmp_conn = httplib.HTTPConnection(host=host,port=9200)
+    if self.restart:
+      st=409 #version mismatch
+      tries=100
+      while st==409 and tries>0:
+        success,st,res = query(gconn,"POST","/river/instance/"+str(self.riverid)+'/_update?version='+str(self.restart_version),json.dumps({'doc':gen_node_doc('restarting')}))
+        self.restart_version+=1 #if doc got updated, try again
+        tries-=1
+        time.sleep(0.05)
+      if st != 200:
+        syslog.syslog("ERROR updating document "+str(self.riverid)+" status:"+str(st)+" "+str(res))
+      else:
+        syslog.syslog("terminated instance " +str(self.riverid)+" which was requested by restart state - scheduled for restarting")
+      tmp_conn.close()
+      return
     if retcode == 0:
       #TODO:make sure exit 0 only happens when plugin is truly finished
       syslog.syslog(str(self.riverid)+" successfully finished. Deleting river document..")
@@ -273,7 +300,7 @@ def runRiver(doc):
   doc = json.loads(res)
   doc_ver = doc['_version']
   #check again, as we executed run another query
-  if doc['_source']['node']['status']=='created' or doc['_source']['node']['status']=='crashed': #or stale!
+  if doc['_source']['node']['status'] in ['created','crashed','restarting']: #or stale!
     #update doc 
     success,st,res = query(gconn,"POST","/river/instance/"+str(doc_id)+'/_update?version='+str(doc_ver)+'&refresh=true',json.dumps({'doc':gen_node_doc('starting')}))
     if st == 200:
@@ -288,6 +315,13 @@ def runRiver(doc):
       syslog.syslog(str(doc_id)+" update failed. doc was already grabbed.")
     else:
       syslog.syslog("ERROR:Failed to update document; status:"+str(st)+" "+res )
+  if doc['_source']['node']['status'] in ['restart']:
+    #check if this instance is running here and restart it
+    for instance in river_threads:
+      if instance.riverid == doc_id:
+        instance.setRestart(doc_ver)
+        break
+
 
 def checkRivers():
 
@@ -356,7 +390,7 @@ def runDaemon():
     if global_quit:break
 
     #find instances that need to be started
-    success,st,res = query(gconn,"GET","/river/instance/_search?size=1000", '{"query":{"bool":{"should":[{"term":{"node.status":"crashed"}},{"term":{"node.status":"created"}}] }}}')
+    success,st,res = query(gconn,"GET","/river/instance/_search?size=1000", '{"query":{"bool":{"should":[{"term":{"node.status":"restart"}},{"term":{"node.status":"restarting"}},{"term":{"node.status":"crashed"}},{"term":{"node.status":"created"}}] }}}')
     #TODO: add detection of stale objects (search for > amount of time since last ping
     if success and st==200:
       jsres = json.loads(res)
