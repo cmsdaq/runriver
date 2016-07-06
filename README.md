@@ -36,7 +36,19 @@ Adjust "riverfile" name to the compiled jar version and set RPM target version i
 
 scripts/elastic-metarpm.sh
 
-##Adding the river for the subsystem (cdaq):
+##cleaning up river instance index for specific subsystem (caution, this requires inserting "main" documents after riverd restart on es-cdaq hosts):
+
+curl -XDELETE es-cdaq:9200/river/_query -d'{query:{prefix:{_id:"river_$SUBSYSTEM"}}}'
+
+Deleting individual documents:
+
+curl -XDELETE localhost:9200/river/instance/river_cdaq_main
+
+After cleanup, restart riverd service on all es-cdaq machines
+
+sudo /etc/init.d/riverd restart
+
+##Adding/modifying river for the subsystem (cdaq):
 
 curl -XPUT es-cdaq:9200/river/instance/river_cdaq_main -d '{
     "es_central_cluster":"es-cdaq",
@@ -80,10 +92,37 @@ Restart river service on es-cdaq nodes in case another version of the document w
 
 sudo /sbin/service riverd restart
 
+Alternatively, use "node":{"status":"restart"} to make river service handle restart of the instance (see restarting section).
+
 ##Deleting the cdaq or minidaq river:
 
 curl -XDELETE localhost:9200/river/instance/river_cdaq_main
 
 And restart the river service.
 
+##Injecting run instance manually (with appropriate run number and subsystem):
+
+curl -XPUT es-cdaq:9200/river/instance/river_cdaq_111222 {
+    "instance_name" : "river_cdaq_111222",
+    "subsystem" : "cdaq",
+    "runNumber" : 111222,
+    "es_tribe_host" : "es-local",
+    "es_tribe_cluster" : "es-local",
+    "fetching_interval" : 5,
+    "runIndex_read" : "runindex_minidaq_read",
+    "runIndex_write" : "runindex_minidaq_write",
+    "boxinfo_read" : "boxinfo_minidaq_read",
+    "boxinfo_write" : "boxinfo_minidaq_read",
+    "enable_stats" : false,
+    "close_indices" : true,
+    "es_central_cluster" : "es-cdaq",
+    "node" : { "status" : "created" }
+}
+
+
+##Restarting existing instance manually (from riverd 1.9.6):
+Same method applies to either run or main nstance
+curl -XPUT es-cdaq:9200/river/instance/river_cdaq_main d'{"doc":{"node":{"status":"restart"}}}'
+
+curl -XPUT es-cdaq:9200/river/instance/river_cdaq_111222 d'{"doc":{"node":{"status":"restart"}}}'
 
