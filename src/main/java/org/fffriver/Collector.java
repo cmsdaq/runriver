@@ -464,6 +464,24 @@ public class Collector extends AbstractRunRiverThread {
             String name = agg.getName();
             if (name.equals("fm_date")) continue;
             if (name.equals("mclass")) continue;
+            if (name.equals("hinput")) {
+              Terms hinput = sResponse.getAggregations().get(name);
+              if (hinput!=null) {
+                xbSummary.startObject("hinput").startArray("entries");
+                for ( Terms.Bucket bucket : hinput.getBuckets()){
+                  Long keyl = (Long)(bucket.getKey());
+                  long key = keyl.longValue();
+                  Long doc_count = bucket.getDocCount();            
+                  xbSummary.startObject();
+                  xbSummary.field("key",key);
+                  xbSummary.field("count",doc_count);
+                  xbSummary.endObject();
+                }
+                xbSummary.endArray();
+                xbSummary.endObject();
+              }
+              continue;
+            }
             String namev = name + "v"; //alternate name for non-nested docs
             Boolean doSummary = false;
             Boolean doSummaryOutputs = false;
@@ -587,6 +605,23 @@ public class Collector extends AbstractRunRiverThread {
             xbClassSummary.endArray();
             xbClassSummary.field("total",total);
             xbClassSummary.endObject();
+
+            Terms hinput = cpuclass.getAggregations().get("hinput");
+            if (hinput!=null) {
+              xbClassSummary.startObject("hinput").startArray("entries");
+              for ( Terms.Bucket bucket : hinput.getBuckets()){
+                Long keyl = (Long)(bucket.getKey());
+                long key = keyl.longValue();
+                Long doc_count = bucket.getDocCount();            
+                xbClassSummary.startObject();
+                xbClassSummary.field("key",key);
+                xbClassSummary.field("count",doc_count);
+                xbClassSummary.endObject();
+              }
+              xbClassSummary.endArray();
+              xbClassSummary.endObject();
+            }
+
             xbClassSummary.field("fm_date",fm_date.longValue());
             xbClassSummary.field("date",start_time_millis);
             xbClassSummary.field("cpuslotsmax",cpuinfo[0]);

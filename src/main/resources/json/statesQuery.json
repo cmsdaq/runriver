@@ -24,6 +24,14 @@
               "order" : { "_term" : "asc" },
               "min_doc_count":1
             }
+          },
+          "hinput": {
+            "terms": {
+              "field": "instate",
+              "size": 0,
+              "order" : { "_term" : "asc" },
+              "min_doc_count":1
+            }
           }
         }
       },
@@ -46,6 +54,14 @@
       "hmini": {
          "terms": {
             "field": "mini",
+            "size": 0,
+            "order" : { "_term" : "asc" },
+            "min_doc_count":1
+         }
+      },
+      "hinput": {
+         "terms": {
+            "field": "instate",
             "size": 0,
             "order" : { "_term" : "asc" },
             "min_doc_count":1

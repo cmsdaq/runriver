@@ -33,7 +33,7 @@ pluginname5="delete-by-query"
 pluginfile5="delete-by-query-2.2.0.zip"
 
 
-riverfile="river-runriver-1.4.3-jar-with-dependencies.jar"
+riverfile="river-runriver-1.4.4-jar-with-dependencies.jar"
 
 if [ ! -f $SCRIPTDIR/../target/$riverfile ]; then
  echo "missing river file $SCRIPTDIR/../target/$riverfile"

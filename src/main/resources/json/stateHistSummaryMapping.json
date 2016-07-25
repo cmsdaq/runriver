@@ -62,6 +62,24 @@
           }
         }
       },
+      "hinput": {
+        "properties": {
+          "entries": {
+            "type" : "nested",
+            "properties": {
+              "key": {
+                "type": "integer"
+              },
+              "count": {
+                "type": "integer"
+              }
+            }
+          },
+          "total": {
+            "type": "integer"
+          }
+        }
+      },
       "date":{
         "type":"date",
         "format":"epoch_millis||dateOptionalTime"
