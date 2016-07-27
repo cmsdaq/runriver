@@ -8,10 +8,14 @@ PACKAGENAME="fffmeta-elastic"
 
 # create a build area
 
+SCRATCHDIR=/tmp/$PACKAGENAME-scratch-tmp
+
 echo "removing old build area"
 rm -rf /tmp/$PACKAGENAME-build-tmp
+rm -rf $SCRATCHDIR
 echo "creating new build area"
 mkdir  /tmp/$PACKAGENAME-build-tmp
+mkdir  $SCRATCHDIR
 ls
 cd     /tmp/$PACKAGENAME-build-tmp
 mkdir BUILD
@@ -40,6 +44,45 @@ if [ ! -f $SCRIPTDIR/../target/$riverfile ]; then
  exit 1
 fi
 
+cp -r $BASEDIR/libpython $SCRATCHDIR/
+echo "Moving files to their compile scratch area"
+
+cd $SCRATCHDIR/libpython/python-prctl
+#python-prctl
+./setup.py -q build
+python - <<'EOF'
+import py_compile
+py_compile.compile("build/lib.linux-x86_64-2.6/prctl.py")
+EOF
+python -O - <<'EOF'
+import py_compile
+py_compile.compile("build/lib.linux-x86_64-2.6/prctl.py")
+EOF
+mkdir -p $SCRATCHDIR/usr/lib64/python2.6/site-packages
+cp build/lib.linux-x86_64-2.6/prctl.pyo $SCRATCHDIR/usr/lib64/python2.6/site-packages/
+cp build/lib.linux-x86_64-2.6/prctl.py  $SCRATCHDIR/usr/lib64/python2.6/site-packages/
+cp build/lib.linux-x86_64-2.6/prctl.pyc $SCRATCHDIR/usr/lib64/python2.6/site-packages/
+cp build/lib.linux-x86_64-2.6/_prctl.so $SCRATCHDIR/usr/lib64/python2.6/site-packages/
+cat > $SCRATCHDIR/usr/lib64/python2.6/site-packages/python_prctl-1.5.0-py2.6.egg-info <<EOF
+Metadata-Version: 1.0
+Name: python-prctl
+Version: 1.5.0
+Summary: Python(ic) interface to the linux prctl syscall
+Home-page: http://github.com/seveas/python-prctl
+Author: Dennis Kaarsemaker
+Author-email: dennis@kaarsemaker.net
+License: UNKNOWN
+Description: UNKNOWN
+Platform: UNKNOWN
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: GNU General Public License (GPL)
+Classifier: Operating System :: POSIX :: Linux
+Classifier: Programming Language :: C
+Classifier: Programming Language :: Python
+Classifier: Topic :: Security
+EOF
+
 cd $TOPDIR
 # we are done here, write the specs and make the fu***** rpm
 cat > fffmeta-elastic.spec <<EOF
@@ -66,6 +109,10 @@ Provides:/opt/fff/river-daemon.py
 Provides:/etc/init.d/riverd
 Provides:/opt/fff/$riverfile
 Provides:/etc/rsyslog.d/48-river.conf
+Provides:/usr/lib64/python2.6/site-packages/prctl.py
+Provides:/usr/lib64/python2.6/site-packages/prctl.pyc
+Provides:/usr/lib64/python2.6/site-packages/_prctl.so
+Provides:/usr/lib64/python2.6/site-packages/python_prctl-1.5.0-py2.6.egg-info
 
 %description
 fffmeta configuration setup package
@@ -76,16 +123,25 @@ fffmeta configuration setup package
 %install
 rm -rf \$RPM_BUILD_ROOT
 mkdir -p \$RPM_BUILD_ROOT
+%__install -d "%{buildroot}/usr/lib64/python2.6/site-packages"
 %__install -d "%{buildroot}/opt/fff"
 %__install -d "%{buildroot}/opt/fff/backup"
 %__install -d "%{buildroot}/opt/fff/esplugins"
 %__install -d "%{buildroot}/etc/init.d"
 %__install -d "%{buildroot}/etc/rsyslog.d"
 
+mkdir -p usr/lib64/python2.6/site-packages
 mkdir -p opt/fff/esplugins
 mkdir -p opt/fff/backup
 mkdir -p etc/init.d/
 mkdir -p etc/rsyslog.d
+
+cp $SCRATCHDIR/usr/lib64/python2.6/site-packages/prctl.py %{buildroot}/usr/lib64/python2.6/site-packages/
+cp $SCRATCHDIR/usr/lib64/python2.6/site-packages/prctl.pyc %{buildroot}/usr/lib64/python2.6/site-packages/
+cp $SCRATCHDIR/usr/lib64/python2.6/site-packages/prctl.pyo %{buildroot}/usr/lib64/python2.6/site-packages/
+cp $SCRATCHDIR/usr/lib64/python2.6/site-packages/_prctl.so %{buildroot}/usr/lib64/python2.6/site-packages/
+cp $SCRATCHDIR/usr/lib64/python2.6/site-packages/python_prctl-1.5.0-py2.6.egg-info  %{buildroot}/usr/lib64/python2.6/site-packages/
+
 cp $BASEDIR/etc/rsyslog.d/48-river.conf %{buildroot}/etc/rsyslog.d/48-river.conf
 cp $BASEDIR/python/essetupmachine.py %{buildroot}/opt/fff/essetupmachine.py
 cp $BASEDIR/python/daemon2.py %{buildroot}/opt/fff/daemon2.py
@@ -148,6 +204,11 @@ echo "fi"                                >> %{buildroot}/etc/init.d/fffmeta
 %attr( 755 ,root, root) /opt/fff/esplugins/uninstall.sh
 %attr( 755 ,root, root) /opt/fff/$riverfile
 %attr( 444 ,root, root) /etc/rsyslog.d/48-river.conf
+%attr( 755 ,root, root) /usr/lib64/python2.6/site-packages/prctl.py
+%attr( 755 ,root, root) /usr/lib64/python2.6/site-packages/prctl.pyo
+%attr( 755 ,root, root) /usr/lib64/python2.6/site-packages/prctl.pyc
+%attr( 755 ,root, root) /usr/lib64/python2.6/site-packages/_prctl.so
+%attr( 755 ,root, root) /usr/lib64/python2.6/site-packages/python_prctl-1.5.0-py2.6.egg-info
 
 %post
 #echo "post install trigger"
