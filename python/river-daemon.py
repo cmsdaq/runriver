@@ -367,7 +367,17 @@ def runDaemon():
   success,st,res = query(gconn,"PUT","/river/_mapping/instance?size=1000",json.dumps(riverInstMapping),retry = True)
 
   syslog.syslog("attempts to push instance doc mapping:"+str(st)+" "+str(res))
+
+  #recovery if river status is running on this node:
+  success,st,res = query(gconn,"GET","/river/instance/_search?size=1000", '{"query":{"bool":{"must":[{"term":{"node.status":"running"}},{"term":{"node.name":"'+os.uname()[1]+'"}}] }}}')
+  if success and st==200:
+    jsres = json.loads(res)
+    for hit in jsres['hits']['hits']:
+      doc_id = hit['_id']
+      success,st,res = query(gconn,"POST","/river/instance/"+str(doc_id)+'/_update?refresh=true',json.dumps({'doc':gen_node_doc('crashed')}))
+      syslog.syslog('recovering instance ' + doc_id + " success:" + str(success) + " status:" + str(st))
  
+
   cnt=0
   while keep_running:
     if cnt%10==0:
