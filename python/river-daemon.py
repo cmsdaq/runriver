@@ -260,15 +260,21 @@ class river_thread(threading.Thread):
     else:
       syslog.syslog("WARNING:"+self.riverid+" exited with code "+str(retcode))
       #crash: change status to crashed
-
-      #update doc 
-      success,st,res = query(tmp_conn,"POST","/river/instance/"+str(self.riverid)+'/_update?refresh=true',json.dumps({'doc':gen_node_doc('crashed')}),retry=True)
-      if st == 200:
-        #ok, given for restarts
-        pass
-      else:
-        #TODO:retry this another time...
-        syslog.syslog("ERROR updating document "+str(self.riverid)+" status:"+str(st)+" "+str(res))
+      attempt=0
+      while True:
+        #update doc 
+        success,st,res = query(tmp_conn,"POST","/river/instance/"+str(self.riverid)+'/_update?refresh=true',json.dumps({'doc':gen_node_doc('crashed')}),retry=True)
+        if st == 200:
+          #ok, given for restarts
+          break
+        else:
+          #TODO:retry this another time...
+          syslog.syslog("ERROR updating document "+str(self.riverid)+" status:"+str(st)+" "+str(res))
+          time.sleep(int(1+attempt/10.))
+          #attempt forever for error 429, else give up after 100 attempts
+          if st!=429 and attempt>=100: break
+          attempt+=1
+          syslog.syslog("retrying with attempt " + str(attempt))
 
     tmp_conn.close()
     #queue for joining
