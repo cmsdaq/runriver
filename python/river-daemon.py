@@ -41,6 +41,9 @@ sleep_int=5
 jar_path  = "/opt/fff/river.jar"
 jar_path_dv  = "/opt/fff/river_dv.jar"
 
+#NFS script test version is default path (for now)
+query_daemon = "/cmsnfses-web/es-web/prod/lastcpu.js"
+
 keep_running = True
 #river doc mapping
 riverInstMapping = {
@@ -90,6 +93,14 @@ riverInstMapping = {
 			"type" : "string",
 			"index":"not_analyzed"
 		},
+                "process_type" : {
+			"type" : "string",
+			"index":"not_analyzed"
+                },
+                "path" : {
+			"type" : "string",
+			"index":"not_analyzed"
+                },
 		"node" : {
 			"properties" : {
 				"name" : { #fqdn
@@ -184,6 +195,16 @@ def preexec_function():
       prctl.set_pdeathsig(signal.SIGKILL) #is this necessary?
     except:pass
 
+def preexec_function2():
+    try:
+      dem = demote.demote('es-cdaq')
+      dem()
+    except:
+      pass
+    try:
+      prctl.set_pdeathsig(signal.SIGKILL) #is this necessary?
+    except:pass
+
     #other way (no demote)
     #user_pw = pwd.getpwnam('elasticsearch')
     #user_uid = user_pw[2]
@@ -195,7 +216,7 @@ def preexec_function():
 #todo: tell main thread that should be joined (e.g. - moving to another list)
 class river_thread(threading.Thread):
 
-  def __init__(self,riverid,subsys,url,cluster,riverindex,rn):
+  def __init__(self,riverid,subsys,url,cluster,riverindex,rn,process_type,path):
     threading.Thread.__init__(self)
     #self.logger = logging.getLogger(self.__class__.__name__)
     self.stop_issued=False
@@ -208,21 +229,32 @@ class river_thread(threading.Thread):
     self.subsys = subsys
     self.riverindex = riverindex
     self.rn = rn
+    self.process_type = process_type
+    self.path = path
     self.restart=False
     self.restart_version=None
 
   def execute(self):
-
-    #hack:if str(self.rn)!="0":return
-    #start
-    #run Collector
     self.restart=False
-    jpath = jar_path_dv if self.subsys=='dv' else jar_path
-    print "running",["/usr/bin/java", "-jar",jpath]+self.proc_args
-    self.fdo = os.open('/tmp/'+self.riverid+'.log',os.O_WRONLY | os.O_CREAT | os.O_APPEND)
-    self.proc = subprocess.Popen(["/usr/bin/java", "-jar",jpath]+self.proc_args,preexec_fn=preexec_function,close_fds=True,shell=False,stdout=self.fdo,stderr=self.fdo)
-    self.start() #start thread to pick up the process
-    return True #if success, else False
+    if self.process_type=='java':
+      #run Collector
+      if self.path: jpath = self.path
+      else:
+        jpath = jar_path_dv if self.subsys=='dv' else jar_path
+      print "running",["/usr/bin/java", "-jar",jpath]+self.proc_args
+      self.fdo = os.open('/tmp/'+self.riverid+'.log',os.O_WRONLY | os.O_CREAT | os.O_APPEND)
+      self.proc = subprocess.Popen(["/usr/bin/java", "-jar",jpath]+self.proc_args,preexec_fn=preexec_function,close_fds=True,shell=False,stdout=self.fdo,stderr=self.fdo)
+      self.start() #start thread to pick up the process
+      return True #if success, else False
+    if self.process_type=='nodejs':
+      if self.path: qdpath = self.path
+      else:
+        qdpath = '' if self.subsys=='dv' else query_daemon
+      print "running",["/usr/bin/node", qdpath]
+      self.fdo = os.open('/tmp/'+self.riverid+'.log',os.O_WRONLY | os.O_CREAT | os.O_APPEND)
+      self.proc = subprocess.Popen(["/usr/bin/node",qdpath,self.riverid],preexec_fn=preexec_function2,close_fds=True,shell=False,stdout=self.fdo,stderr=self.fdo)
+      self.start() #start thread to pick up the process
+      return True #if success, else False
 
   def setRestart(self,version):
     if self.restart:return
@@ -296,6 +328,10 @@ def runRiver(doc):
   except:runNumber = 0
   try:cluster = src['es_central_cluster']
   except:cluster = 'es-cdaq' #default..
+  try: process_type=src['process_type']
+  except:process_type='java'
+  try: path=src['path']
+  except:path=None
 
   #main instance
   doc_id = doc['_id']
@@ -312,7 +348,7 @@ def runRiver(doc):
     if st == 200:
       #success,proceed with fork
       syslog.syslog("successfully updated "+str(doc_id)+" document. will start the instance")
-      new_instance = river_thread(doc_id,src['subsystem'],host,cluster,"river",runNumber)
+      new_instance = river_thread(doc_id,src['subsystem'],host,cluster,"river",runNumber,process_type,path)
       river_threads.append(new_instance)
       new_instance.execute()
       syslog.syslog("started river thread")
