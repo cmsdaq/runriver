@@ -246,13 +246,22 @@ class river_thread(threading.Thread):
       self.proc = subprocess.Popen(["/usr/bin/java", "-jar",jpath]+self.proc_args,preexec_fn=preexec_function,close_fds=True,shell=False,stdout=self.fdo,stderr=self.fdo)
       self.start() #start thread to pick up the process
       return True #if success, else False
-    if self.process_type=='nodejs':
+    elif self.process_type=='nodejs':
       if self.path: qdpath = self.path
       else:
-        qdpath = '' if self.subsys=='dv' else query_daemon
+        qdpath = '/dev/null'
       print "running",["/usr/bin/node", qdpath]
       self.fdo = os.open('/tmp/'+self.riverid+'.log',os.O_WRONLY | os.O_CREAT | os.O_APPEND)
       self.proc = subprocess.Popen(["/usr/bin/node",qdpath,self.riverid],preexec_fn=preexec_function2,close_fds=True,shell=False,stdout=self.fdo,stderr=self.fdo)
+      self.start() #start thread to pick up the process
+      return True #if success, else False
+    elif self.process_type=='python':
+      if self.path: qdpath = self.path
+      else:
+        qdpath = '/dev/null'
+      print "running",["/usr/bin/python", qdpath]
+      self.fdo = os.open('/tmp/'+self.riverid+'.log',os.O_WRONLY | os.O_CREAT | os.O_APPEND)
+      self.proc = subprocess.Popen(["/usr/bin/python",qdpath,self.riverid],preexec_fn=preexec_function2,close_fds=True,shell=False,stdout=self.fdo,stderr=self.fdo)
       self.start() #start thread to pick up the process
       return True #if success, else False
 
