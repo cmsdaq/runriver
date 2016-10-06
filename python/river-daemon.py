@@ -101,6 +101,10 @@ riverInstMapping = {
 			"type" : "string",
 			"index":"not_analyzed"
                 },
+                "role":{
+                        "type" : "string",
+                        "index":"not_analyzed"
+                },
 		"node" : {
 			"properties" : {
 				"name" : { #fqdn
