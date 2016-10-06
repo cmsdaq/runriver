@@ -420,7 +420,7 @@ def runDaemon():
   syslog.syslog("attempts to push instance doc mapping:"+str(st)+" "+str(res))
 
   #recovery if river status is running on this node:
-  success,st,res = query(gconn,"GET","/river/instance/_search?size=1000", '{"query":{"bool":{"must":[{"term":{"node.status":"running"}},{"term":{"node.name":"'+os.uname()[1]+'"}}] }}}')
+  success,st,res = query(gconn,"GET","/river/instance/_search?size=1000", '{"query":{"bool":{"minimum_should_match":1,"should":[{"term":{"node.status":"running"}},{"term":{"node.status":"starting"}}],"must":[{"term":{"node.name":"'+os.uname()[1]+'"}}] }}}')
   if success and st==200:
     jsres = json.loads(res)
     for hit in jsres['hits']['hits']:
