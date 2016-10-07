@@ -315,6 +315,10 @@ if __name__ == "__main__":
                 escfg.reg('indices.store.throttle.type','none')
                 escfg.reg('threadpool.index.queue_size','1000')
                 escfg.reg('threadpool.bulk.queue_size','3000')
+                escfg.reg('cluster.routing.allocation.node_concurrent_recoveries','5')
+                escfg.reg('indices.recovery.concurrent_streams','7')
+                escfg.reg("indices.recovery.max_bytes_per_sec","100mb")
+
             escfg.reg('index.translog.durability', 'async')
             escfg.commit()
 
