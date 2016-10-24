@@ -273,6 +273,8 @@ if __name__ == "__main__":
                 escfg.reg('index.translog.flush_threshold_ops','500000')
                 escfg.reg('index.translog.flush_threshold_size','4g')
             escfg.reg('index.translog.durability', 'async') #in 2.2 this allows index requests to return quickly, before disk fsync in server
+            escfg.reg('cluster.routing.allocation.disk.watermark.low','92%')
+            escfg.reg('cluster.routing.allocation.disk.watermark.high','95%')
             escfg.commit()
  
             #modify logging.yml
@@ -320,6 +322,7 @@ if __name__ == "__main__":
                 escfg.reg("indices.recovery.max_bytes_per_sec","100mb")
 
             escfg.reg('index.translog.durability', 'async')
+            escfg.reg('cluster.routing.allocation.disk.watermark.low','92%')
+            escfg.reg('cluster.routing.allocation.disk.watermark.high','95%')
             escfg.commit()
-
 
