@@ -418,20 +418,36 @@ def runDaemon():
   global gconn
   gconn = httplib.HTTPConnection(host=host,port=9200)
 
+  #require functioning server status before getting to checks and main loop
+  while True:
+    success,st,res = query(gconn,"GET","/_cluster/health",retry = True)
+    if st==200:
+      cl_status=json.loads(res)["status"]
+      syslog.syslog("cluster status "+cl_status)
+      if cl_status=="green" or cl_status=="yellow":
+        break
+    else:
+      syslog.syslog("failed to get cluster status, return code: " + str(st))
+    time.sleep(10)
 
+  #put mapping
   success,st,res = query(gconn,"PUT","/river/_mapping/instance?size=1000",json.dumps(riverInstMapping),retry = True)
-
   syslog.syslog("attempts to push instance doc mapping:"+str(st)+" "+str(res))
 
   #recovery if river status is running on this node:
-  success,st,res = query(gconn,"GET","/river/instance/_search?size=1000", '{"query":{"bool":{"minimum_should_match":1,"should":[{"term":{"node.status":"running"}},{"term":{"node.status":"starting"}}],"must":[{"term":{"node.name":"'+os.uname()[1]+'"}}] }}}')
-  if success and st==200:
-    jsres = json.loads(res)
-    for hit in jsres['hits']['hits']:
-      doc_id = hit['_id']
-      success,st,res = query(gconn,"POST","/river/instance/"+str(doc_id)+'/_update?refresh=true',json.dumps({'doc':gen_node_doc('crashed')}))
-      syslog.syslog('recovering instance ' + doc_id + " success:" + str(success) + " status:" + str(st))
- 
+  while True:
+    success,st,res = query(gconn,"GET","/river/instance/_search?size=1000", '{"query":{"bool":{"must":[{"term":{"node.status":"running"}},{"term":{"node.name":"'+os.uname()[1]+'"}}] }}}', retry = True)
+    if success and st==200:
+      jsres = json.loads(res)
+      for hit in jsres['hits']['hits']:
+        doc_id = hit['_id']
+        success,st,res = query(gconn,"POST","/river/instance/"+str(doc_id)+'/_update?refresh=true',json.dumps({'doc':gen_node_doc('crashed')}))
+        syslog.syslog('recovering instance ' + doc_id + " success:" + str(success) + " status:" + str(st))
+      break
+    else:
+      time.sleep(3)
+      syslog.syslog("will retry recovery check")
+      continue
 
   cnt=0
   while keep_running:
