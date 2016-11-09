@@ -87,7 +87,7 @@ cd $TOPDIR
 # we are done here, write the specs and make the fu***** rpm
 cat > fffmeta-elastic.spec <<EOF
 Name: $PACKAGENAME
-Version: 1.9.7
+Version: 1.9.8
 Release: 0
 Summary: hlt daemon
 License: gpl
