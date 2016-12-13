@@ -2,7 +2,8 @@
 
 
 alias python=`readlink /usr/bin/python2`
-python_dir=`readlink /usr/bin/python2`
+#python_dir=`readlink /usr/bin/python2`
+python_dir=`python -c 'import platform; print("python"+platform.python_version_tuple()[0]+"."+platform.python_version_tuple()[1])'`
 python_version=${python_dir:6}
 
 BUILD_ARCH=noarch
