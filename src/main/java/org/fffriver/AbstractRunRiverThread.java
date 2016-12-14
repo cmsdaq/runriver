@@ -17,7 +17,8 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.xcontent.support.XContentMapValues;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.logging.ESLogger;
+//import org.elasticsearch.common.logging.ESLogger;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.index.IndexResponse;
@@ -26,6 +27,7 @@ import org.elasticsearch.action.update.*;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import static org.elasticsearch.common.xcontent.XContentFactory.*;
+import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy;
 
 //Remote query stuff
 //import org.elasticsearch.client.transport.TransportClient;
@@ -47,7 +49,8 @@ import org.apache.commons.io.IOUtils;
 public class AbstractRunRiverThread extends Thread  {
 
     //AbstractRiverComponent
-    protected final ESLogger logger;
+    //protected final ESLogger logger;
+    protected final Logger logger;
     protected final String riverName;//todo:name
     protected final Map<String, Object> settings;
     protected final Client client;
@@ -205,7 +208,7 @@ public class AbstractRunRiverThread extends Thread  {
                       .startObject("node")
                       .field("status","running")
                       .field("ping_timestamp",start_time_millis)
-                      .field("ping_time_fmt",sdf_string).endObject());
+                      .field("ping_time_fmt",sdf_string).endObject().endObject());
 
         client.update(updateRequest).get();
   } 
@@ -214,7 +217,9 @@ public class AbstractRunRiverThread extends Thread  {
         if(!statsEnabled){return true;}
         
         try {
-            IndexResponse iResponse = client.prepareIndex("runriver_stats_write", "stats").setRefresh(true)
+            //IndexResponse iResponse = client.prepareIndex("runriver_stats_write", "stats").setRefresh(true)
+            //IndexResponse iResponse = client.prepareIndex("runriver_stats_write", "stats").setRefreshPolicy(RefreshPolicy.parse("IMMEDIATE"));
+            IndexResponse iResponse = client.prepareIndex("runriver_stats_write", "stats").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                 .setSource(jsonBuilder()
                     .startObject()
                     .field("rivername", rivername)

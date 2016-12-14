@@ -44,7 +44,7 @@ pluginname5="delete-by-query"
 pluginfile5="delete-by-query-2.2.0.zip"
 
 
-riverfile="river-runriver-1.5.1-jar-with-dependencies.jar"
+riverfile="river-runriver-1.6.0-jar-with-dependencies.jar"
 
 if [ ! -f $SCRIPTDIR/../target/$riverfile ]; then
  echo "missing river file $SCRIPTDIR/../target/$riverfile"
@@ -95,7 +95,7 @@ cd $TOPDIR
 cat > fffmeta-elastic.spec <<EOF
 Name: $PACKAGENAME
 Version: 2.1.0
-Release: 0es242
+Release: 0es511
 Summary: hlt daemon
 License: gpl
 Group: DAQ
@@ -105,7 +105,7 @@ Source: none
 %define _topdir $TOPDIR
 BuildArch: $BUILD_ARCH
 AutoReqProv: no
-Requires:elasticsearch => 2.2, cx_Oracle >= 5.1.2, java-1.8.0-oracle-headless >= 1.8.0.45, php >= 5.3.3, php-oci8 >= 1.4.9
+Requires:elasticsearch => 5.1, cx_Oracle >= 5.1.2, java-1.8.0-oracle-headless >= 1.8.0.45, php >= 5.3.3, php-oci8 >= 1.4.9
 
 Provides:/opt/fff/configurefff.sh
 Provides:/opt/fff/essetupmachine.py
@@ -242,15 +242,16 @@ chown -R elasticsearch:elasticsearch /var/lib/elasticsearch
 chmod a+r -R /etc/elasticsearch
 echo "Installing plugins..."
 /opt/fff/esplugins/uninstall.sh /usr/share/elasticsearch $pluginname1 > /dev/null
-/opt/fff/esplugins/install.sh /usr/share/elasticsearch $pluginfile1 $pluginname1
+#/opt/fff/esplugins/install.sh /usr/share/elasticsearch $pluginfile1 $pluginname1
 /opt/fff/esplugins/uninstall.sh /usr/share/elasticsearch $pluginname2 > /dev/null
-/opt/fff/esplugins/install.sh /usr/share/elasticsearch $pluginfile2 $pluginname2
+#/opt/fff/esplugins/install.sh /usr/share/elasticsearch $pluginfile2 $pluginname2
 /opt/fff/esplugins/uninstall.sh /usr/share/elasticsearch $pluginname3 > /dev/null
-/opt/fff/esplugins/install.sh /usr/share/elasticsearch $pluginfile3 $pluginname3
+#/opt/fff/esplugins/install.sh /usr/share/elasticsearch $pluginfile3 $pluginname3
 /opt/fff/esplugins/uninstall.sh /usr/share/elasticsearch $pluginname4 > /dev/null
-/opt/fff/esplugins/install.sh /usr/share/elasticsearch $pluginfile4 $pluginname4
+#/opt/fff/esplugins/install.sh /usr/share/elasticsearch $pluginfile4 $pluginname4
 /opt/fff/esplugins/uninstall.sh /usr/share/elasticsearch $pluginname5 > /dev/null
-/opt/fff/esplugins/install.sh /usr/share/elasticsearch $pluginfile5 $pluginname5
+#/opt/fff/esplugins/install.sh /usr/share/elasticsearch $pluginfile5 $pluginname5
+/opt/fff/esplugins/uninstall.sh /usr/share/elasticsearch elasticsearch-migration || true #remove on upgrade
 
 chkconfig --del elasticsearch
 chkconfig --add elasticsearch
@@ -285,6 +286,7 @@ if [ \$1 == 0 ]; then
   /opt/fff/esplugins/uninstall.sh /usr/share/elasticsearch $pluginname3 || true
   /opt/fff/esplugins/uninstall.sh /usr/share/elasticsearch $pluginname4 || true
   /opt/fff/esplugins/uninstall.sh /usr/share/elasticsearch $pluginname5 || true
+  /opt/fff/esplugins/uninstall.sh /usr/share/elasticsearch elasticsearch-migration || true
 
 
   python2 /opt/fff/essetupmachine.py restore

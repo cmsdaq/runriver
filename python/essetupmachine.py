@@ -14,7 +14,7 @@ except:pass
 
 elasticsysconf = '/etc/sysconfig/elasticsearch'
 elasticconf = '/etc/elasticsearch/elasticsearch.yml'
-elasticlogconf = '/etc/elasticsearch/logging.yml'
+#elasticlogconf = '/etc/elasticsearch/logging.yml'
 
 es_cdaq_list = ['ncsrv-c2e42-09-02', 'ncsrv-c2e42-11-02', 'ncsrv-c2e42-13-02', 'ncsrv-c2e42-19-02']
 es_local_list =[ 'ncsrv-c2e42-21-02', 'ncsrv-c2e42-23-02', 'ncsrv-c2e42-13-03', 'ncsrv-c2e42-23-03']
@@ -201,7 +201,6 @@ if __name__ == "__main__":
             print "restoring configuration..."
             restoreFileMaybe(elasticsysconf)
             restoreFileMaybe(elasticconf)
-            #restoreFileMaybe(elasticlogconf)
             sys.exit(0)
 
     cluster,type,env = getmachinetype()
@@ -252,15 +251,15 @@ if __name__ == "__main__":
             else:
               escfg.reg('discovery.zen.ping.unicast.hosts',json.dumps(es_local_list))
               escfg.reg('discovery.zen.minimum_master_nodes','3')
-            escfg.reg('discovery.zen.ping.multicast.enabled','false')
+            #escfg.reg('discovery.zen.ping.multicast.enabled','false')
             escfg.reg('transport.tcp.compress','true')
-            escfg.reg('script.groovy.sandbox.enabled','true')
+            #escfg.reg('script.groovy.sandbox.enabled','true')
             escfg.reg("script.engine.groovy.inline.update", 'true')
             escfg.reg("script.engine.groovy.inline.aggs", 'true')
             escfg.reg("script.engine.groovy.inline.search", 'true')
-            escfg.reg("script.engine.groovy.indexed.update", 'true')
-            escfg.reg("script.engine.groovy.indexed.aggs", 'true')
-            escfg.reg("script.engine.groovy.indexed.search", 'true')
+            escfg.reg("script.engine.groovy.stored.update", 'true')
+            escfg.reg("script.engine.groovy.stored.aggs", 'true')
+            escfg.reg("script.engine.groovy.stored.search", 'true')
             #escfg.reg('script.inline.enabled','true')
             escfg.reg('node.master','true')
             escfg.reg('node.data','true')
@@ -272,15 +271,15 @@ if __name__ == "__main__":
                 escfg.reg('threadpool.bulk.queue_size','3000')
                 escfg.reg('index.translog.flush_threshold_ops','500000')
                 escfg.reg('index.translog.flush_threshold_size','4g')
-            escfg.reg('index.translog.durability', 'async') #in 2.2 this allows index requests to return quickly, before disk fsync in server
+            #escfg.reg('index.translog.durability', 'async') #in 2.2 this allows index requests to return quickly, before disk fsync in server
             escfg.reg('cluster.routing.allocation.disk.watermark.low','92%')
             escfg.reg('cluster.routing.allocation.disk.watermark.high','95%')
             escfg.commit()
  
-            #modify logging.yml
-            eslogcfg = FileManager(elasticlogconf,':',esEdited,'',' ')
-            eslogcfg.reg('es.logger.level','INFO')
-            eslogcfg.commit()
+            #modify logging.yml --> TODO: adjust /etc/elasticsearch/log4j2.properties
+            #eslogcfg = FileManager(elasticlogconf,':',esEdited,'',' ')
+            #eslogcfg.reg('es.logger.level','INFO')
+            #eslogcfg.commit()
 
         if type == 'escdaq':
             escfg = FileManager(elasticconf,':',esEdited,'',' ',recreate=True)
@@ -291,23 +290,22 @@ if __name__ == "__main__":
                 escfg.reg('cluster.name','es-vm-cdaq')
             else:
                 escfg.reg('cluster.name','es-cdaq')
-            #TODO:switch to multicast when complete with new node migration
             if env=='vm':
               escfg.reg('discovery.zen.minimum_master_nodes','1')
             else:
               escfg.reg('discovery.zen.ping.unicast.hosts',json.dumps(es_cdaq_list))
               escfg.reg('discovery.zen.minimum_master_nodes','3')
-            escfg.reg('discovery.zen.ping.multicast.enabled','false')
+            #escfg.reg('discovery.zen.ping.multicast.enabled','false')
             escfg.reg('action.auto_create_index','.marvel-*')
-            escfg.reg('index.mapper.dynamic','false')
+            #escfg.reg('index.mapper.dynamic','false')
             escfg.reg('transport.tcp.compress','true')
-            escfg.reg('script.groovy.sandbox.enabled','true')
+            #escfg.reg('script.groovy.sandbox.enabled','true')
             escfg.reg("script.engine.groovy.inline.update", 'true')
             escfg.reg("script.engine.groovy.inline.aggs", 'true')
             escfg.reg("script.engine.groovy.inline.search", 'true')
-            escfg.reg("script.engine.groovy.indexed.update", 'true')
-            escfg.reg("script.engine.groovy.indexed.aggs", 'true')
-            escfg.reg("script.engine.groovy.indexed.search", 'true')
+            escfg.reg("script.engine.groovy.stored.update", 'true')
+            escfg.reg("script.engine.groovy.stored.aggs", 'true')
+            escfg.reg("script.engine.groovy.stored.search", 'true')
             escfg.reg("action.destructive_requires_name", 'true')
             #escfg.reg('script.inline.enabled','true')
             escfg.reg('node.master','true')
@@ -321,7 +319,7 @@ if __name__ == "__main__":
                 escfg.reg('indices.recovery.concurrent_streams','7')
                 escfg.reg("indices.recovery.max_bytes_per_sec","100mb")
 
-            escfg.reg('index.translog.durability', 'async')
+            #escfg.reg('index.translog.durability', 'async')
             escfg.reg('cluster.routing.allocation.disk.watermark.low','92%')
             escfg.reg('cluster.routing.allocation.disk.watermark.high','95%')
             escfg.commit()
