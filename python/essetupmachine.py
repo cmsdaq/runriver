@@ -233,10 +233,9 @@ if __name__ == "__main__":
             essyscfg = FileManager(elasticsysconf,'=',essysEdited)
             if env=='vm':
                 essyscfg.reg('ES_HEAP_SIZE','2G')
-                essyscfg.reg('DATA_DIR','/var/lib/elasticsearch')
             else:
                 essyscfg.reg('ES_HEAP_SIZE','30G')
-                essyscfg.reg('DATA_DIR','/elasticsearch/lib/elasticsearch')
+            essyscfg.reg('DATA_DIR','/elasticsearch/lib/elasticsearch')
             essyscfg.removeEntry('CONF_FILE')
             essyscfg.commit()
 
