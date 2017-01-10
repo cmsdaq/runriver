@@ -287,11 +287,7 @@ if __name__ == "__main__":
             escfg.reg('network.publish_host',es_publish_host)
             if elasticsearch_new_bind:
               escfg.reg('network.bind_host','_local_,'+es_publish_host)
-            if env=='vm':
-                escfg.reg('cluster.name','es-vm-cdaq')
-            else:
-                escfg.reg('cluster.name','es-cdaq')
-            #TODO:switch to multicast when complete with new node migration
+            escfg.reg('cluster.name','es-cdaq')
             if env=='vm':
               escfg.reg('discovery.zen.minimum_master_nodes','1')
             else:
