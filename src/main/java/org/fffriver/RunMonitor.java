@@ -169,13 +169,13 @@ public class RunMonitor extends AbstractRunRiverThread {
           client.admin().indices().preparePutMapping()
             .setIndices(runIndex_write)
             .setType("state-hist")
-            .setSource(stateHistMapping)
+            .setSource(stateHistMappingAlt)
             .execute().actionGet();
         } catch (Exception e) {
           client.admin().indices().preparePutMapping()
             .setIndices(runIndex_write)
             .setType("state-hist")
-            .setSource(stateHistMappingAlt)
+            .setSource(stateHistMapping)
             .execute().actionGet();
         }
 
@@ -191,13 +191,13 @@ public class RunMonitor extends AbstractRunRiverThread {
           client.admin().indices().preparePutMapping()
             .setIndices(runIndex_write)
             .setType("state-hist-summary")
-            .setSource(stateHistSummaryMapping)
+            .setSource(stateHistSummaryMappingAlt)
             .execute().actionGet();
         } catch (Exception e) {
           client.admin().indices().preparePutMapping()
             .setIndices(runIndex_write)
             .setType("state-hist-summary")
-            .setSource(stateHistSummaryMappingAlt)
+            .setSource(stateHistSummaryMapping)
             .execute().actionGet();
         }
     }
@@ -213,13 +213,13 @@ public class RunMonitor extends AbstractRunRiverThread {
           client.admin().indices().preparePutMapping()
             .setIndices(runIndex_write)
             .setType("stream-hist")
-            .setSource(streamHistMapping)
+            .setSource(streamHistMappingAlt)
             .execute().actionGet();
         } catch (Exception e) {
           client.admin().indices().preparePutMapping()
             .setIndices(runIndex_write)
             .setType("stream-hist")
-            .setSource(streamHistMappingAlt)
+            .setSource(streamHistMapping)
             .execute().actionGet();
         }
     }
