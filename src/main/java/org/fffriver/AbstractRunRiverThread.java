@@ -165,6 +165,10 @@ public class AbstractRunRiverThread extends Thread  {
  
     }
 
+    public void injectMapping() throws UnknownHostException {
+        beforeLoop();
+    }
+
     public void mainLoop() throws Exception {
         return;
     }

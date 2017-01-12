@@ -40,7 +40,8 @@ public class Main {
     //ESLogger logger = Loggers.getLogger("Main", "river",river_id);
     Logger logger = Loggers.getLogger("Main", "river",river_id);
 
-    if (river_runnumber == 0) role = "monitor";
+    if (river_id.equals("mapping")) role = "mapping";
+    else if (river_runnumber == 0) role = "monitor";
     else role = "collector";
 
     //start transport client
@@ -51,11 +52,42 @@ public class Main {
       client =  new PreBuiltTransportClient(settings).addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(InetAddress.getByName(river_eshost), 9300)));
     }
     catch (Exception e) {
-      logger.error("elasticizeStat exception: ", e);
+      logger.error("TransportClient exception: ", e);
       System.exit(2);
       return;
     }
 
+    if (role.equals("mapping")){
+      try {
+
+        Map <String, Object> settings = new HashMap<String, Object>();
+        settings.put("role",role);
+        settings.put("es_central_cluster",river_escluster);
+        settings.put("subsystem",river_subsys);
+        settings.put("runIndex_write",river_esindex);//reuse arg
+
+        /*
+        settings.put("runNumber",0);
+        settings.put("es_tribe_host", "");
+        settings.put("es_tribe_cluster", "");
+        settings.put("polling_interval","");
+        settings.put("fetching_interval","");
+        settings.put("runIndex_read","");
+        settings.put("boxinfo_read","");
+        settings.put("enable_stats",false);
+        settings.put("close_indices",false);
+        settings.put("river_esindex","");
+        */
+
+        rm = new RunMonitor(river_id,settings,client);
+        rm.injectMapping();
+        System.exit(0);
+      }
+      catch (Exception e) {
+        logger.error("Mapping river exception: ", e);
+        System.exit(10);
+      }
+    }
     //get document id from river index
     GetResponse response;
     try {
