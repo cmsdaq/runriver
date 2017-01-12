@@ -289,11 +289,12 @@ public class Collector extends AbstractRunRiverThread {
 
                     SearchResponse sResponseEoLS = client.prepareSearch(runIndex_write).setTypes("eols")
                                                          .setRouting(runNumber)
-                                                         .setQuery(QueryBuilders.prefixQuery("_id",idStr))
+                                                         .setQuery(QueryBuilders.boolQuery().must(QueryBuilders.parentId("eols",runNumber)).must(QueryBuilders.termQuery("ls",ls)))
+                                                         //.setQuery(QueryBuilders.prefixQuery("_id",idStr))
                                                          .setSize(0)
                                                          .addAggregation(AggregationBuilders.sum("NEvents").field("NEvents"))
                                                          .addAggregation(AggregationBuilders.sum("NLostEvents").field("NLostEvents"))
-                                                         .addAggregation(AggregationBuilders.sum("TotalEvents").field("TotalEvents"))
+                                                         .addAggregation(AggregationBuilders.max("TotalEvents").field("TotalEvents"))
                                                          .execute().actionGet();
  
 
