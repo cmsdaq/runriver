@@ -234,10 +234,9 @@ if __name__ == "__main__":
             essyscfg = FileManager(elasticsysconf,'=',essysEdited)
             if env=='vm':
                 essyscfg.reg('ES_HEAP_SIZE','2G')
-                essyscfg.reg('DATA_DIR','/var/lib/elasticsearch')
             else:
                 essyscfg.reg('ES_HEAP_SIZE','30G')
-                essyscfg.reg('DATA_DIR','/elasticsearch/lib/elasticsearch')
+            essyscfg.reg('DATA_DIR','/elasticsearch/lib/elasticsearch')
             essyscfg.removeEntry('CONF_FILE')
             essyscfg.commit()
 
@@ -287,11 +286,7 @@ if __name__ == "__main__":
             escfg.reg('network.publish_host',es_publish_host)
             if elasticsearch_new_bind:
               escfg.reg('network.bind_host','_local_,'+es_publish_host)
-            if env=='vm':
-                escfg.reg('cluster.name','es-vm-cdaq')
-            else:
-                escfg.reg('cluster.name','es-cdaq')
-            #TODO:switch to multicast when complete with new node migration
+            escfg.reg('cluster.name','es-cdaq')
             if env=='vm':
               escfg.reg('discovery.zen.minimum_master_nodes','1')
             else:
