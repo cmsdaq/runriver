@@ -214,9 +214,6 @@ if __name__ == "__main__":
         else:
             es_publish_host=os.uname()[1]+'.cms'
 
-        #determine elasticsearch version
-        elasticsearch_new_bind=True
-
         #print "will modify sysconfig elasticsearch configuration"
         #maybe backup vanilla versions
         essysEdited =  checkModifiedConfigInFile(elasticsysconf)
@@ -242,37 +239,36 @@ if __name__ == "__main__":
         if type == 'eslocal':
             escfg = FileManager(elasticconf,':',esEdited,'',' ',recreate=True)
             escfg.reg('network.publish_host',es_publish_host)
-            if elasticsearch_new_bind:
-              escfg.reg('network.bind_host','_local_,'+es_publish_host)
+            escfg.reg('network.bind_host','_local_,'+es_publish_host)
             escfg.reg('cluster.name','es-local')
+            escfg.reg('discovery.zen.ping.unicast.hosts',json.dumps(es_local_list))
             if env=='vm':
-              escfg.reg('discovery.zen.minimum_master_nodes','1')
+                escfg.reg('discovery.zen.minimum_master_nodes','1')
             else:
-              escfg.reg('discovery.zen.ping.unicast.hosts',json.dumps(es_local_list))
-              escfg.reg('discovery.zen.minimum_master_nodes','3')
-            #escfg.reg('discovery.zen.ping.multicast.enabled','false')
+                escfg.reg('discovery.zen.minimum_master_nodes','3')
+            escfg.reg('node.master','true')
+            escfg.reg('node.data','true')
             escfg.reg('transport.tcp.compress','true')
-            #escfg.reg('script.groovy.sandbox.enabled','true')
+            escfg.reg('script.max_compilations_per_minute', '10000')
             escfg.reg("script.engine.groovy.inline.update", 'true')
             escfg.reg("script.engine.groovy.inline.aggs", 'true')
             escfg.reg("script.engine.groovy.inline.search", 'true')
             escfg.reg("script.engine.groovy.stored.update", 'true')
             escfg.reg("script.engine.groovy.stored.aggs", 'true')
             escfg.reg("script.engine.groovy.stored.search", 'true')
-            #escfg.reg('script.inline.enabled','true')
-            escfg.reg('node.master','true')
-            escfg.reg('node.data','true')
-            #other optimizations:
-            if env!='vm':
-                escfg.reg('index.store.throttle.type','none')
-                escfg.reg('indices.store.throttle.type','none')
-                escfg.reg('threadpool.index.queue_size','1000')
-                escfg.reg('threadpool.bulk.queue_size','3000')
-                escfg.reg('index.translog.flush_threshold_ops','500000')
-                escfg.reg('index.translog.flush_threshold_size','4g')
-            #escfg.reg('index.translog.durability', 'async') #in 2.2 this allows index requests to return quickly, before disk fsync in server
             escfg.reg('cluster.routing.allocation.disk.watermark.low','92%')
             escfg.reg('cluster.routing.allocation.disk.watermark.high','95%')
+            #other optimizations:
+            #if env!='vm':
+            if True:
+                #escfg.reg('index.store.throttle.type','none') #index setting, already covered by line below
+                escfg.reg('indices.store.throttle.type','none') #merge for throttling
+                escfg.reg("indices.recovery.max_bytes_per_sec","100mb") #default:40mb
+                escfg.reg('thread_pool.index.queue_size','1000') #default:200
+                escfg.reg('thread_pool.bulk.queue_size','3000') #default:50
+                escfg.reg('cluster.routing.allocation.node_concurrent_recoveries','5') #default:2
+                escfg.reg('cluster.routing.allocation.node_initial_primaries_recoveries', '5') #default:4
+                #escfg.reg('index.translog.flush_threshold_size','4g') #default:512 mb, only es-local,must be template
             escfg.commit()
  
             #modify logging.yml --> TODO: adjust /etc/elasticsearch/log4j2.properties
@@ -283,19 +279,19 @@ if __name__ == "__main__":
         if type == 'escdaq':
             escfg = FileManager(elasticconf,':',esEdited,'',' ',recreate=True)
             escfg.reg('network.publish_host',es_publish_host)
-            if elasticsearch_new_bind:
-              escfg.reg('network.bind_host','_local_,'+es_publish_host)
+            escfg.reg('network.bind_host','_local_,'+es_publish_host)
             escfg.reg('cluster.name','es-cdaq')
+            escfg.reg('discovery.zen.ping.unicast.hosts',json.dumps(es_cdaq_list))
             if env=='vm':
-              escfg.reg('discovery.zen.minimum_master_nodes','1')
+                escfg.reg('discovery.zen.minimum_master_nodes','1')
             else:
-              escfg.reg('discovery.zen.ping.unicast.hosts',json.dumps(es_cdaq_list))
-              escfg.reg('discovery.zen.minimum_master_nodes','3')
-            #escfg.reg('discovery.zen.ping.multicast.enabled','false')
+                escfg.reg('discovery.zen.minimum_master_nodes','3')
+            escfg.reg('node.master','true')
+            escfg.reg('node.data','true')
             escfg.reg('action.auto_create_index','.marvel-*')
-            #escfg.reg('index.mapper.dynamic','false')
+            #escfg.reg('index.mapper.dynamic','false') #per-index in 5.X
             escfg.reg('transport.tcp.compress','true')
-            #escfg.reg('script.groovy.sandbox.enabled','true')
+            escfg.reg('script.max_compilations_per_minute', '10000')
             escfg.reg("script.engine.groovy.inline.update", 'true')
             escfg.reg("script.engine.groovy.inline.aggs", 'true')
             escfg.reg("script.engine.groovy.inline.search", 'true')
@@ -303,20 +299,16 @@ if __name__ == "__main__":
             escfg.reg("script.engine.groovy.stored.aggs", 'true')
             escfg.reg("script.engine.groovy.stored.search", 'true')
             escfg.reg("action.destructive_requires_name", 'true')
-            #escfg.reg('script.inline.enabled','true')
-            escfg.reg('node.master','true')
-            escfg.reg('node.data','true')
-            if env!='vm':
-                escfg.reg('index.store.throttle.type','none')
-                escfg.reg('indices.store.throttle.type','none')
-                escfg.reg('threadpool.index.queue_size','1000')
-                escfg.reg('threadpool.bulk.queue_size','3000')
-                escfg.reg('cluster.routing.allocation.node_concurrent_recoveries','5')
-                escfg.reg('indices.recovery.concurrent_streams','7')
-                escfg.reg("indices.recovery.max_bytes_per_sec","100mb")
-
-            #escfg.reg('index.translog.durability', 'async')
             escfg.reg('cluster.routing.allocation.disk.watermark.low','92%')
             escfg.reg('cluster.routing.allocation.disk.watermark.high','95%')
+            #if env!='vm':
+            if True:
+                #escfg.reg('index.store.throttle.type','none') #index setting, already covered by line below
+                escfg.reg('indices.store.throttle.type','none') #merge for throttling
+                escfg.reg("indices.recovery.max_bytes_per_sec","100mb") #default:40mb
+                escfg.reg('thread_pool.index.queue_size','1000') #default:200
+                escfg.reg('thread_pool.bulk.queue_size','3000') #default:50
+                escfg.reg('cluster.routing.allocation.node_concurrent_recoveries','5') #default:2
+                escfg.reg('cluster.routing.allocation.node_initial_primaries_recoveries', '5') #default:4
             escfg.commit()
 
