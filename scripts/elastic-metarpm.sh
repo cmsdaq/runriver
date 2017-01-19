@@ -41,10 +41,10 @@ pluginfile3="elasticsearch-kopf-2.1.1.zip"
 pluginname4="hq"
 pluginfile4="hq-v2.0.3.zip"
 pluginname5="delete-by-query"
-pluginfile5="delete-by-query-2.2.0.zip"
+pluginfile5="delete-by-query-2.4.4.zip"
 
 
-riverfile="river-runriver-1.5.1-jar-with-dependencies.jar"
+riverfile="river-runriver-1.5.2-jar-with-dependencies.jar"
 
 if [ ! -f $SCRIPTDIR/../target/$riverfile ]; then
  echo "missing river file $SCRIPTDIR/../target/$riverfile"
