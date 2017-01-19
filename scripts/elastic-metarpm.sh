@@ -94,8 +94,8 @@ cd $TOPDIR
 # we are done here, write the specs and make the fu***** rpm
 cat > fffmeta-elastic.spec <<EOF
 Name: $PACKAGENAME
-Version: 2.1.0
-Release: 0es242
+Version: 2.0.3
+Release: 0
 Summary: hlt daemon
 License: gpl
 Group: DAQ
@@ -105,7 +105,7 @@ Source: none
 %define _topdir $TOPDIR
 BuildArch: $BUILD_ARCH
 AutoReqProv: no
-Requires:elasticsearch => 2.2, cx_Oracle >= 5.1.2, java-1.8.0-oracle-headless >= 1.8.0.45, php >= 5.3.3, php-oci8 >= 1.4.9
+Requires:elasticsearch => 2.4, cx_Oracle >= 5.1.2, java-1.8.0-oracle-headless >= 1.8.0.45, php >= 5.3.3, php-oci8 >= 1.4.9
 
 Provides:/opt/fff/configurefff.sh
 Provides:/opt/fff/essetupmachine.py
