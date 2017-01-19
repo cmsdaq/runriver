@@ -229,11 +229,13 @@ if __name__ == "__main__":
 
             essyscfg = FileManager(elasticsysconf,'=',essysEdited)
             if env=='vm':
-                essyscfg.reg('ES_HEAP_SIZE','2G')
+                essyscfg.reg('ES_JAVA_OPTS',"-Xms2G -Xmx2G")
             else:
-                essyscfg.reg('ES_HEAP_SIZE','30G')
+                essyscfg.reg('ES_JAVA_OPTS',"-Xms30G -Xmx30G")
+                #essyscfg.reg('ES_HEAP_SIZE','30G')
             essyscfg.reg('DATA_DIR','/elasticsearch/lib/elasticsearch')
             essyscfg.removeEntry('CONF_FILE')
+            essyscfg.removeEntry('ES_HEAP_FILE')
             essyscfg.commit()
 
         if type == 'eslocal':
