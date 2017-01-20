@@ -94,8 +94,8 @@ cd $TOPDIR
 # we are done here, write the specs and make the fu***** rpm
 cat > fffmeta-elastic.spec <<EOF
 Name: $PACKAGENAME
-Version: 2.1.0
-Release: 1es511
+Version: 2.2.0
+Release: 1es512
 Summary: hlt daemon
 License: gpl
 Group: DAQ
