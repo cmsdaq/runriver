@@ -95,7 +95,7 @@ cd $TOPDIR
 cat > fffmeta-elastic.spec <<EOF
 Name: $PACKAGENAME
 Version: 2.1.0
-Release: 2
+Release: 3
 Summary: hlt daemon
 License: gpl
 Group: DAQ
