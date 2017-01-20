@@ -77,6 +77,7 @@ public class Collector extends AbstractRunRiverThread {
 
     Map<Integer, Map<String,Double>> incompleteLumis = new HashMap<Integer, Map<String,Double>>();
 
+    InetSocketAddress remoteAddress;
     Client remoteClient;
     Boolean EoR=false;
     String tribeIndex;
@@ -758,9 +759,16 @@ public class Collector extends AbstractRunRiverThread {
         Settings settings = Settings.builder()
             .put("cluster.name", es_tribe_cluster).build();
         //remoteClient = TransportClient.builder().settings(settings).build()
+        remoteAddress = new InetSocketAddress(InetAddress.getByName(es_tribe_host), 9300);
         remoteClient = new PreBuiltTransportClient(settings)
-            .addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(InetAddress.getByName(es_tribe_host), 9300)));
- 
+            .addTransportAddress(new InetSocketTransportAddress(remoteAddress));
+    }
+
+    public void resetRemoteClient() {
+        Settings settings = Settings.builder()
+            .put("cluster.name", es_tribe_cluster).build();
+        remoteClient = new PreBuiltTransportClient(settings)
+            .addTransportAddress(new InetSocketTransportAddress(remoteAddress));
     }
 
     public void getQueries(){
@@ -779,9 +787,32 @@ public class Collector extends AbstractRunRiverThread {
           logger.info("closing indices is disabled");
           return;
         }
-        logger.info("closing indices for run "+runNumber.toString());
+        logger.info("closing index for run "+runNumber.toString() 
+                      + " (index " + "run" + runNumber.toString()
+                      + "_" + subsystem +" on " + es_tribe_host + " - " + es_tribe_cluster + ")");
+
 	//close index using JAVA API
-        remoteClient.admin().indices().close(Requests.closeIndexRequest("run"+runNumber.toString()+"_"+subsystem));
+
+        if (remoteClient.admin().indices().close(Requests.closeIndexRequest("run"+runNumber.toString()+"_"+subsystem)).actionGet().isAcknowledged())
+          logger.info("executed index close for run "+runNumber.toString());
+        else {
+          logger.error("index close for run "+runNumber.toString() + " failed ");
+          logger.info("reconnect before retrying index close ");
+          //reconnect before retry closing indices
+          remoteClient.close();
+          try {
+            Thread.sleep(2000);
+          }
+          catch (InterruptedException iex) {}
+          resetRemoteClient();
+          logger.info("closing index for run "+runNumber.toString() 
+                      + " (index " + "run" + runNumber.toString()
+                      + "_" + subsystem +" on " + es_tribe_host + " - " + es_tribe_cluster + ")");
+          if (remoteClient.admin().indices().close(Requests.closeIndexRequest("run"+runNumber.toString()+"_"+subsystem)).actionGet().isAcknowledged())
+            logger.info("executed index close for run "+runNumber.toString());
+          else
+            logger.error("index close for run "+runNumber.toString() + " failed ");
+        }
         return;
     }
 }
