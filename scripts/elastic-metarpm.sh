@@ -1,4 +1,11 @@
 #!/bin/bash -e
+
+
+alias python=`readlink /usr/bin/python2`
+#python_dir=`readlink /usr/bin/python2`
+python_dir=`python -c 'import platform; print("python"+platform.python_version_tuple()[0]+"."+platform.python_version_tuple()[1])'`
+python_version=${python_dir:6}
+
 BUILD_ARCH=noarch
 SCRIPTDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd $SCRIPTDIR/..
@@ -50,20 +57,20 @@ echo "Moving files to their compile scratch area"
 cd $SCRATCHDIR/libpython/python-prctl
 #python-prctl
 ./setup.py -q build
-python - <<'EOF'
+python - <<EOF
 import py_compile
-py_compile.compile("build/lib.linux-x86_64-2.6/prctl.py")
+py_compile.compile("build/lib.linux-x86_64-${python_version}/prctl.py")
 EOF
-python -O - <<'EOF'
+python -O - <<EOF
 import py_compile
-py_compile.compile("build/lib.linux-x86_64-2.6/prctl.py")
+py_compile.compile("build/lib.linux-x86_64-${python_version}/prctl.py")
 EOF
-mkdir -p $SCRATCHDIR/usr/lib64/python2.6/site-packages
-cp build/lib.linux-x86_64-2.6/prctl.pyo $SCRATCHDIR/usr/lib64/python2.6/site-packages/
-cp build/lib.linux-x86_64-2.6/prctl.py  $SCRATCHDIR/usr/lib64/python2.6/site-packages/
-cp build/lib.linux-x86_64-2.6/prctl.pyc $SCRATCHDIR/usr/lib64/python2.6/site-packages/
-cp build/lib.linux-x86_64-2.6/_prctl.so $SCRATCHDIR/usr/lib64/python2.6/site-packages/
-cat > $SCRATCHDIR/usr/lib64/python2.6/site-packages/python_prctl-1.5.0-py2.6.egg-info <<EOF
+mkdir -p $SCRATCHDIR/usr/lib64/$python_dir/site-packages
+cp build/lib.linux-x86_64-${python_version}/prctl.pyo $SCRATCHDIR/usr/lib64/${python_dir}/site-packages/
+cp build/lib.linux-x86_64-${python_version}/prctl.py  $SCRATCHDIR/usr/lib64/${python_dir}/site-packages/
+cp build/lib.linux-x86_64-${python_version}/prctl.pyc $SCRATCHDIR/usr/lib64/${python_dir}/site-packages/
+cp build/lib.linux-x86_64-${python_version}/_prctl.so $SCRATCHDIR/usr/lib64/${python_dir}/site-packages/
+cat > $SCRATCHDIR/usr/lib64/${python_dir}/site-packages/python_prctl-1.5.0-py${python_version}.egg-info <<EOF
 Metadata-Version: 1.0
 Name: python-prctl
 Version: 1.5.0
@@ -109,10 +116,10 @@ Provides:/opt/fff/river-daemon.py
 Provides:/etc/init.d/riverd
 Provides:/opt/fff/$riverfile
 Provides:/etc/rsyslog.d/48-river.conf
-Provides:/usr/lib64/python2.6/site-packages/prctl.py
-Provides:/usr/lib64/python2.6/site-packages/prctl.pyc
-Provides:/usr/lib64/python2.6/site-packages/_prctl.so
-Provides:/usr/lib64/python2.6/site-packages/python_prctl-1.5.0-py2.6.egg-info
+Provides:/usr/lib64/$python_dir/site-packages/prctl.py
+Provides:/usr/lib64/$python_dir/site-packages/prctl.pyc
+Provides:/usr/lib64/$python_dir/site-packages/_prctl.so
+Provides:/usr/lib64/$python_dir/site-packages/python_prctl-1.5.0-py${python_version}.egg-info
 
 %description
 fffmeta configuration setup package
@@ -123,24 +130,24 @@ fffmeta configuration setup package
 %install
 rm -rf \$RPM_BUILD_ROOT
 mkdir -p \$RPM_BUILD_ROOT
-%__install -d "%{buildroot}/usr/lib64/python2.6/site-packages"
+%__install -d "%{buildroot}/usr/lib64/$python_dir/site-packages"
 %__install -d "%{buildroot}/opt/fff"
 %__install -d "%{buildroot}/opt/fff/backup"
 %__install -d "%{buildroot}/opt/fff/esplugins"
 %__install -d "%{buildroot}/etc/init.d"
 %__install -d "%{buildroot}/etc/rsyslog.d"
 
-mkdir -p usr/lib64/python2.6/site-packages
+mkdir -p usr/lib64/$python_dir/site-packages
 mkdir -p opt/fff/esplugins
 mkdir -p opt/fff/backup
 mkdir -p etc/init.d/
 mkdir -p etc/rsyslog.d
 
-cp $SCRATCHDIR/usr/lib64/python2.6/site-packages/prctl.py %{buildroot}/usr/lib64/python2.6/site-packages/
-cp $SCRATCHDIR/usr/lib64/python2.6/site-packages/prctl.pyc %{buildroot}/usr/lib64/python2.6/site-packages/
-cp $SCRATCHDIR/usr/lib64/python2.6/site-packages/prctl.pyo %{buildroot}/usr/lib64/python2.6/site-packages/
-cp $SCRATCHDIR/usr/lib64/python2.6/site-packages/_prctl.so %{buildroot}/usr/lib64/python2.6/site-packages/
-cp $SCRATCHDIR/usr/lib64/python2.6/site-packages/python_prctl-1.5.0-py2.6.egg-info  %{buildroot}/usr/lib64/python2.6/site-packages/
+cp $SCRATCHDIR/usr/lib64/$python_dir/site-packages/prctl.py %{buildroot}/usr/lib64/$python_dir/site-packages/
+cp $SCRATCHDIR/usr/lib64/$python_dir/site-packages/prctl.pyc %{buildroot}/usr/lib64/$python_dir/site-packages/
+cp $SCRATCHDIR/usr/lib64/$python_dir/site-packages/prctl.pyo %{buildroot}/usr/lib64/$python_dir/site-packages/
+cp $SCRATCHDIR/usr/lib64/$python_dir/site-packages/_prctl.so %{buildroot}/usr/lib64/$python_dir/site-packages/
+cp $SCRATCHDIR/usr/lib64/$python_dir/site-packages/python_prctl-1.5.0-py${python_version}.egg-info  %{buildroot}/usr/lib64/$python_dir/site-packages/
 
 cp $BASEDIR/etc/rsyslog.d/48-river.conf %{buildroot}/etc/rsyslog.d/48-river.conf
 cp $BASEDIR/python/essetupmachine.py %{buildroot}/opt/fff/essetupmachine.py
@@ -149,7 +156,7 @@ cp $BASEDIR/python/river-daemon.py %{buildroot}/opt/fff/river-daemon.py
 cp $BASEDIR/python/riverd %{buildroot}/etc/init.d/riverd
 
 echo "#!/bin/bash" > %{buildroot}/opt/fff/configurefff.sh
-echo python2.6 /opt/fff/essetupmachine.py >> %{buildroot}/opt/fff/configurefff.sh
+echo python2 /opt/fff/essetupmachine.py >> %{buildroot}/opt/fff/configurefff.sh
 
 cp $BASEDIR/target/$riverfile %{buildroot}/opt/fff/$riverfile
 cp $BASEDIR/esplugins/$pluginfile1 %{buildroot}/opt/fff/esplugins/$pluginfile1
@@ -204,11 +211,11 @@ echo "fi"                                >> %{buildroot}/etc/init.d/fffmeta
 %attr( 755 ,root, root) /opt/fff/esplugins/uninstall.sh
 %attr( 755 ,root, root) /opt/fff/$riverfile
 %attr( 444 ,root, root) /etc/rsyslog.d/48-river.conf
-%attr( 755 ,root, root) /usr/lib64/python2.6/site-packages/prctl.py
-%attr( 755 ,root, root) /usr/lib64/python2.6/site-packages/prctl.pyo
-%attr( 755 ,root, root) /usr/lib64/python2.6/site-packages/prctl.pyc
-%attr( 755 ,root, root) /usr/lib64/python2.6/site-packages/_prctl.so
-%attr( 755 ,root, root) /usr/lib64/python2.6/site-packages/python_prctl-1.5.0-py2.6.egg-info
+%attr( 755 ,root, root) /usr/lib64/$python_dir/site-packages/prctl.py
+%attr( 755 ,root, root) /usr/lib64/$python_dir/site-packages/prctl.pyo
+%attr( 755 ,root, root) /usr/lib64/$python_dir/site-packages/prctl.pyc
+%attr( 755 ,root, root) /usr/lib64/$python_dir/site-packages/_prctl.so
+%attr( 755 ,root, root) /usr/lib64/$python_dir/site-packages/python_prctl-1.5.0-py${python_version}.egg-info
 
 %post
 #echo "post install trigger"
@@ -227,8 +234,8 @@ ln -s -f $riverfile /opt/fff/river.jar
 %triggerin -- elasticsearch
 #echo "triggered on elasticsearch update or install"
 #/sbin/service elasticsearch stop
-python2.6 /opt/fff/essetupmachine.py restore
-python2.6 /opt/fff/essetupmachine.py
+python2 /opt/fff/essetupmachine.py restore
+python2 /opt/fff/essetupmachine.py
 #update permissions in case new rpm changed uid/guid
 chown -R elasticsearch:elasticsearch /var/log/elasticsearch
 chown -R elasticsearch:elasticsearch /var/lib/elasticsearch
@@ -280,7 +287,7 @@ if [ \$1 == 0 ]; then
   /opt/fff/esplugins/uninstall.sh /usr/share/elasticsearch $pluginname5 || true
 
 
-  python2.6 /opt/fff/essetupmachine.py restore
+  python2 /opt/fff/essetupmachine.py restore
 fi
 
 #%verifyscript
