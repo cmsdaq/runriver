@@ -18,10 +18,16 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequestBuilder;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingResponse;
 import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsResponse;
-import org.elasticsearch.index.engine.DocumentAlreadyExistsException;
+//import org.elasticsearch.index.engine.DocumentAlreadyExistsException;
+import org.elasticsearch.index.engine.VersionConflictEngineException;
 //jsonBuilder
 import org.elasticsearch.common.xcontent.support.XContentMapValues;
 import static org.elasticsearch.common.xcontent.XContentFactory.*;
+
+import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.search.aggregations.AggregationBuilders;
+import org.elasticsearch.search.sort.SortBuilders;
+import org.elasticsearch.search.sort.SortOrder;
 
 //org.json
 import net.sf.json.JSONObject;
@@ -37,7 +43,7 @@ public class RunMonitor extends AbstractRunRiverThread {
     JSONObject stateHistSummaryMapping;
     JSONObject stateHistSummaryMappingAlt;
     JSONObject statsMapping;
-    JSONObject runQuery;
+    //JSONObject runQuery;
 
     public RunMonitor(String riverName, Map<String, Object> rSettings, Client client) {
         super(riverName,rSettings,client);
@@ -62,10 +68,17 @@ public class RunMonitor extends AbstractRunRiverThread {
 
     public void runPolling() throws Exception {
         logger.info("runPolling on index: "+runIndex_read);
-
-        
         SearchResponse response = client.prepareSearch(runIndex_read).setTypes("run")
-            .setSource(runQuery).execute().actionGet();
+                                        .setSize(100)
+                                        .addSort(SortBuilders.fieldSort("startTime").order(SortOrder.DESC))
+                                        .setQuery(QueryBuilders.boolQuery()
+                                                               .should(QueryBuilders.boolQuery().mustNot(QueryBuilders.existsQuery("endTime")))
+                                                               .should(QueryBuilders.rangeQuery("activeBUs").from(1))
+                                                               .minimumShouldMatch("1"))
+                                        .execute().actionGet();
+        
+        //SearchResponse response = client.prepareSearch(runIndex_read).setTypes("run")
+        //    .setSource(runQuery).execute().actionGet();
         collectStats(riverName,"runRanger",runIndex_read,response);
 
         if (response.getHits().getTotalHits() == 0 ) { return; }
@@ -117,7 +130,8 @@ public class RunMonitor extends AbstractRunRiverThread {
           .execute()
           .actionGet();
         }
-        catch (DocumentAlreadyExistsException ex) {
+        //catch (DocumentAlreadyExistsException ex) {
+        catch (VersionConflictEngineException ex) {
           logger.info("skipping already existing document for "+runNumber);
         }
 
@@ -137,7 +151,7 @@ public class RunMonitor extends AbstractRunRiverThread {
 
     public void getQueries() {
         try {
-                runQuery = getJson("runRanger");
+                //runQuery = getJson("runRanger");
                 stateHistMapping = getJson("stateHistMapping");
                 stateHistMappingAlt = getJson("stateHistMappingAlt");
                 stateHistSummaryMapping = getJson("stateHistSummaryMapping");
