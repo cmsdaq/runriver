@@ -44,7 +44,7 @@ pluginname5="delete-by-query"
 pluginfile5="delete-by-query-2.2.0.zip"
 
 
-riverfile="river-runriver-1.4.4-jar-with-dependencies.jar"
+riverfile="river-runriver-1.4.9-jar-with-dependencies.jar"
 
 if [ ! -f $SCRIPTDIR/../target/$riverfile ]; then
  echo "missing river file $SCRIPTDIR/../target/$riverfile"
@@ -94,7 +94,7 @@ cd $TOPDIR
 # we are done here, write the specs and make the fu***** rpm
 cat > fffmeta-elastic.spec <<EOF
 Name: $PACKAGENAME
-Version: 1.9.8
+Version: 1.9.9
 Release: 0
 Summary: hlt daemon
 License: gpl
