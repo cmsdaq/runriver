@@ -31,11 +31,8 @@ import org.apache.commons.io.IOUtils;
 public class RunMonitor extends AbstractRunRiverThread {
         
     JSONObject streamHistMapping;
-    JSONObject streamHistMappingAlt;
     JSONObject stateHistMapping;
-    JSONObject stateHistMappingAlt;
     JSONObject stateHistSummaryMapping;
-    JSONObject stateHistSummaryMappingAlt;
     JSONObject statsMapping;
     JSONObject runQuery;
 
@@ -139,11 +136,8 @@ public class RunMonitor extends AbstractRunRiverThread {
         try {
                 runQuery = getJson("runRanger");
                 stateHistMapping = getJson("stateHistMapping");
-                stateHistMappingAlt = getJson("stateHistMappingAlt");
                 stateHistSummaryMapping = getJson("stateHistSummaryMapping");
-                stateHistSummaryMappingAlt = getJson("stateHistSummaryMappingAlt");
                 streamHistMapping = getJson("streamHistMapping"); 
-                streamHistMappingAlt = getJson("streamHistMappingAlt"); 
                 statsMapping = getJson("statsMapping"); 
             } catch (Exception e) {
                 logger.error("RunMonitor getQueries Exception: ", e);
@@ -165,19 +159,11 @@ public class RunMonitor extends AbstractRunRiverThread {
             .setTypes("state-hist").execute().actionGet();
         //if (!response.mappings().isEmpty()){ logger.info("State Mapping already exists"); return; }
         logger.info("create/update StateMapping");
-        try {
-          client.admin().indices().preparePutMapping()
-            .setIndices(runIndex_write)
-            .setType("state-hist")
-            .setSource(stateHistMappingAlt)
-            .execute().actionGet();
-        } catch (Exception e) {
-          client.admin().indices().preparePutMapping()
+        client.admin().indices().preparePutMapping()
             .setIndices(runIndex_write)
             .setType("state-hist")
             .setSource(stateHistMapping)
             .execute().actionGet();
-        }
 
     }
 
@@ -187,19 +173,11 @@ public class RunMonitor extends AbstractRunRiverThread {
             .setTypes("state-hist-summary").execute().actionGet();
         //if (!response.mappings().isEmpty()){ logger.info("State Summary Mapping already exists"); return; }
         logger.info("create/update StateSummaryMapping");
-        try {
-          client.admin().indices().preparePutMapping()
-            .setIndices(runIndex_write)
-            .setType("state-hist-summary")
-            .setSource(stateHistSummaryMappingAlt)
-            .execute().actionGet();
-        } catch (Exception e) {
-          client.admin().indices().preparePutMapping()
+        client.admin().indices().preparePutMapping()
             .setIndices(runIndex_write)
             .setType("state-hist-summary")
             .setSource(stateHistSummaryMapping)
             .execute().actionGet();
-        }
     }
 
 
@@ -209,14 +187,7 @@ public class RunMonitor extends AbstractRunRiverThread {
             .setTypes("stream-hist").execute().actionGet();
         //if (!response.mappings().isEmpty()){ logger.info("Stream Mapping already exists"); return; }
         logger.info("create/update StreamMapping");
-        try {
-          client.admin().indices().preparePutMapping()
-            .setIndices(runIndex_write)
-            .setType("stream-hist")
-            .setSource(streamHistMappingAlt)
-            .execute().actionGet();
-        } catch (Exception e) {
-          client.admin().indices().preparePutMapping()
+        client.admin().indices().preparePutMapping()
             .setIndices(runIndex_write)
             .setType("stream-hist")
             .setSource(streamHistMapping)
