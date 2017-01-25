@@ -1,9 +1,9 @@
 {
   "state-hist-summary": {
+    '_all': {'enabled': "false" },
     "_parent": {
       "type": "run"
     },
-    '_all': {'enabled': "false" },
     "properties": {
       "hmini": {
         "properties": {
@@ -65,7 +65,7 @@
             "type" : "nested",
             "properties": {
               "key": {
-                "type": "integer"
+                "type": "short"
               },
               "count": {
                 "type": "integer"
