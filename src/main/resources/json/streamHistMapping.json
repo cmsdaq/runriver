@@ -1,5 +1,8 @@
 {
   "stream-hist": {
+    "_all": {
+      "enabled": "false"
+    },
     "_parent": {
       "type": "run"
     },

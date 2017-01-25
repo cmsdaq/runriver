@@ -1,9 +1,9 @@
 {
   "state-hist": {
+    '_all': {'enabled': "false" },
     "_parent": {
       "type": "run"
     },
-    '_all': {'enabled': "false" },
     "properties": {
       "hminiv": {
         "properties": {
