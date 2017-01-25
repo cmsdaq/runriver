@@ -164,7 +164,6 @@ public class RunMonitor extends AbstractRunRiverThread {
             .setType("state-hist")
             .setSource(stateHistMapping)
             .execute().actionGet();
-
     }
 
     public void createStateSummaryMapping(Client client, String runIndex){
@@ -192,7 +191,6 @@ public class RunMonitor extends AbstractRunRiverThread {
             .setType("stream-hist")
             .setSource(streamHistMapping)
             .execute().actionGet();
-        }
     }
 
     public void createStatIndex(Client client, String index){
