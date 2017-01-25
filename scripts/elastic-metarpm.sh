@@ -41,10 +41,10 @@ pluginfile3="elasticsearch-kopf-2.1.1.zip"
 pluginname4="hq"
 pluginfile4="hq-v2.0.3.zip"
 pluginname5="delete-by-query"
-pluginfile5="delete-by-query-2.2.0.zip"
+pluginfile5="delete-by-query-2.4.4.zip"
 
 
-riverfile="river-runriver-1.4.9-jar-with-dependencies.jar"
+riverfile="river-runriver-1.5.2-jar-with-dependencies.jar"
 
 if [ ! -f $SCRIPTDIR/../target/$riverfile ]; then
  echo "missing river file $SCRIPTDIR/../target/$riverfile"
@@ -94,7 +94,7 @@ cd $TOPDIR
 # we are done here, write the specs and make the fu***** rpm
 cat > fffmeta-elastic.spec <<EOF
 Name: $PACKAGENAME
-Version: 1.9.9
+Version: 2.1.1
 Release: 0
 Summary: hlt daemon
 License: gpl
@@ -105,7 +105,7 @@ Source: none
 %define _topdir $TOPDIR
 BuildArch: $BUILD_ARCH
 AutoReqProv: no
-Requires:elasticsearch => 2.2, cx_Oracle >= 5.1.2, java-1.8.0-oracle-headless >= 1.8.0.45, php >= 5.3.3, php-oci8 >= 1.4.9
+Requires:elasticsearch => 2.4, cx_Oracle >= 5.1.2, java-1.8.0-oracle-headless >= 1.8.0.45, php >= 5.3.3, php-oci8 >= 1.4.9
 
 Provides:/opt/fff/configurefff.sh
 Provides:/opt/fff/essetupmachine.py
