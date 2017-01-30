@@ -8,12 +8,12 @@
 
  <groupId>fff</groupId>
  <artifactId>river-runriver</artifactId>
- <version>1.5.2</version>
+ <version>1.6.1</version>
 
  <packaging>jar</packaging>
 
  <properties>
-  <elasticsearch.version>2.4.4</elasticsearch.version>
+  <elasticsearch.version>5.1.2</elasticsearch.version>
 </properties>
 
 <dependencies>
@@ -33,6 +33,23 @@
       <artifactId>elasticsearch</artifactId>
       <version>${elasticsearch.version}</version>
     </dependency>
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-api</artifactId>
+      <version>2.7</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-core</artifactId>
+      <version>2.7</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.elasticsearch.client</groupId>
+      <artifactId>transport</artifactId>
+      <version>5.1.2</version>
+    </dependency>
+
 </dependencies>
 
 <build>

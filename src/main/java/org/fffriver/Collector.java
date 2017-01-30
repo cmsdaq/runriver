@@ -30,7 +30,9 @@ import static org.elasticsearch.common.xcontent.XContentFactory.*;
 //Remote query stuff
 import org.elasticsearch.search.aggregations.bucket.terms.Terms;
 import org.elasticsearch.search.aggregations.bucket.histogram.Histogram;
-import org.elasticsearch.client.transport.TransportClient;
+//import org.elasticsearch.client.transport.TransportClient;
+import org.elasticsearch.transport.client.PreBuiltTransportClient;
+
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.search.aggregations.metrics.sum.Sum;
@@ -39,6 +41,15 @@ import org.elasticsearch.search.aggregations.Aggregation;
 //import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.common.xcontent.XContentParser;
+import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy;
+
+//import org.elasticsearch.search.builder.SearchSourceBuilder;
+//import org.elasticsearch.common.ParseFieldMatcher;
+//import org.elasticsearch.index.query.QueryParseContext;
+import org.elasticsearch.search.aggregations.AggregationBuilders;
+import org.elasticsearch.search.sort.SortBuilders;
+import org.elasticsearch.search.sort.SortOrder;
 
 //org.json
 import net.sf.json.JSONObject;
@@ -78,10 +89,10 @@ public class Collector extends AbstractRunRiverThread {
     Integer ustatesOutput=-1;
 
     //queries
-    JSONObject streamQuery;
-    JSONObject eolsQuery;
-    JSONObject statesQuery;
-    JSONObject boxinfoQuery;
+    //JSONObject streamQuery;
+    //JSONObject eolsQuery;
+    //JSONObject statesQuery;
+    //JSONObject boxinfoQuery;
         
     @Inject
     public Collector(String riverName, Map<String, Object> rSettings,Client client) {
@@ -123,26 +134,54 @@ public class Collector extends AbstractRunRiverThread {
         checkBoxInfo();
     }
 
-
     public void collectStreams() throws Exception {
         logger.info("collectStreams");
         Boolean dataChanged;
         //long highestLumisection=-1;
         long lowestLumisection=-1;
         
+        int size=0;
         if(firstTime){
-            streamQuery.getJSONObject("aggs").getJSONObject("streams")
-                .getJSONObject("aggs").getJSONObject("ls").getJSONObject("terms")
-                .put("size",1000000);
+            //streamQuery.getJSONObject("aggs").getJSONObject("streams")
+            //    .getJSONObject("aggs").getJSONObject("ls").getJSONObject("terms")
+            //    .put("size",1000000);
             firstTime = false;
+            size=1000000;
         }else{
-            streamQuery.getJSONObject("aggs").getJSONObject("streams")
-                .getJSONObject("aggs").getJSONObject("ls").getJSONObject("terms")
-                .put("size",30);
+            //streamQuery.getJSONObject("aggs").getJSONObject("streams")
+            //    .getJSONObject("aggs").getJSONObject("ls").getJSONObject("terms")
+            //    .put("size",30);
+            size=30;
         }
         //logger.info("streamquery: "+streamQuery.toString());
-        SearchResponse sResponse = remoteClient.prepareSearch(tribeIndex).setTypes("fu-out")
-            .setSource(streamQuery).execute().actionGet();
+        //
+        //String restContent = streamQuery.toString();
+        //XContentParser parser = XContentFactory.xContent(restContent).createParser(restContent);
+        //SearchSourceBuilder searchSourceBuilder = SearchSourceBuilder.fromXContent(
+        //                                                                           //createParseContext(parser),
+        //                                                                           new QueryParseContext(searchRequestParsers.queryParsers, parser, ParseFieldMatcher.STRICT),
+        //                                                                           searchRequestParsers.aggParsers,
+        //                                                                           searchRequestParsers.suggesters,
+        //                                                                           searchRequestParsers.searchExtParsers);
+        //SearchSourceBuilder ssBuilder = new SearchSourceBuilder();
+
+        //.setSource(streamQuery)
+        SearchResponse sResponse = remoteClient.prepareSearch(tribeIndex)
+                                               .setTypes("fu-out")
+                                               .setQuery(QueryBuilders.matchAllQuery())
+                                               .setSize(0)
+                                               .addSort(SortBuilders.fieldSort("ls").order(SortOrder.DESC))
+                                               .addAggregation(AggregationBuilders.terms("streams").field("stream").size(200)
+                                                 .subAggregation(AggregationBuilders.terms("ls").field("ls").size(size).order(Terms.Order.term(false))
+                                                   .subAggregation(AggregationBuilders.sum("in").field("data.in"))
+                                                   .subAggregation(AggregationBuilders.sum("out").field("data.out"))
+                                                   .subAggregation(AggregationBuilders.sum("error").field("data.errorEvents"))
+                                                   .subAggregation(AggregationBuilders.sum("filesize").field("data.fileSize"))
+                                                   .subAggregation(AggregationBuilders.max("fm_date").field("fm_date"))
+                                                   .subAggregation(AggregationBuilders.terms("mergeType").field("data.MergeType").size(2).order(Terms.Order.term(false)))
+                                                 )
+                                               )
+        .execute().actionGet();
         collectStats(riverName,"streamQuery",tribeIndex,sResponse);
         //logger.info(String.valueOf(sResponse.getHits().getTotalHits()));
         if(sResponse.getHits().getTotalHits() == 0L){ 
@@ -243,11 +282,24 @@ public class Collector extends AbstractRunRiverThread {
                       idStr = runStrPrefix + ls;
  
                     //logger.info("DEBUG: idStr:"+idStr); 
-                    eolsQuery.getJSONObject("query").getJSONObject("prefix").put("_id",idStr);
+                    //eolsQuery.getJSONObject("query").getJSONObject("prefix").put("_id",idStr);
+
+                    //SearchResponse sResponseEoLS = client.prepareSearch(runIndex_write).setTypes("eols")
+                    //                                       .setRouting(runNumber)
+                    //                                       .setSource(eolsQuery).execute().actionGet();
 
                     SearchResponse sResponseEoLS = client.prepareSearch(runIndex_write).setTypes("eols")
                                                          .setRouting(runNumber)
-                                                         .setSource(eolsQuery).execute().actionGet();
+                                                         .setQuery(QueryBuilders.boolQuery().must(QueryBuilders.parentId("eols",runNumber)).must(QueryBuilders.termQuery("ls",ls)))
+                                                         //.setQuery(QueryBuilders.prefixQuery("_id",idStr))
+                                                         .setSize(0)
+                                                         .addAggregation(AggregationBuilders.sum("NEvents").field("NEvents"))
+                                                         .addAggregation(AggregationBuilders.sum("NLostEvents").field("NLostEvents"))
+                                                         .addAggregation(AggregationBuilders.max("TotalEvents").field("TotalEvents"))
+                                                         .execute().actionGet();
+ 
+
+
                     if(sResponseEoLS.getHits().getTotalHits() == 0L){ 
                         logger.info("eolsQuery returns 0 hits for LS " + ls + ", skipping collection without EoLS docs");
                         continue;
@@ -347,7 +399,7 @@ public class Collector extends AbstractRunRiverThread {
                       }
                   }
                   if (retDate >  Double.NEGATIVE_INFINITY) {
-                    IndexResponse iResponse = client.prepareIndex(runIndex_write, "stream-hist").setRefresh(true)
+                    IndexResponse iResponse = client.prepareIndex(runIndex_write, "stream-hist").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                     .setParent(runNumber)
                     .setId(id)
                     .setSource(jsonBuilder()
@@ -369,7 +421,7 @@ public class Collector extends AbstractRunRiverThread {
                   else {
                     //if no date, create indexing date explicitely
                     long start_time_millis = System.currentTimeMillis();
-                    IndexResponse iResponse = client.prepareIndex(runIndex_write, "stream-hist").setRefresh(true)
+                    IndexResponse iResponse = client.prepareIndex(runIndex_write, "stream-hist").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                     .setParent(runNumber)
                     .setId(id)
                     .setSource(jsonBuilder()
@@ -412,8 +464,23 @@ public class Collector extends AbstractRunRiverThread {
 
         //logger.info("states query: "+statesQuery.toString());
 
-        SearchResponse sResponse = remoteClient.prepareSearch(tribeIndex).setTypes("prc-i-state")
-            .setSource(statesQuery).execute().actionGet();
+        SearchResponse sResponse = remoteClient.prepareSearch(tribeIndex)
+                                               .setTypes("prc-i-state")
+                                               .setQuery(QueryBuilders.rangeQuery("fm_date").from("now-4s").to("now-2s"))
+                                               .setSize(0)
+                                               .addAggregation(AggregationBuilders.terms("mclass").field("mclass").size(9999).order(Terms.Order.term(true)).minDocCount(1)
+                                                 .subAggregation(AggregationBuilders.terms("hmicro").field("micro").size(9999).order(Terms.Order.term(true)).minDocCount(1))
+                                                 .subAggregation(AggregationBuilders.terms("hinput").field("instate").size(9999).order(Terms.Order.term(true)).minDocCount(1))
+                                               )
+                                               .addAggregation(AggregationBuilders.terms("hmicro").field("micro").size(9999).order(Terms.Order.term(true)).minDocCount(1))
+                                               .addAggregation(AggregationBuilders.terms("hmini").field("mini").size(9999).order(Terms.Order.term(true)).minDocCount(1))
+                                               .addAggregation(AggregationBuilders.terms("hmacro").field("macro").size(9999).order(Terms.Order.term(true)).minDocCount(1))
+                                               .addAggregation(AggregationBuilders.terms("hinput").field("instate").size(9999).order(Terms.Order.term(true)).minDocCount(1))
+                                               .addAggregation(AggregationBuilders.max("fm_date").field("fm_date"))
+                                               .execute().actionGet();
+
+//        SearchResponse sResponse = remoteClient.prepareSearch(tribeIndex).setTypes("prc-i-state")
+//            .setSource(statesQuery).execute().actionGet();
         
         collectStats(riverName,"statesQuery",tribeIndex,sResponse);
         
@@ -423,7 +490,8 @@ public class Collector extends AbstractRunRiverThread {
             return;
         }
         if (ustatesReserved==-1) {
-          SearchResponse sResponseUstates = client.prepareSearch(runIndex_read).setTypes("microstatelegend").setRouting(runNumber).setQuery(QueryBuilders.termQuery("_parent", runNumber)).setSize(1).execute().actionGet();
+          //SearchResponse sResponseUstates = client.prepareSearch(runIndex_read).setTypes("microstatelegend").setRouting(runNumber).setQuery(QueryBuilders.termQuery("_parent", runNumber)).setSize(1).execute().actionGet();
+          SearchResponse sResponseUstates = client.prepareSearch(runIndex_read).setTypes("microstatelegend").setRouting(runNumber).setQuery(QueryBuilders.parentId("microstatelegend", runNumber)).setSize(1).execute().actionGet();
           SearchHit[] searchHits = sResponseUstates.getHits().getHits();
           if(searchHits.length != 0) {
             logger.info("microstatelegend query returns hits");
@@ -663,11 +731,16 @@ public class Collector extends AbstractRunRiverThread {
 
     public void checkBoxInfo(){
         if (!EoR){return;}
-        boxinfoQuery.getJSONObject("filter").getJSONObject("term")
-                .put("activeRuns",runNumber);
+        //boxinfoQuery.getJSONObject("filter").getJSONObject("term")
+        //        .put("activeRuns",runNumber);
+        SearchResponse response = client.prepareSearch(boxinfo_read)
+                                        .setQuery(QueryBuilders.boolQuery().must(QueryBuilders.rangeQuery("fm_date").from("now-1m"))
+                                                                           .must(QueryBuilders.termQuery("activeRuns",runNumber)))
+                                        .setSize(1)
+                                        .execute().actionGet();
 
-        SearchResponse response = client.prepareSearch(boxinfo_read).setSource(boxinfoQuery)
-            .execute().actionGet();
+        //SearchResponse response = client.prepareSearch(boxinfo_read).setSource(boxinfoQuery)
+        //    .execute().actionGet();
         
         collectStats(riverName,"boxinfoQuery",boxinfo_read,response);
         
@@ -680,26 +753,30 @@ public class Collector extends AbstractRunRiverThread {
     }
 
     public void setRemoteClient() throws UnknownHostException{
-        Settings settings = Settings.settingsBuilder()
+        //Settings settings = Settings.settingsBuilder()
+        //Settings.Builder settingsBuilder = Settings.builder();
+        //Settings settings = settingsBuilder
+        Settings settings = Settings.builder()
             .put("cluster.name", es_tribe_cluster).build();
+        //remoteClient = TransportClient.builder().settings(settings).build()
         remoteAddress = new InetSocketAddress(InetAddress.getByName(es_tribe_host), 9300);
-        remoteClient = TransportClient.builder().settings(settings).build()
+        remoteClient = new PreBuiltTransportClient(settings)
             .addTransportAddress(new InetSocketTransportAddress(remoteAddress));
     }
 
     public void resetRemoteClient() {
-        Settings settings = Settings.settingsBuilder()
+        Settings settings = Settings.builder()
             .put("cluster.name", es_tribe_cluster).build();
-        remoteClient = TransportClient.builder().settings(settings).build()
+        remoteClient = new PreBuiltTransportClient(settings)
             .addTransportAddress(new InetSocketTransportAddress(remoteAddress));
     }
 
     public void getQueries(){
         try{
-            streamQuery = getJson("streamQuery");
-            eolsQuery = getJson("eolsQuery");
-            statesQuery = getJson("statesQuery");
-            boxinfoQuery = getJson("boxinfoQuery");
+            //streamQuery = getJson("streamQuery");
+            //eolsQuery = getJson("eolsQuery");
+            //statesQuery = getJson("statesQuery");
+            //boxinfoQuery = getJson("boxinfoQuery");
         } catch (Exception e) {
            logger.error("Collector getQueries Exception: ", e);
         }

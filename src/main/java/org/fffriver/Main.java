@@ -9,15 +9,17 @@ import java.net.InetSocketAddress;
 
 //ELASTICSEARCH
 import org.elasticsearch.client.Client;
-import org.elasticsearch.client.transport.TransportClient;
+//import org.elasticsearch.client.transport.TransportClient;
+import org.elasticsearch.transport.client.PreBuiltTransportClient;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.xcontent.support.XContentMapValues;
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.settings.Settings;
+//import org.elasticsearch.common.logging.ESLogger;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.settings.Settings;
 
 public class Main {
 
@@ -35,7 +37,7 @@ public class Main {
     String river_escluster = argv[3];
     String river_esindex = argv[4];
     int river_runnumber = Integer.parseInt(argv[5]);
-    ESLogger logger = Loggers.getLogger("Main", "river",river_id);
+    Logger logger = Loggers.getLogger("Main", "river",river_id);
     logger.info( "!" + river_id + " " + river_subsys + " " + river_eshost + " " + river_escluster + " " +river_esindex);
 
     if (river_id.equals("mapping")) role = "mapping";
@@ -45,8 +47,9 @@ public class Main {
     //start transport client
     try {
       //ES 2.X API:
-      Settings settings = Settings.settingsBuilder().put("cluster.name", river_escluster).build();
-      client = TransportClient.builder().settings(settings).build().addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(InetAddress.getByName(river_eshost), 9300)));
+
+      Settings settings = Settings.builder().put("cluster.name", river_escluster).build();
+      client =  new PreBuiltTransportClient(settings).addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(InetAddress.getByName(river_eshost), 9300)));
     }
     catch (Exception e) {
       logger.error("TransportClient exception: ", e);
