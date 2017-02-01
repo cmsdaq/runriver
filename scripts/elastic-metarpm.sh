@@ -33,15 +33,10 @@ ls
 
 pluginpath="/opt/fff/esplugins/"
 pluginname1="bigdesk"
-pluginfile1="bigdesk-505b32e-mod2.zip"
 pluginname2="head"
-pluginfile2="head-master.zip"
 pluginname3="kopf"
-pluginfile3="elasticsearch-kopf-2.1.1.zip"
 pluginname4="hq"
-pluginfile4="hq-v2.0.3.zip"
 pluginname5="delete-by-query"
-pluginfile5="delete-by-query-2.4.4.zip"
 
 riverfile="river-runriver-1.6.1-jar-with-dependencies.jar"
 
@@ -158,11 +153,6 @@ echo "#!/bin/bash" > %{buildroot}/opt/fff/configurefff.sh
 echo python2 /opt/fff/essetupmachine.py >> %{buildroot}/opt/fff/configurefff.sh
 
 cp $BASEDIR/target/$riverfile %{buildroot}/opt/fff/$riverfile
-cp $BASEDIR/esplugins/$pluginfile1 %{buildroot}/opt/fff/esplugins/$pluginfile1
-cp $BASEDIR/esplugins/$pluginfile2 %{buildroot}/opt/fff/esplugins/$pluginfile2
-cp $BASEDIR/esplugins/$pluginfile3 %{buildroot}/opt/fff/esplugins/$pluginfile3
-cp $BASEDIR/esplugins/$pluginfile4 %{buildroot}/opt/fff/esplugins/$pluginfile4
-cp $BASEDIR/esplugins/$pluginfile5 %{buildroot}/opt/fff/esplugins/$pluginfile5
 cp $BASEDIR/esplugins/install.sh %{buildroot}/opt/fff/esplugins/install.sh
 cp $BASEDIR/esplugins/uninstall.sh %{buildroot}/opt/fff/esplugins/uninstall.sh
 cp $BASEDIR/scripts/fff-es %{buildroot}/etc/init.d/fff-es
@@ -201,11 +191,6 @@ echo "fi"                                >> %{buildroot}/etc/init.d/fffmeta
 %attr( 755 ,root, root) /etc/init.d/fffmeta
 %attr( 755 ,root, root) /etc/init.d/fff-es
 %attr( 755 ,root, root) /etc/init.d/riverd
-%attr( 444 ,root, root) /opt/fff/esplugins/$pluginfile1
-%attr( 444 ,root, root) /opt/fff/esplugins/$pluginfile2
-%attr( 444 ,root, root) /opt/fff/esplugins/$pluginfile3
-%attr( 444 ,root, root) /opt/fff/esplugins/$pluginfile4
-%attr( 444 ,root, root) /opt/fff/esplugins/$pluginfile5
 %attr( 755 ,root, root) /opt/fff/esplugins/install.sh
 %attr( 755 ,root, root) /opt/fff/esplugins/uninstall.sh
 %attr( 755 ,root, root) /opt/fff/$riverfile
@@ -241,15 +226,10 @@ chown -R elasticsearch:elasticsearch /var/lib/elasticsearch
 chmod a+r -R /etc/elasticsearch
 echo "Installing plugins..."
 /opt/fff/esplugins/uninstall.sh /usr/share/elasticsearch $pluginname1 > /dev/null
-#/opt/fff/esplugins/install.sh /usr/share/elasticsearch $pluginfile1 $pluginname1
 /opt/fff/esplugins/uninstall.sh /usr/share/elasticsearch $pluginname2 > /dev/null
-#/opt/fff/esplugins/install.sh /usr/share/elasticsearch $pluginfile2 $pluginname2
 /opt/fff/esplugins/uninstall.sh /usr/share/elasticsearch $pluginname3 > /dev/null
-#/opt/fff/esplugins/install.sh /usr/share/elasticsearch $pluginfile3 $pluginname3
 /opt/fff/esplugins/uninstall.sh /usr/share/elasticsearch $pluginname4 > /dev/null
-#/opt/fff/esplugins/install.sh /usr/share/elasticsearch $pluginfile4 $pluginname4
 /opt/fff/esplugins/uninstall.sh /usr/share/elasticsearch $pluginname5 > /dev/null
-#/opt/fff/esplugins/install.sh /usr/share/elasticsearch $pluginfile5 $pluginname5
 /opt/fff/esplugins/uninstall.sh /usr/share/elasticsearch elasticsearch-migration || true #remove on upgrade
 
 chkconfig --del elasticsearch
