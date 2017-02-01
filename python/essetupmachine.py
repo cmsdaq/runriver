@@ -232,10 +232,9 @@ if __name__ == "__main__":
                 essyscfg.reg('ES_JAVA_OPTS','"-Xms2G -Xmx2G"')
             else:
                 essyscfg.reg('ES_JAVA_OPTS','"-Xms30G -Xmx30G"')
-                #essyscfg.reg('ES_HEAP_SIZE','30G')
             essyscfg.reg('DATA_DIR','/elasticsearch/lib/elasticsearch')
             essyscfg.removeEntry('CONF_FILE')
-            essyscfg.removeEntry('ES_HEAP_FILE')
+            essyscfg.removeEntry('ES_HEAP_SIZE')
             essyscfg.commit()
 
         if type == 'eslocal':
@@ -252,6 +251,7 @@ if __name__ == "__main__":
             escfg.reg('node.data','true')
             escfg.reg('http.cors.enabled','true')
             escfg.reg('http.cors.allow-origin','"*"')
+            escfg.reg('bootstrap.system_call_filter','false')
             escfg.reg('transport.tcp.compress','true')
             escfg.reg('script.max_compilations_per_minute', '10000')
             escfg.reg("script.engine.groovy.inline.update", 'true')
@@ -294,6 +294,7 @@ if __name__ == "__main__":
             escfg.reg('node.data','true')
             escfg.reg('http.cors.enabled','true')
             escfg.reg('http.cors.allow-origin','"*"')
+            escfg.reg('bootstrap.system_call_filter','false')
             escfg.reg('transport.tcp.compress','true')
             escfg.reg('action.auto_create_index','.marvel-*')
             escfg.reg('script.max_compilations_per_minute', '10000')
