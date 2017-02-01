@@ -8,12 +8,12 @@
 
  <groupId>fff</groupId>
  <artifactId>river-runriver</artifactId>
- <version>1.6.1</version>
+ <version>1.7.0</version>
 
  <packaging>jar</packaging>
 
  <properties>
-  <elasticsearch.version>5.1.2</elasticsearch.version>
+  <elasticsearch.version>5.2.0</elasticsearch.version>
 </properties>
 
 <dependencies>
@@ -47,7 +47,7 @@
     <dependency>
       <groupId>org.elasticsearch.client</groupId>
       <artifactId>transport</artifactId>
-      <version>5.1.2</version>
+      <version>5.2.0</version>
     </dependency>
 
 </dependencies>
