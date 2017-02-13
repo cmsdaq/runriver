@@ -1,6 +1,5 @@
 #!/bin/bash -e
 
-
 alias python=`readlink /usr/bin/python2`
 #python_dir=`readlink /usr/bin/python2`
 python_dir=`python -c 'import platform; print("python"+platform.python_version_tuple()[0]+"."+platform.python_version_tuple()[1])'`
@@ -31,12 +30,8 @@ TOPDIR=$PWD
 echo "working in $PWD"
 ls
 
-pluginpath="/opt/fff/esplugins/"
-pluginname1="bigdesk"
-pluginname2="head"
-pluginname3="kopf"
-pluginname4="hq"
-pluginname5="delete-by-query"
+#pluginpath="/opt/fff/esplugins/"
+#pluginname1="license"
 
 riverfile="river-runriver-1.7.0-jar-with-dependencies.jar"
 
@@ -217,23 +212,18 @@ ln -s -f $riverfile /opt/fff/river.jar
 
 %triggerin -- elasticsearch
 #echo "triggered on elasticsearch update or install"
-#/sbin/service elasticsearch stop
+##/sbin/service elasticsearch stop
 python2 /opt/fff/essetupmachine.py restore
 python2 /opt/fff/essetupmachine.py
 #update permissions in case new rpm changed uid/guid
 chown -R elasticsearch:elasticsearch /var/log/elasticsearch
-chown -R elasticsearch:elasticsearch /var/lib/elasticsearch
+chown -R elasticsearch:elasticsearch /elasticsearch/lib/elasticsearch
 chmod a+r -R /etc/elasticsearch
-echo "Installing plugins..."
-/opt/fff/esplugins/uninstall.sh /usr/share/elasticsearch $pluginname1 > /dev/null
-/opt/fff/esplugins/uninstall.sh /usr/share/elasticsearch $pluginname2 > /dev/null
-/opt/fff/esplugins/uninstall.sh /usr/share/elasticsearch $pluginname3 > /dev/null
-/opt/fff/esplugins/uninstall.sh /usr/share/elasticsearch $pluginname4 > /dev/null
-/opt/fff/esplugins/uninstall.sh /usr/share/elasticsearch $pluginname5 > /dev/null
-/opt/fff/esplugins/uninstall.sh /usr/share/elasticsearch elasticsearch-migration || true #remove on upgrade
+chmod a+r -R /var/log/elasticsearch
+#echo "Installing plugins..."
+#/opt/fff/esplugins/uninstall.sh /usr/share/elasticsearch $pluginname1 > /dev/null
 
-chkconfig --del elasticsearch
-chkconfig --add elasticsearch
+/usr/bin/systemctl enable elasticsearch
 #restart (should be re-enabled)
 if [ -d /elasticsearch ]
 then
@@ -244,7 +234,7 @@ then
   fi
 fi
         
-#/sbin/service elasticsearch start
+##/sbin/service elasticsearch start
 /etc/init.d/riverd restart
 
 %preun
@@ -253,20 +243,13 @@ if [ \$1 == 0 ]; then
 
   chkconfig --del fffmeta
   chkconfig --del riverd
-  chkconfig --del elasticsearch
+  /usr/bin/systemctl disable elasticsearch
   /sbin/service riverd stop || true
   #delete symbolic links
   rm -rf /opt/fff/river_dv.jar /opt/fff/river.jar
 
-
-  #/sbin/service elasticsearch stop || true
-  /opt/fff/esplugins/uninstall.sh /usr/share/elasticsearch $pluginname1 || true
-  /opt/fff/esplugins/uninstall.sh /usr/share/elasticsearch $pluginname2 || true
-  /opt/fff/esplugins/uninstall.sh /usr/share/elasticsearch $pluginname3 || true
-  /opt/fff/esplugins/uninstall.sh /usr/share/elasticsearch $pluginname4 || true
-  /opt/fff/esplugins/uninstall.sh /usr/share/elasticsearch $pluginname5 || true
-  /opt/fff/esplugins/uninstall.sh /usr/share/elasticsearch elasticsearch-migration || true
-
+  ##/sbin/service elasticsearch stop || true
+  #/opt/fff/esplugins/uninstall.sh /usr/share/elasticsearch $pluginname1 || true
 
   python2 /opt/fff/essetupmachine.py restore
 fi
