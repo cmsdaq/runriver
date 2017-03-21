@@ -375,7 +375,19 @@ def runRiver(doc):
     for instance in river_threads:
       if instance.riverid == doc_id:
         instance.setRestart(doc_ver)
-        break
+        return
+    #if restarting doc not found
+    try:
+      if doc['_source']['node']["name"] == os.uname()[1]:
+        syslog.syslog('restart set on unfamiliar river which was running on this host. Will be handled')
+        new_instance = river_thread(doc_id,src['subsystem'],host,cluster,"river",runNumber,process_type,path)
+        river_threads.append(new_instance)
+        new_instance.execute()
+        syslog.syslog("started river thread")
+    except Exception as ex:
+      syslog.syslog("exception restarting river thread "+str(ex))
+      pass
+
 
 
 def checkRivers():
