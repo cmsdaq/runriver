@@ -229,7 +229,7 @@ if __name__ == "__main__":
 
             essyscfg = FileManager(elasticsysconf,'=',essysEdited)
             if env=='vm':
-                essyscfg.reg('ES_JAVA_OPTS','"-Xms2G -Xmx2G"')
+                essyscfg.reg('ES_JAVA_OPTS','"-Xms1G -Xmx1G"')
             else:
                 essyscfg.reg('ES_JAVA_OPTS','"-Xms30G -Xmx30G"')
             essyscfg.reg('DATA_DIR','/elasticsearch/lib/elasticsearch')
