@@ -1,0 +1,12 @@
+[Unit]
+Description=HLT daemon configuration service
+Wants=network-online.target
+Before=elasticsearch.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=no
+ExecStart=/opt/fff/configurefff.sh
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,16 @@
+[Unit]
+Description=River daemon service
+Wants=network-online.target
+After=fff.service network.service rsyslog.service elasticsearch.service
+PartOf=fff.service
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/fff
+ExecStart=/opt/fff/river-daemon.py
+Restart=on-failure
+RestartSec=10
+#RemainAfterExit=no
+
+[Install]
+WantedBy=multi-user.target

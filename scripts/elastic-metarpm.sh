@@ -83,7 +83,7 @@ cd $TOPDIR
 # we are done here, write the specs and make the fu***** rpm
 cat > fffmeta-elastic.spec <<EOF
 Name: $PACKAGENAME
-Version: 2.2.1
+Version: 2.3.0
 Release: 0
 Summary: hlt daemon
 License: gpl
@@ -98,13 +98,14 @@ Requires:elasticsearch => 5.2, cx_Oracle >= 5.1.2, java-1.8.0-oracle-headless >=
 
 Provides:/opt/fff/configurefff.sh
 Provides:/opt/fff/essetupmachine.py
-Provides:/etc/init.d/fffmeta
-Provides:/etc/init.d/fff-es
-Provides:/opt/fff/daemon2.py
+Provides:/opt/fff/init.d/fff-config
 Provides:/opt/fff/river-daemon.py
-Provides:/etc/init.d/riverd
+Provides:/opt/fff/init.d/riverd
 Provides:/opt/fff/$riverfile
 Provides:/etc/rsyslog.d/48-river.conf
+Provides:/etc/logrotate.d/river
+Provides:/usr/lib/systemd/system/fff.service
+Provides:/usr/lib/systemd/system/riverd.service
 Provides:/usr/lib64/$python_dir/site-packages/prctl.py
 Provides:/usr/lib64/$python_dir/site-packages/prctl.pyc
 Provides:/usr/lib64/$python_dir/site-packages/_prctl.so
@@ -125,12 +126,15 @@ mkdir -p \$RPM_BUILD_ROOT
 %__install -d "%{buildroot}/opt/fff/esplugins"
 %__install -d "%{buildroot}/etc/init.d"
 %__install -d "%{buildroot}/etc/rsyslog.d"
+%__install -d "%{buildroot}/etc/logrotate.d"
 
 mkdir -p usr/lib64/$python_dir/site-packages
 mkdir -p opt/fff/esplugins
 mkdir -p opt/fff/backup
-mkdir -p etc/init.d/
+mkdir -p opt/fff/init.d
+mkdir -p usr/lib/systemd/system
 mkdir -p etc/rsyslog.d
+mkdir -p etc/logrotate.d
 
 cp $SCRATCHDIR/usr/lib64/$python_dir/site-packages/prctl.py %{buildroot}/usr/lib64/$python_dir/site-packages/
 cp $SCRATCHDIR/usr/lib64/$python_dir/site-packages/prctl.pyc %{buildroot}/usr/lib64/$python_dir/site-packages/
@@ -139,10 +143,12 @@ cp $SCRATCHDIR/usr/lib64/$python_dir/site-packages/_prctl.so %{buildroot}/usr/li
 cp $SCRATCHDIR/usr/lib64/$python_dir/site-packages/python_prctl-1.5.0-py${python_version}.egg-info  %{buildroot}/usr/lib64/$python_dir/site-packages/
 
 cp $BASEDIR/etc/rsyslog.d/48-river.conf %{buildroot}/etc/rsyslog.d/48-river.conf
+cp $BASEDIR/etc/logrotate.d/river %{buildroot}/etc/logrotate.d/river
 cp $BASEDIR/python/essetupmachine.py %{buildroot}/opt/fff/essetupmachine.py
 cp $BASEDIR/python/daemon2.py %{buildroot}/opt/fff/daemon2.py
 cp $BASEDIR/python/river-daemon.py %{buildroot}/opt/fff/river-daemon.py
-cp $BASEDIR/python/riverd %{buildroot}/etc/init.d/riverd
+cp $BASEDIR/python/riverd %{buildroot}/opt/fff/init.d/riverd
+cp $BASEDIR/init.d/*.service %{buildroot}/usr/lib/systemd/system/
 
 echo "#!/bin/bash" > %{buildroot}/opt/fff/configurefff.sh
 echo python2 /opt/fff/essetupmachine.py >> %{buildroot}/opt/fff/configurefff.sh
@@ -150,25 +156,7 @@ echo python2 /opt/fff/essetupmachine.py >> %{buildroot}/opt/fff/configurefff.sh
 cp $BASEDIR/target/$riverfile %{buildroot}/opt/fff/$riverfile
 cp $BASEDIR/esplugins/install.sh %{buildroot}/opt/fff/esplugins/install.sh
 cp $BASEDIR/esplugins/uninstall.sh %{buildroot}/opt/fff/esplugins/uninstall.sh
-cp $BASEDIR/scripts/fff-es %{buildroot}/etc/init.d/fff-es
-
-echo "#!/bin/bash"                       >> %{buildroot}/etc/init.d/fffmeta
-echo "#"                                 >> %{buildroot}/etc/init.d/fffmeta
-echo "# chkconfig:   2345 79 22"         >> %{buildroot}/etc/init.d/fffmeta
-echo "#"                                 >> %{buildroot}/etc/init.d/fffmeta
-echo "if [ \\\$1 == \"start\" ]; then"   >> %{buildroot}/etc/init.d/fffmeta
-echo "  /opt/fff/configurefff.sh"  >> %{buildroot}/etc/init.d/fffmeta
-echo "  exit 0"                          >> %{buildroot}/etc/init.d/fffmeta
-echo "fi"                                >> %{buildroot}/etc/init.d/fffmeta
-echo "if [ \\\$1 == \"restart\" ]; then" >> %{buildroot}/etc/init.d/fffmeta
-echo "/opt/fff/configurefff.sh"    >> %{buildroot}/etc/init.d/fffmeta
-echo "  exit 0"                          >> %{buildroot}/etc/init.d/fffmeta
-echo "fi"                                >> %{buildroot}/etc/init.d/fffmeta
-echo "if [ \\\$1 == \"status\" ]; then"  >> %{buildroot}/etc/init.d/fffmeta
-echo "echo fffmeta does not have status" >> %{buildroot}/etc/init.d/fffmeta
-echo "  exit 0"                          >> %{buildroot}/etc/init.d/fffmeta
-echo "fi"                                >> %{buildroot}/etc/init.d/fffmeta
-
+cp $BASEDIR/init.d/fff-config %{buildroot}/opt/fff/init.d/fff-config
 
 %files
 %defattr(-, root, root, -)
@@ -183,13 +171,15 @@ echo "fi"                                >> %{buildroot}/etc/init.d/fffmeta
 %attr( 755 ,root, root) /opt/fff/river-daemon.pyc
 %attr( 755 ,root, root) /opt/fff/river-daemon.pyo
 %attr( 700 ,root, root) /opt/fff/configurefff.sh
-%attr( 755 ,root, root) /etc/init.d/fffmeta
-%attr( 755 ,root, root) /etc/init.d/fff-es
-%attr( 755 ,root, root) /etc/init.d/riverd
+%attr( 755 ,root, root) /opt/fff/init.d/fff-config
+%attr( 755 ,root, root) /usr/lib/systemd/system/fff.service
+%attr( 755 ,root, root) /usr/lib/systemd/system/riverd.service
+%attr( 755 ,root, root) /opt/fff/init.d/riverd
 %attr( 755 ,root, root) /opt/fff/esplugins/install.sh
 %attr( 755 ,root, root) /opt/fff/esplugins/uninstall.sh
 %attr( 755 ,root, root) /opt/fff/$riverfile
-%attr( 444 ,root, root) /etc/rsyslog.d/48-river.conf
+%attr( 644 ,root, root) /etc/rsyslog.d/48-river.conf
+%attr( 644 ,root, root) /etc/logrotate.d/river
 %attr( 755 ,root, root) /usr/lib64/$python_dir/site-packages/prctl.py
 %attr( 755 ,root, root) /usr/lib64/$python_dir/site-packages/prctl.pyo
 %attr( 755 ,root, root) /usr/lib64/$python_dir/site-packages/prctl.pyc
@@ -198,33 +188,31 @@ echo "fi"                                >> %{buildroot}/etc/init.d/fffmeta
 
 %post
 #echo "post install trigger"
-chkconfig --del fffmeta
-chkconfig --add fffmeta
-chkconfig --del riverd
-chkconfig --add riverd
-
-#make symbolic links
+chkconfig --del fffmeta || true
+chkconfig --del riverd || true
+echo "making symbolic links"
 ln -s -f river.jar /opt/fff/river_dv.jar
 ln -s -f $riverfile /opt/fff/river.jar
 
-
-#disabled, can be run manually for now
-
 %triggerin -- elasticsearch
-#echo "triggered on elasticsearch update or install"
+#echo "triggered on elasticsearch update or install as well as this rpm update"
+
 ##/sbin/service elasticsearch stop
+
 python2 /opt/fff/essetupmachine.py restore
 python2 /opt/fff/essetupmachine.py
+
 #update permissions in case new rpm changed uid/guid
 chown -R elasticsearch:elasticsearch /var/log/elasticsearch
 chown -R elasticsearch:elasticsearch /elasticsearch/lib/elasticsearch
 chmod a+r -R /etc/elasticsearch
 chmod a+r -R /var/log/elasticsearch
-#echo "Installing plugins..."
-#/opt/fff/esplugins/uninstall.sh /usr/share/elasticsearch $pluginname1 > /dev/null
 
-/usr/bin/systemctl enable elasticsearch
+##echo "Installing plugins..."
+##/opt/fff/esplugins/uninstall.sh /usr/share/elasticsearch $pluginname1 > /dev/null
+
 #restart (should be re-enabled)
+
 if [ -d /elasticsearch ]
 then
   if [ ! -d /elasticsearch/lib/elasticsearch ]
@@ -235,21 +223,34 @@ then
 fi
         
 ##/sbin/service elasticsearch start
-/etc/init.d/riverd restart
+/usr/bin/systemctl enable elasticsearch
+
+/usr/bin/systemctl reenable riverd
+systemctl reenable fff
+/sbin/service riverd stop
+/usr/bin/systemctl daemon-reload
+
+/usr/bin/systemctl reenable riverd
+/usr/bin/systemctl reenable fff
+
+/usr/bin/systemctl restart riverd
+
 
 %preun
 
 if [ \$1 == 0 ]; then 
 
-  chkconfig --del fffmeta
+  systemctl disable fff
+  systemctl stop riverd
+  systemctl disable riverd
   chkconfig --del riverd
   /usr/bin/systemctl disable elasticsearch
-  /sbin/service riverd stop || true
+
   #delete symbolic links
   rm -rf /opt/fff/river_dv.jar /opt/fff/river.jar
 
   ##/sbin/service elasticsearch stop || true
-  #/opt/fff/esplugins/uninstall.sh /usr/share/elasticsearch $pluginname1 || true
+  ##/opt/fff/esplugins/uninstall.sh /usr/share/elasticsearch $pluginname1 || true
 
   python2 /opt/fff/essetupmachine.py restore
 fi

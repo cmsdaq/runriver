@@ -246,7 +246,7 @@ class river_thread(threading.Thread):
       else:
         jpath = jar_path_dv if self.subsys=='dv' else jar_path
       print "running",["/usr/bin/java", "-jar",jpath]+self.proc_args
-      self.fdo = os.open('/tmp/'+self.riverid+'.log',os.O_WRONLY | os.O_CREAT | os.O_APPEND)
+      self.fdo = os.open('/var/log/river/'+self.riverid+'.log',os.O_WRONLY | os.O_CREAT | os.O_APPEND)
       self.proc = subprocess.Popen(["/usr/bin/java", "-jar",jpath]+self.proc_args,preexec_fn=preexec_function,close_fds=True,shell=False,stdout=self.fdo,stderr=self.fdo)
       self.start() #start thread to pick up the process
       return True #if success, else False
@@ -255,7 +255,7 @@ class river_thread(threading.Thread):
       else:
         qdpath = '/dev/null'
       print "running",["/usr/bin/node", qdpath]
-      self.fdo = os.open('/tmp/'+self.riverid+'.log',os.O_WRONLY | os.O_CREAT | os.O_APPEND)
+      self.fdo = os.open('/var/log/river/'+self.riverid+'.log',os.O_WRONLY | os.O_CREAT | os.O_APPEND)
       self.proc = subprocess.Popen(["/usr/bin/node",qdpath,self.riverid],preexec_fn=preexec_function2,close_fds=True,shell=False,stdout=self.fdo,stderr=self.fdo)
       self.start() #start thread to pick up the process
       return True #if success, else False
@@ -264,7 +264,7 @@ class river_thread(threading.Thread):
       else:
         qdpath = '/dev/null'
       print "running",["/usr/bin/python", qdpath]
-      self.fdo = os.open('/tmp/'+self.riverid+'.log',os.O_WRONLY | os.O_CREAT | os.O_APPEND)
+      self.fdo = os.open('/var/log/river/'+self.riverid+'.log',os.O_WRONLY | os.O_CREAT | os.O_APPEND)
       self.proc = subprocess.Popen(["/usr/bin/python",qdpath,self.riverid],preexec_fn=preexec_function2,close_fds=True,shell=False,stdout=self.fdo,stderr=self.fdo)
       self.start() #start thread to pick up the process
       return True #if success, else False
@@ -537,22 +537,43 @@ class RiverDaemon(Daemon2):
     syslog.closelog()
     os._exit(0)
 
+def esClusterName():
+    try:
+      with open('/etc/elasticsearch/elasticsearch.yml') as fi:
+        lines = fi.readlines()
+        for line in lines:
+          sline = line.strip()
+          if line.startswith("cluster.name"):
+            return line.split(':')[1].strip()
+    except:
+      pass
+    return ""
+
 if __name__ == "__main__":
+
+    escname = esClusterName()
+    if not (escname.startswith('es-vm-cdaq') or escname.startswith('es-cdaq')):
+      print "Service is disabled on machines which are not es-vm-cdaq or es-cdaq cluster"
+      sys.exit(0)
 
     daemon = RiverDaemon()
     runAsDaemon=False
+
     try:
       if sys.argv[1]=='--daemon':
         runAsDaemon=True
     except:
         pass
     if runAsDaemon:
+      #sysV style (obsolete)
       try:
         import procname
         procname.setprocname('river-daemon')
       except:
         print "procname not installed"
       daemon.start(req_conf=False)
+
     else:
+      #default, also used with systemd
       daemon.run()
  

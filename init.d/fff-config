@@ -1,0 +1,115 @@
+#!/bin/env python
+#
+#restart of fff services (elasticsearch and hltd)
+#
+import os,sys
+from subprocess import Popen
+from subprocess import PIPE
+import time
+import syslog
+
+
+#new service command (systemd units)
+def executeServiceUnit(command,service):
+   arr = ['/usr/bin/systemctl',command,service]
+   proc = Popen(arr, stdout=PIPE)
+   output = proc.communicate()[0]
+   #time.sleep(.1)
+
+   if proc.returncode==0:
+       print command+' '+service+ ':\t\t\t\t [  \033[1;32mOK\033[0;39m  ]'
+       return 0
+   else:
+      print '/usr/bin/systemctl ' + command + ' ' + service + '  (return code '+str(proc.returncode)+') : [  \033[1;31mFAILED\033[0;39m  ]'
+      print 'command output:\n',output
+      return proc.returncode
+
+
+def reconfigureES():
+  proc = Popen(['systemctl','status','elasticsearch'], stdout=PIPE)
+  output = proc.communicate()[0]
+  if proc.returncode==0:
+      print "Will not reconfigure if elasticsearch is running",' [  \033[1;31mFAILED\033[0;39m  ]'
+      return 1
+
+  proc = Popen(['systemctl','status','riverd'], stdout=PIPE)
+  output = proc.communicate()[0]
+  if proc.returncode==0:
+      print "Will not reconfigure if riverd is running",' [  \033[1;31mFAILED\033[0;39m  ]'
+      return 1
+
+
+  proc = Popen('/opt/fff/configurefff.sh', stdout=PIPE, stderr=PIPE)
+  output = proc.communicate()[0]
+  if proc.returncode!=0:
+      print 'Failed to run reconfigure script: ',output,' [  \033[1;31mFAILED\033[0;39m  ]'
+      return 1
+  time.sleep(.1)
+  return 0
+
+if __name__ == "__main__":
+
+  if len(sys.argv) >=2:
+
+    if 'start' == sys.argv[1]:
+        if reconfigureES()==0:
+            rc1=executeServiceUnit('start','elasticsearch')
+            rc2=executeServiceUnit('restart','riverd')
+            sys.exit(rc1 || rc2)
+        else:
+            sys.exit(1)
+
+    elif 'stop' == sys.argv[1]:
+        rc1=executeServiceUnit('stop','riverd')
+        rc2=executeServiceUnit('stop','elasticsearch')
+        sys.exit(rc1 || rc2)
+
+    elif 'restart' == sys.argv[1]:
+
+        executeServiceUnit('stop','riverd')
+        executeServiceUnit('elasticsearch','stop')
+        if reconfigureES()==0:
+            rc1=executeServiceUnit('elasticsearch','restart')
+            rc2=executeServiceUnit('restart','riverd')
+            sys.exit(rc1 || rc2)
+        else:
+            sys.exit(1)
+
+    elif 'enableBoot' == sys.argv[1]:
+        executeServiceUnit('reenable','elasticsearch')
+        executeServiceUnit('reenable','riverd')
+
+    elif 'disableBoot' == sys.argv[1]:
+        executeServiceUnit('disable','riverd')
+        executeServiceUnit('disable','elasticsearch')
+
+    elif 'resetAll' == sys.argv[1]:
+        #reconfigures, enables and restarts everything from this package
+        executeServiceUnit('stop','riverd')
+        executeServiceUnit('elasticsearch','stop')
+
+        executeServiceUnit('reenable','elasticsearch')
+        executeServiceUnit('reenable','riverd')
+        executeServiceUnit('reenable','fff')
+
+        if reconfigureES()==0:
+            rc1=executeServiceUnit('elasticsearch','restart')
+            rc2=executeServiceUnit('restart','riverd')
+            sys.exit(rc1 || rc2)
+        else:
+            sys.exit(1)
+
+    elif 'status' == sys.argv[1]:
+      rc1=executeServiceUnit('status','elasticsearch')
+      rc2=executeServiceUnit('status','riverd')
+      sys.exit(rc1 || rc2)
+
+    else:
+        print "Unknown command"
+        sys.exit(1)
+
+  else:
+    print "usage: %s start|stop|restart|status" % sys.argv[0]
+    sys.exit(1)
+
+sys.exit(0)
