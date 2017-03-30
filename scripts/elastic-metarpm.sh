@@ -33,7 +33,7 @@ ls
 #pluginpath="/opt/fff/esplugins/"
 #pluginname1="license"
 
-riverfile="river-runriver-1.7.0-jar-with-dependencies.jar"
+riverfile="river-runriver-1.7.1-jar-with-dependencies.jar"
 
 if [ ! -f $SCRIPTDIR/../target/$riverfile ]; then
  echo "missing river file $SCRIPTDIR/../target/$riverfile"
@@ -124,17 +124,18 @@ mkdir -p \$RPM_BUILD_ROOT
 %__install -d "%{buildroot}/opt/fff"
 %__install -d "%{buildroot}/opt/fff/backup"
 %__install -d "%{buildroot}/opt/fff/esplugins"
-%__install -d "%{buildroot}/etc/init.d"
+%__install -d "%{buildroot}/opt/fff/init.d"
+%__install -d "%{buildroot}/usr/lib/systemd/system"
 %__install -d "%{buildroot}/etc/rsyslog.d"
 %__install -d "%{buildroot}/etc/logrotate.d"
 
-mkdir -p usr/lib64/$python_dir/site-packages
-mkdir -p opt/fff/esplugins
-mkdir -p opt/fff/backup
-mkdir -p opt/fff/init.d
-mkdir -p usr/lib/systemd/system
-mkdir -p etc/rsyslog.d
-mkdir -p etc/logrotate.d
+#mkdir -p usr/lib64/$python_dir/site-packages
+#mkdir -p opt/fff/esplugins
+#mkdir -p opt/fff/backup
+#mkdir -p opt/fff/init.d
+#mkdir -p usr/lib/systemd/system
+#mkdir -p etc/rsyslog.d
+#mkdir -p etc/logrotate.d
 
 cp $SCRATCHDIR/usr/lib64/$python_dir/site-packages/prctl.py %{buildroot}/usr/lib64/$python_dir/site-packages/
 cp $SCRATCHDIR/usr/lib64/$python_dir/site-packages/prctl.pyc %{buildroot}/usr/lib64/$python_dir/site-packages/
@@ -147,7 +148,10 @@ cp $BASEDIR/etc/logrotate.d/river %{buildroot}/etc/logrotate.d/river
 cp $BASEDIR/python/essetupmachine.py %{buildroot}/opt/fff/essetupmachine.py
 cp $BASEDIR/python/daemon2.py %{buildroot}/opt/fff/daemon2.py
 cp $BASEDIR/python/river-daemon.py %{buildroot}/opt/fff/river-daemon.py
-cp $BASEDIR/python/riverd %{buildroot}/opt/fff/init.d/riverd
+
+cp $BASEDIR/init.d/riverd %{buildroot}/opt/fff/init.d/
+cp $BASEDIR/init.d/fff-config %{buildroot}/opt/fff/init.d/fff-config
+
 cp $BASEDIR/init.d/*.service %{buildroot}/usr/lib/systemd/system/
 
 echo "#!/bin/bash" > %{buildroot}/opt/fff/configurefff.sh
@@ -156,7 +160,6 @@ echo python2 /opt/fff/essetupmachine.py >> %{buildroot}/opt/fff/configurefff.sh
 cp $BASEDIR/target/$riverfile %{buildroot}/opt/fff/$riverfile
 cp $BASEDIR/esplugins/install.sh %{buildroot}/opt/fff/esplugins/install.sh
 cp $BASEDIR/esplugins/uninstall.sh %{buildroot}/opt/fff/esplugins/uninstall.sh
-cp $BASEDIR/init.d/fff-config %{buildroot}/opt/fff/init.d/fff-config
 
 %files
 %defattr(-, root, root, -)
