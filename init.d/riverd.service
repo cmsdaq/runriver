@@ -10,7 +10,8 @@ WorkingDirectory=/opt/fff
 ExecStart=/opt/fff/river-daemon.py
 Restart=on-failure
 RestartSec=10
-#RemainAfterExit=no
+KillSignal=SIGINT
+TimeoutStopSec=30
 
 [Install]
 WantedBy=multi-user.target
