@@ -128,14 +128,7 @@ mkdir -p \$RPM_BUILD_ROOT
 %__install -d "%{buildroot}/usr/lib/systemd/system"
 %__install -d "%{buildroot}/etc/rsyslog.d"
 %__install -d "%{buildroot}/etc/logrotate.d"
-
-#mkdir -p usr/lib64/$python_dir/site-packages
-#mkdir -p opt/fff/esplugins
-#mkdir -p opt/fff/backup
-#mkdir -p opt/fff/init.d
-#mkdir -p usr/lib/systemd/system
-#mkdir -p etc/rsyslog.d
-#mkdir -p etc/logrotate.d
+%__install -d "%{buildroot}/var/log/river"
 
 cp $SCRATCHDIR/usr/lib64/$python_dir/site-packages/prctl.py %{buildroot}/usr/lib64/$python_dir/site-packages/
 cp $SCRATCHDIR/usr/lib64/$python_dir/site-packages/prctl.pyc %{buildroot}/usr/lib64/$python_dir/site-packages/
@@ -164,6 +157,7 @@ cp $BASEDIR/esplugins/uninstall.sh %{buildroot}/opt/fff/esplugins/uninstall.sh
 %files
 %defattr(-, root, root, -)
 #/opt/fff
+%attr( 755 ,root, root) /var/log/river
 %attr( 755 ,root, root) /opt/fff/essetupmachine.py
 %attr( 755 ,root, root) /opt/fff/essetupmachine.pyc
 %attr( 755 ,root, root) /opt/fff/essetupmachine.pyo
