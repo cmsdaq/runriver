@@ -40,6 +40,7 @@ sleep_int=5
 #jar_path  = "/opt/fff/river-runriver-1.4.0-jar-with-dependencies.jar"
 jar_path  = "/opt/fff/river.jar"
 jar_path_dv  = "/opt/fff/river_dv.jar"
+jar_logparam="-Dlog4j.configurationFile=/opt/fff/log4j2.properties"
 
 #NFS script test version is default path (for now)
 query_daemon = "/cmsnfses-web/es-web/prod/lastcpu.js"
@@ -245,9 +246,9 @@ class river_thread(threading.Thread):
       if self.path: jpath = self.path
       else:
         jpath = jar_path_dv if self.subsys=='dv' else jar_path
-      print "running",["/usr/bin/java", "-jar",jpath]+self.proc_args
+      print "running",["/usr/bin/java", jar_logparam, "-jar",jpath]+self.proc_args
       self.fdo = os.open('/var/log/river/'+self.riverid+'.log',os.O_WRONLY | os.O_CREAT | os.O_APPEND)
-      self.proc = subprocess.Popen(["/usr/bin/java", "-jar",jpath]+self.proc_args,preexec_fn=preexec_function,close_fds=True,shell=False,stdout=self.fdo,stderr=self.fdo)
+      self.proc = subprocess.Popen(["/usr/bin/java", jar_logparam, "-jar",jpath]+self.proc_args,preexec_fn=preexec_function,close_fds=True,shell=False,stdout=self.fdo,stderr=self.fdo)
       self.start() #start thread to pick up the process
       return True #if success, else False
     elif self.process_type=='nodejs':

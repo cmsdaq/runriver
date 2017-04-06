@@ -100,6 +100,7 @@ Provides:/opt/fff/configurefff.sh
 Provides:/opt/fff/essetupmachine.py
 Provides:/opt/fff/init.d/fff-config
 Provides:/opt/fff/river-daemon.py
+Provides:/opt/fff/log4j2.properties
 Provides:/opt/fff/init.d/riverd
 Provides:/opt/fff/$riverfile
 Provides:/etc/rsyslog.d/48-river.conf
@@ -141,6 +142,7 @@ cp $BASEDIR/etc/logrotate.d/river %{buildroot}/etc/logrotate.d/river
 cp $BASEDIR/python/essetupmachine.py %{buildroot}/opt/fff/essetupmachine.py
 cp $BASEDIR/python/daemon2.py %{buildroot}/opt/fff/daemon2.py
 cp $BASEDIR/python/river-daemon.py %{buildroot}/opt/fff/river-daemon.py
+cp $BASEDIR/python/log4j2.properties %{buildroot}/opt/fff/log4j2.properties
 
 cp $BASEDIR/init.d/riverd %{buildroot}/opt/fff/init.d/
 cp $BASEDIR/init.d/fff-config %{buildroot}/opt/fff/init.d/fff-config
@@ -167,6 +169,7 @@ cp $BASEDIR/esplugins/uninstall.sh %{buildroot}/opt/fff/esplugins/uninstall.sh
 %attr( 755 ,root, root) /opt/fff/river-daemon.py
 %attr( 755 ,root, root) /opt/fff/river-daemon.pyc
 %attr( 755 ,root, root) /opt/fff/river-daemon.pyo
+%attr( 755 ,root, root) /opt/fff/log4j2.properties
 %attr( 700 ,root, root) /opt/fff/configurefff.sh
 %attr( 755 ,root, root) /opt/fff/init.d/fff-config
 %attr( 755 ,root, root) /usr/lib/systemd/system/fff.service
