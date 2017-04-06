@@ -1,6 +1,7 @@
 #!/bin/env python
 import sys
 import os
+import pwd
 import time
 import datetime 
 import socket
@@ -13,10 +14,8 @@ import syslog
 
 #hltd daemon2
 sys.path.append('/opt/fff')
-#demote, prctl and other libs
-from daemon2 import Daemon2
 
-
+#demote, prctl (not essential)
 try:
   import prctl
 except:
@@ -25,6 +24,12 @@ try:
   import demote
 except:
   pass
+
+#helper chown
+def chown_file(user,fd):
+  pw_record = pwd.getpwnam(user)
+  os.chown(fd,pw_record.pw_uid,pw_record.pw_gid)
+
 socket.setdefaulttimeout(5)
 global_quit = False
 
@@ -139,7 +144,6 @@ riverInstMapping = {
 }
 
 
-
 def query(conn,method,path,query=None,retry=False):
 
   while True:
@@ -173,7 +177,6 @@ def query(conn,method,path,query=None,retry=False):
   return conn_success,cstatus,cdata
 
 
-
 #generate node snipped in river instance doc
 def gen_node_doc(status):
     c_time = time.time()
@@ -190,7 +193,7 @@ def gen_node_doc(status):
 
 
 
-def preexec_function():
+def preexec_function_elasticsearch():
     try:
       dem = demote.demote('elasticsearch')
       dem()
@@ -200,7 +203,7 @@ def preexec_function():
       prctl.set_pdeathsig(signal.SIGKILL) #is this necessary?
     except:pass
 
-def preexec_function2():
+def preexec_function_escdaq():
     try:
       dem = demote.demote('es-cdaq')
       dem()
@@ -248,7 +251,9 @@ class river_thread(threading.Thread):
         jpath = jar_path_dv if self.subsys=='dv' else jar_path
       print "running",["/usr/bin/java", jar_logparam, "-jar",jpath]+self.proc_args
       self.fdo = os.open('/var/log/river/'+self.riverid+'.log',os.O_WRONLY | os.O_CREAT | os.O_APPEND)
-      self.proc = subprocess.Popen(["/usr/bin/java", jar_logparam, "-jar",jpath]+self.proc_args,preexec_fn=preexec_function,close_fds=True,shell=False,stdout=self.fdo,stderr=self.fdo)
+      #tentatively change log file ownership to what the process will be
+      chown_file('elasticsearch',self.fdo)
+      self.proc = subprocess.Popen(["/usr/bin/java", jar_logparam, "-jar",jpath]+self.proc_args,preexec_fn=preexec_function_elasticsearch,close_fds=True,shell=False,stdout=self.fdo,stderr=self.fdo)
       self.start() #start thread to pick up the process
       return True #if success, else False
     elif self.process_type=='nodejs':
@@ -257,7 +262,9 @@ class river_thread(threading.Thread):
         qdpath = '/dev/null'
       print "running",["/usr/bin/node", qdpath]
       self.fdo = os.open('/var/log/river/'+self.riverid+'.log',os.O_WRONLY | os.O_CREAT | os.O_APPEND)
-      self.proc = subprocess.Popen(["/usr/bin/node",qdpath,self.riverid],preexec_fn=preexec_function2,close_fds=True,shell=False,stdout=self.fdo,stderr=self.fdo)
+      #tentatively change log file ownership to what the process will be
+      chown_file('es-cdaq',self.fdo)
+      self.proc = subprocess.Popen(["/usr/bin/node",qdpath,self.riverid],preexec_fn=preexec_function_escdaq,close_fds=True,shell=False,stdout=self.fdo,stderr=self.fdo)
       self.start() #start thread to pick up the process
       return True #if success, else False
     elif self.process_type=='python':
@@ -266,7 +273,9 @@ class river_thread(threading.Thread):
         qdpath = '/dev/null'
       print "running",["/usr/bin/python", qdpath]
       self.fdo = os.open('/var/log/river/'+self.riverid+'.log',os.O_WRONLY | os.O_CREAT | os.O_APPEND)
-      self.proc = subprocess.Popen(["/usr/bin/python",qdpath,self.riverid],preexec_fn=preexec_function2,close_fds=True,shell=False,stdout=self.fdo,stderr=self.fdo)
+      #tentatively change log file ownership to what the process will be
+      chown_file('es-cdaq',self.fdo)
+      self.proc = subprocess.Popen(["/usr/bin/python",qdpath,self.riverid],preexec_fn=preexec_function_escdaq,close_fds=True,shell=False,stdout=self.fdo,stderr=self.fdo)
       self.start() #start thread to pick up the process
       return True #if success, else False
 
@@ -495,6 +504,45 @@ def runDaemon():
     else:
       syslog.syslog("ERROR running search query status:"+str(st)+" "+str(res))
 
+class LogCleaner(threading.Thread):
+
+    def __init__(self,period=60*60,age=24*14,path='/var/log/river'):
+        threading.Thread.__init__(self)
+        self.threadEvent = threading.Event()
+        self.period=period
+        self.age=age
+        self.path=path
+        self.stopping=False
+
+
+    def deleteOldLogs(self):
+        existing_logs = os.listdir(self.path)
+        current_dt = datetime.datetime.now()
+        for f in existing_logs:
+           try:
+                if maxAgeHours>0:
+                    file_dt = os.path.getmtime(f)
+                    if (current_dt - file_dt).totalHours > maxAgeHours:
+                        #delete file
+                        os.remove(os.path.join(self.path,f))
+                else:
+                    os.remove(os.path.join(self.path,f))
+            except Exception,ex:
+                print "could not delete log file",ex
+
+    def run():
+        self.threadEvent.wait(period)
+        syslog.syslog("running log clean...")
+        if self.stopping:
+            return
+        self.deleteOldLogs()
+
+    def stop():
+        self.stopping=True
+        self.threadEvent.set()
+        self.join()
+
+      
 
 
 #signal handler to allow graceful exit on SIGINT. will be used for control from the main service
@@ -508,10 +556,10 @@ def signal_handler(signal, frame):
 signal.signal(signal.SIGINT, signal_handler)
 #--------------------------------------------------------------------
 #main code:
-class RiverDaemon(Daemon2):
+class RiverDaemon():
 
   def __init__(self):
-    Daemon2.__init__(self, 'river-daemon', 'main', confname=None, stdin='/dev/null', stdout='/dev/null', stderr='/dev/null')
+    self.logCleaner=LogCleaner()
 
   def run(self):
     syslog.openlog("river-daemon")
@@ -521,6 +569,8 @@ class RiverDaemon(Daemon2):
     except:
       pass
 
+    #run log cleaning thread
+    self.logCleaner.start()
     #main loop
     runDaemon()
 
@@ -533,7 +583,9 @@ class RiverDaemon(Daemon2):
         print ex
         syslog.syslog(str(ex))
 
-    syslog.syslog("quitting")
+    syslog.syslog("quitting (1)")
+    self.logCleaner.stop()
+    syslog.syslog("quitting (2)")
     #make sure we exit
     syslog.closelog()
     os._exit(0)
@@ -558,23 +610,5 @@ if __name__ == "__main__":
       sys.exit(0)
 
     daemon = RiverDaemon()
-    runAsDaemon=False
-
-    try:
-      if sys.argv[1]=='--daemon':
-        runAsDaemon=True
-    except:
-        pass
-    if runAsDaemon:
-      #sysV style (obsolete)
-      try:
-        import procname
-        procname.setprocname('river-daemon')
-      except:
-        print "procname not installed"
-      daemon.start(req_conf=False)
-
-    else:
-      #default, also used with systemd
-      daemon.run()
+    daemon.run()
  
