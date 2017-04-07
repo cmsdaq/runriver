@@ -506,23 +506,23 @@ def runDaemon():
 
 class LogCleaner(threading.Thread):
 
-    def __init__(self,period=60*60,age=24*14,path='/var/log/river'):
+    def __init__(self,period=60*60,maxAgeHours=24*14,path='/var/log/river'):
         threading.Thread.__init__(self)
         self.threadEvent = threading.Event()
         self.period=period
-        self.age=age
+        self.maxAgeHours=maxAgeHours
         self.path=path
         self.stopping=False
 
 
     def deleteOldLogs(self):
         existing_logs = os.listdir(self.path)
-        current_dt = datetime.datetime.now()
+        current_dt = time.time()
         for f in existing_logs:
             try:
-                if maxAgeHours>0:
-                    file_dt = os.path.getmtime(f)
-                    if (current_dt - file_dt).totalHours > maxAgeHours:
+                if self.maxAgeHours>0:
+                    file_dt = os.path.getmtime(os.path.join(self.path,f))
+                    if (current_dt - file_dt)/3600. > self.maxAgeHours:
                         #delete file
                         os.remove(os.path.join(self.path,f))
                 else:
@@ -530,14 +530,16 @@ class LogCleaner(threading.Thread):
             except Exception,ex:
                 print "could not delete log file",ex
 
-    def run():
-        self.threadEvent.wait(period)
-        syslog.syslog("running log clean...")
-        if self.stopping:
-            return
-        self.deleteOldLogs()
+    def run(self):
+        self.threadEvent.wait(60)
+        while True:
+            syslog.syslog("running log clean...")
+            if self.stopping:
+                return
+            self.deleteOldLogs()
+            self.threadEvent.wait(self.period)
 
-    def stop():
+    def stop(self):
         self.stopping=True
         self.threadEvent.set()
         self.join()
