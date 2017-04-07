@@ -519,7 +519,7 @@ class LogCleaner(threading.Thread):
         existing_logs = os.listdir(self.path)
         current_dt = datetime.datetime.now()
         for f in existing_logs:
-           try:
+            try:
                 if maxAgeHours>0:
                     file_dt = os.path.getmtime(f)
                     if (current_dt - file_dt).totalHours > maxAgeHours:
