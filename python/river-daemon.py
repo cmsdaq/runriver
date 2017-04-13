@@ -28,7 +28,7 @@ except:
 #helper chown
 def chown_file(user,fd):
   pw_record = pwd.getpwnam(user)
-  os.chown(fd,pw_record.pw_uid,pw_record.pw_gid)
+  os.fchown(fd,pw_record.pw_uid,pw_record.pw_gid)
 
 socket.setdefaulttimeout(5)
 global_quit = False
@@ -37,8 +37,6 @@ global_quit = False
 river_threads = []
 
 host='localhost'
-#test:
-#host='es-vm-cdaq'
 sleep_int=5
 
 #test
@@ -146,8 +144,9 @@ riverInstMapping = {
 
 def query(conn,method,path,query=None,retry=False):
 
-  while True:
+  cnt=0
 
+  while True:
     try:
       creq = conn.request(method,path,query)
       cresp = conn.getresponse()
@@ -159,18 +158,18 @@ def query(conn,method,path,query=None,retry=False):
       conn_success=False
       cstatus = None
       cdata = None
-      syslog.syslog("Exception:"+str(ex))
+      if cnt%200==0:
+          syslog.syslog("exception:"+str(ex))
       time.sleep(.5)
       #restart connection
-      #if reconnect or retry:
-      #  conn.close()
-      #  time.sleep(5)
-      #  conn = httplib.HTTPConnection(host=host,port=9200)
       conn.close()
       conn = httplib.HTTPConnection(host=host,port=9200)
       if not retry: 
         break
-      syslog.syslog("WARNING:retrying connection with:"+str(method)+' '+str(path))#+' '+str(query))
+      if cnt%200==0:
+        #every 10 seconds
+        syslog.syslog("WARNING:retrying connection with:"+str(method)+' '+str(path) + ' iteration:'+str(cnt))
+      cnt+=1
       #quit if requested globally and stuck in no-connect loop 
       if global_quit:break
 
@@ -191,6 +190,16 @@ def gen_node_doc(status):
     }
     return upd_doc
 
+def gen_node_doc_time():
+    c_time = time.time()
+    utcstr = datetime.datetime.utcfromtimestamp(c_time).strftime('%Y-%m-%d %H:%M:%S')
+    upd_doc = {
+      "node":{
+        "ping_timestamp" : int(c_time*1000),
+        "ping_time_fmt" : utcstr
+      } 
+    }
+    return upd_doc
 
 
 def preexec_function_elasticsearch():
@@ -226,7 +235,6 @@ class river_thread(threading.Thread):
 
   def __init__(self,riverid,subsys,url,cluster,riverindex,rn,process_type,path):
     threading.Thread.__init__(self)
-    #self.logger = logging.getLogger(self.__class__.__name__)
     self.stop_issued=False
     self.stopped=False
     self.proc = None
@@ -240,7 +248,8 @@ class river_thread(threading.Thread):
     self.process_type = process_type
     self.path = path
     self.restart=False
-    self.restart_version=None
+    self.watchdogEvent = threading.Event()
+    self.give_up=False
 
   def execute(self):
     self.restart=False
@@ -282,58 +291,141 @@ class river_thread(threading.Thread):
   def setRestart(self,version):
     if self.restart:return
     try:
-      self.proc.terminate()
-      self.restart_version=version
+      self.watchdogEvent.set()
       self.restart=True
+      time.sleep(.1)
+      self.proc.terminate()
     except:
       pass
 
-   
+  def setTerminate(self,version):
+    if self.restart:return
+    try:
+      self.watchdogEvent.set()
+      self.restart=False
+      self.give_up=True
+      time.sleep(.1)
+      self.proc.terminate()
+    except:
+      pass
+
+  def getSelfDoc(self,conn):
+    success,st,res = query(conn,"GET","/river/instance/"+str(self.riverid))
+    ret_success=False
+    doc_ver=None
+    doc=None
+    host_changed=False
+    if st==200:
+      ret_success=True
+      doc = json.loads(res)
+      doc_ver= doc['_version']
+      if 'node' in doc['_source'] and 'name' in doc['_source']['node']:
+        if doc['_source']['node']['name'] != os.uname()[1]:
+          host_changed=True
+    return ret_success,st,doc_ver,host_changed,doc
+
+  def watch(self):
+      tmp_conn_w = None
+      while not self.stopped:
+        try:
+          if not tmp_conn_w:
+              tmp_conn_w = httplib.HTTPConnection(host=host,port=9200)
+
+          success,st,doc_ver,host_changed,doc = self.getSelfDoc(tmp_conn_w)
+          if st==404 or host_changed:
+              try:
+                  #doc was manually deleted or taken over, kill the process
+                  syslog.syslog('detected hijack of ' + self.riverid)
+                  self.give_up=True
+                  self.proc.terminate()
+              except Exception as ex:
+                  if not self.stopped:
+                    syslog.syslog('failed to terminate process ' + str(ex))
+              break
+          else:
+              if doc_ver:
+                success,st,res = query(tmp_conn_w,"POST","/river/instance/"+str(self.riverid)+'/_update?version='+str(doc_ver)+'&refresh=true',json.dumps({'doc':gen_node_doc_time()}))
+                if success:
+                  if st==409:
+                    self.watchdogEvent.wait(5)
+                  else:
+                    self.watchdogEvent.wait(30)
+                else:
+                  self.watchdogEvent.wait(5)
+              else:
+                self.watchdogEvent.wait(5)
+
+        except Exception as ex:
+          syslog.syslog('failed to update heartbeat of ' + self.riverid + ':'+str(ex))
+        self.watchdogEvent.wait(10)
+      if tmp_conn_w:
+        tmp_conn_w.close()
+  
   def run(self):
+    
+    watchdog = threading.Thread(target=self.watch)
+    watchdog.start()
+
     self.proc.wait()
     if self.fdo:os.close(self.fdo)
     retcode = self.proc.returncode
     tmp_conn = httplib.HTTPConnection(host=host,port=9200)
-    if self.restart:
-      st=409 #version mismatch
-      tries=100
-      while st==409 and tries>0:
-        success,st,res = query(gconn,"POST","/river/instance/"+str(self.riverid)+'/_update?version='+str(self.restart_version),json.dumps({'doc':gen_node_doc('restarting')}))
-        self.restart_version+=1 #if doc got updated, try again
-        tries-=1
-        time.sleep(0.05)
-      if st != 200:
-        syslog.syslog("ERROR updating document "+str(self.riverid)+" status:"+str(st)+" "+str(res))
-      else:
-        syslog.syslog("terminated instance " +str(self.riverid)+" which was requested by restart state - scheduled for restarting")
-      tmp_conn.close()
-      return
-    if retcode == 0:
-      #TODO:make sure exit 0 only happens when plugin is truly finished
-      syslog.syslog(str(self.riverid)+" successfully finished. Deleting river document..")
-      success,st,res = query(tmp_conn,"DELETE","/river/instance/"+str(self.riverid),retry=True)
-    else:
-      syslog.syslog("WARNING:"+self.riverid+" exited with code "+str(retcode))
-      #crash: change status to crashed
-      attempt=0
-      while True:
-        #update doc 
-        success,st,res = query(tmp_conn,"POST","/river/instance/"+str(self.riverid)+'/_update?refresh=true',json.dumps({'doc':gen_node_doc('crashed')}),retry=True)
-        if st == 200:
-          #ok, given for restarts
-          break
-        else:
-          #TODO:retry this another time...
-          syslog.syslog("ERROR updating document "+str(self.riverid)+" status:"+str(st)+" "+str(res))
-          time.sleep(int(1+attempt/10.))
-          #attempt forever for error 429, else give up after 100 attempts
-          if st!=429 and attempt>=100: break
-          attempt+=1
-          syslog.syslog("retrying with attempt " + str(attempt))
 
+    if not self.give_up:
+      tries=100
+      st=409
+      #handle updating document for restart
+      if not self.restart:
+          if retcode==0:
+              syslog.syslog(str(self.riverid)+" successfully finished. Deleting river document..")
+          else:
+              syslog.syslog("WARNING:"+self.riverid+" exited with code "+str(retcode))
+
+      tries=100
+      st=409
+      while st not in [200,201] and tries>0:
+          success,st,doc_ver,host_changed,doc = self.getSelfDoc(tmp_conn)
+          #give up if document is no longer there or taken over by another host
+          if st==404 or host_changed:break
+          #document version should be there
+          if doc_ver:
+              if not self.restart and retcode==0:
+                  #delete document
+                  success,st,res = query(tmp_conn,"DELETE","/river/instance/"+str(self.riverid)+'?version='+str(doc_ver),retry=True)
+              else:
+                  msg = 'crashed' if not self.restart else 'restarting'
+                  success,st,res = query(tmp_conn,"POST","/river/instance/"+str(self.riverid)+'/_update?version='+str(doc_ver)+'&refresh=true',json.dumps({'doc':gen_node_doc(msg)}))
+          if st==429:tries=100 #no finite tries for this error (es is overloaded, keep trying...)
+          tries-=1
+          if st not in [200,201,409]:
+              #start complaining if it starts failing repeatedly.
+              if tries<90:
+                  if not self.restart and retcode==0:
+                      syslog.syslog("ERROR deleting document "+str(self.riverid)+" status:"+str(st)+" "+str(res))
+                  else:
+                      syslog.syslog("ERROR updating document "+str(self.riverid)+" status:"+str(st)+" "+str(res))
+          elif st!=409:
+              break
+          #sleep period 0.5 to 5 seconds
+          time.sleep(0.5*(int(1+(100-tries)/10.)))
+
+      #after loop (print success or failure):
+      if st != 200:
+            syslog.syslog("ERROR - could not update document "+str(self.riverid)+" status:"+str(st)+" "+str(res))
+      else:
+          if self.restart:
+              syslog.syslog("terminated instance " + str(self.riverid) + " which was requested by restart state - scheduled for restarting")
+          elif retcode!=0:
+              syslog.syslog("updated instance " + str(self.riverid) + " which has crashed")
+          else:
+              syslog.syslog("ERROR deleting document " + str(self.riverid) + " status:" + str(st) + " " + str(res))
+
+    #end threads, connections
+    syslog.syslog('closing HTTP connection')
     tmp_conn.close()
-    #queue for joining
     self.stopped=True
+    self.watchdogEvent.set()
+    watchdog.join()
     return
 
   def force_stop(self):
@@ -359,16 +451,28 @@ def runRiver(doc):
   #main instance
   doc_id = doc['_id']
   success,st,res = query(gconn,"GET","/river/instance/"+str(doc_id))
-  if st!=200:
+  if not success or st!=200:
     syslog.syslog("ERROR:Failed to query!:"+str(doc_id)+" "+str(st)+" "+str(res))
     return
   doc = json.loads(res)
   doc_ver = doc['_version']
-  #check again, as we executed run another query
-  if doc['_source']['node']['status'] in ['created','crashed','restarting']: #or stale!
-    #update doc 
+
+  #check again the state from latest query
+  if doc['_source']['node']['status'] in ['created','crashed','restarting']:
+
+    time.sleep(.1)
+    #verify if this river is already active and clean it if not
+    try:
+      for instance in river_threads:
+        if instance.riverid == doc_id:
+          instance.setTerminate(doc_ver)
+    except Exception as ex:
+      syslog.syslog("problem checking rivers:"+str(ex))
+    time.sleep(.05)
+
+    #update doc before starting the process
     success,st,res = query(gconn,"POST","/river/instance/"+str(doc_id)+'/_update?version='+str(doc_ver)+'&refresh=true',json.dumps({'doc':gen_node_doc('starting')}))
-    if st == 200:
+    if success and st == 200:
       #success,proceed with fork
       syslog.syslog("successfully updated "+str(doc_id)+" document. will start the instance")
       new_instance = river_thread(doc_id,src['subsystem'],host,cluster,"river",runNumber,process_type,path)
@@ -380,60 +484,72 @@ def runRiver(doc):
       syslog.syslog(str(doc_id)+" update failed. doc was already grabbed.")
     else:
       syslog.syslog("ERROR:Failed to update document; status:"+str(st)+" "+res )
-  if doc['_source']['node']['status'] in ['restart']:
-    #check if this instance is running here and restart it
+  elif doc['_source']['node']['status'] in ['restart']:
+    #manual restart was issued, check if this instance is running here and tell the thread to finish and set status to restarting
     for instance in river_threads:
       if instance.riverid == doc_id:
         instance.setRestart(doc_ver)
         return
-    #if restarting doc not found
-    try:
-      if doc['_source']['node']["name"] == os.uname()[1]:
-        syslog.syslog('restart set on unfamiliar river which was running on this host. Will be handled')
-        new_instance = river_thread(doc_id,src['subsystem'],host,cluster,"river",runNumber,process_type,path)
-        river_threads.append(new_instance)
-        new_instance.execute()
-        syslog.syslog("started river thread")
-    except Exception as ex:
-      syslog.syslog("exception restarting river thread "+str(ex))
-      pass
-
+    #if handler was not found, try to set restarting flag to allow someone to pick it up
+    success,st,res = query(gconn,"POST","/river/instance/"+str(doc_id)+'/_update?version='+str(doc_ver)+'&refresh=true',json.dumps({'doc':gen_node_doc('restarting')}))
+    if not (success and st == 200) and st!=409:
+      syslog.syslog("error restarting river thread, code "+str(st))
 
 
 def checkRivers():
 
   #get all plugins running on the same node
-  success,st,res = query(gconn,"GET","/river/_search/instance?size=1000",json.dumps({"query":{"term":{"node.name":os.uname()[1]}}}),retry = False)
-  if success:
+  success,st,res = query(gconn,"GET","/river/instance/_search?size=1000",json.dumps({"version":True,"query":{"term":{"node.name":os.uname()[1]}}}),retry = False)
+  if success and st in [200,201]:
     doc_json = json.loads(res)
     for hit in doc_json['hits']['hits']:
       doc_st = hit["_source"]["node"]["status"]
       doc_id = hit["_id"]
+      doc_ver = hit['_version']
       if doc_st=='running' or doc_st=='starting': #other states are handled
         found_rt = None
         for rt in river_threads:
           if rt.riverid == doc_id:
             found_rt = rt
             break
-        if found_rt:continue #river exists
-        else:
-          #check again the doc and get the version to update
-          success,st,res = query(gconn,"GET","/river/instance/"+doc_id,retry = False)
-          if success:
-            doc_json = json.loads(res)
-            doc_st = doc_json["_source"]["node"]["status"]
-            doc_ver = doc_json["_source"]['_version']
-            syslog.syslog("No mother thread found for river id "+ doc_id + " in state " + doc_st)
-            if doc_st == 'running' or doc_st=='starting':
-              success,st,res = query(gconn,"POST","/river/instance/"+str(doc_id)+'/_update?version='+str(doc_ver)+'&refresh=true',
-                                     json.dumps({'doc':gen_node_doc('crashed')}),retry = False)
-              if success:syslog.syslog("reinserted document to restart river instance "+doc_id+" which is not present")
-            else:continue #was update in the meantime
-          else:continue #can't get doc, don't do anything right until we can
-    return True
-  else:
-    time.sleep(1)
-    return False
+        if not found_rt: #river not handled by thread obj, take over
+          syslog.syslog("no mother thread found for river id "+ doc_id + " in state " + doc_st)
+          success,st,res = query(gconn,
+                                 "POST",
+                                 "/river/instance/"+str(doc_id)+'/_update?version='+str(doc_ver)+'&refresh=true',
+                                 json.dumps({'doc':gen_node_doc('crashed')}),retry = False)
+          #if success and st!=409:
+          if success and st==200:
+            syslog.syslog("reinserted document to restart river instance "+doc_id+" which is not present")
+
+def checkOtherRivers():
+
+    success,st,res = query(gconn,"GET","/river/instance/_search?size=1000",json.dumps({"version":True,"query":{"bool":{"must_not":[{"term":{"node.name":os.uname()[1]}}]}}}),retry = False)
+    c_time = time.time()
+    if success and st in [200,201]:
+      doc_json = json.loads(res)
+      for hit in doc_json['hits']['hits']:
+        doc_st = hit["_source"]["node"]["status"]
+        if doc_st in ['running','starting','restart']: #other states are picked up
+          doc_id = hit["_id"]
+          doc_ver = hit['_version']
+          host_r="null"
+          try:
+              time_s = (time.time()*1000 - hit['_source']['node']['ping_timestamp'])/1000;
+              host_r =  hit['_source']['node']['name']
+          except:
+            syslog.syslog('could not check document ' + doc_id)
+            return
+          if time_s>120:
+            #stale document
+            syslog.syslog("stale river id "+ doc_id + " in state " + doc_st + " host:"+ host_r)
+            success,st,res = query(gconn,
+                                 "POST",
+                                 "/river/instance/"+str(doc_id)+'/_update?version='+str(doc_ver)+'&refresh=true',
+                                 json.dumps({'doc':gen_node_doc('crashed')}),retry = False)
+            #if success and st!=409:
+            if success and st==200:
+              syslog.syslog("taken over river instance "+doc_id+" which was stale")
 
 
 def runDaemon():
@@ -458,12 +574,13 @@ def runDaemon():
 
   #recovery if river status is running on this node:
   while True:
-    success,st,res = query(gconn,"GET","/river/instance/_search?size=1000", '{"query":{"bool":{"must":[{"term":{"node.status":"running"}},{"term":{"node.name":"'+os.uname()[1]+'"}}] }}}', retry = True)
+    success,st,res = query(gconn,"GET","/river/instance/_search?size=1000", '{"version":true,"query":{"bool":{"must":[{"term":{"node.status":"running"}},{"term":{"node.name":"'+os.uname()[1]+'"}}] }}}', retry = True)
     if success and st==200:
       jsres = json.loads(res)
       for hit in jsres['hits']['hits']:
         doc_id = hit['_id']
-        success,st,res = query(gconn,"POST","/river/instance/"+str(doc_id)+'/_update?refresh=true',json.dumps({'doc':gen_node_doc('crashed')}))
+        doc_ver = hit['_version']
+        success,st,res = query(gconn,"POST","/river/instance/"+str(doc_id)+'/_update?refresh=true&version='+str(doc_ver),json.dumps({'doc':gen_node_doc('crashed')}))
         syslog.syslog('recovering instance ' + doc_id + " success:" + str(success) + " status:" + str(st))
       break
     else:
@@ -476,9 +593,11 @@ def runDaemon():
     if cnt%10==0:
       syslog.syslog('running loop...')
       #check if there are any docs running on this host for which there is no active thread
-      ### check_res = checkRivers()
 
     cnt+=1
+
+    checkRivers()
+    checkOtherRivers()
 
     #join threads that have finished (needed?)
     for rt in river_threads[:]:
@@ -493,7 +612,7 @@ def runDaemon():
     if global_quit:break
 
     #find instances that need to be started
-    success,st,res = query(gconn,"GET","/river/instance/_search?size=1000", '{"query":{"bool":{"should":[{"term":{"node.status":"restart"}},{"term":{"node.status":"restarting"}},{"term":{"node.status":"crashed"}},{"term":{"node.status":"created"}}] }}}')
+    success,st,res = query(gconn,"GET","/river/instance/_search?size=1000", '{"version":true,"query":{"bool":{"should":[{"term":{"node.status":"restart"}},{"term":{"node.status":"restarting"}},{"term":{"node.status":"crashed"}},{"term":{"node.status":"created"}}] }}}')
     #TODO: add detection of stale objects (search for > amount of time since last ping
     if success and st==200:
       jsres = json.loads(res)

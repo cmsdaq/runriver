@@ -25,6 +25,9 @@ public class Main {
 
   public static void main(String[] argv) {
 
+    //DNS cache timeout (60 seconds)
+    java.security.Security.setProperty("networkaddress.cache.ttl" , "60");
+
     Client client;
     RunMonitor rm;
     Collector cd;
