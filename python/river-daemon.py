@@ -165,6 +165,8 @@ def query(conn,method,path,query=None,retry=False):
       conn.close()
       conn = httplib.HTTPConnection(host=host,port=9200)
       if not retry: 
+        cstatus=-1
+        cdata=ex
         break
       if cnt%200==0:
         #every 10 seconds
@@ -371,19 +373,20 @@ class river_thread(threading.Thread):
     retcode = self.proc.returncode
     tmp_conn = httplib.HTTPConnection(host=host,port=9200)
 
-    if not self.give_up:
-      tries=100
-      st=409
-      #handle updating document for restart
-      if not self.restart:
+    try:
+      if not self.give_up:
+        tries=50
+        st=409
+        res=None
+
+        #handle updating document for restart
+        if not self.restart:
           if retcode==0:
               syslog.syslog(str(self.riverid)+" successfully finished. Deleting river document..")
           else:
               syslog.syslog("WARNING:"+self.riverid+" exited with code "+str(retcode))
 
-      tries=100
-      st=409
-      while st not in [200,201] and tries>0:
+        while st not in [200,201] and tries>0:
           success,st,doc_ver,host_changed,doc = self.getSelfDoc(tmp_conn)
           #give up if document is no longer there or taken over by another host
           if st==404 or host_changed:break
@@ -395,31 +398,34 @@ class river_thread(threading.Thread):
               else:
                   msg = 'crashed' if not self.restart else 'restarting'
                   success,st,res = query(tmp_conn,"POST","/river/instance/"+str(self.riverid)+'/_update?version='+str(doc_ver)+'&refresh=true',json.dumps({'doc':gen_node_doc(msg)}))
-          if st==429:tries=100 #no finite tries for this error (es is overloaded, keep trying...)
+          if st==429:
+            tries=50 #no finite tries for this error (es is overloaded, keep trying...)
+
           tries-=1
           if st not in [200,201,409]:
               #start complaining if it starts failing repeatedly.
-              if tries<90:
+              if tries<40:
                   if not self.restart and retcode==0:
-                      syslog.syslog("ERROR deleting document "+str(self.riverid)+" status:"+str(st)+" "+str(res))
+                      syslog.syslog("ERROR deleting document "+str(self.riverid)+" status:"+str(st)+" "+str(res) + "  tries left: " + str(tries))
                   else:
-                      syslog.syslog("ERROR updating document "+str(self.riverid)+" status:"+str(st)+" "+str(res))
+                      syslog.syslog("ERROR updating document "+str(self.riverid)+" status:"+str(st)+" "+str(res) + "  tries left: " + str(tries))
           elif st!=409:
               break
           #sleep period 0.5 to 5 seconds
-          time.sleep(0.5*(int(1+(100-tries)/10.)))
+          time.sleep(0.5*(int(1+(50-tries)/10.)))
 
-      #after loop (print success or failure):
-      if st != 200:
-            syslog.syslog("ERROR - could not update document "+str(self.riverid)+" status:"+str(st)+" "+str(res))
-      else:
+        #after loop (print success or failure):
+        if st != 200:
+            syslog.syslog("river-thread: ERROR - could not update document "+str(self.riverid)+" status:"+str(st)+" "+str(res))
+        else:
           if self.restart:
-              syslog.syslog("terminated instance " + str(self.riverid) + " which was requested by restart state - scheduled for restarting")
+              syslog.syslog("river-thread: terminated instance " + str(self.riverid) + " which was requested by restart state - scheduled for restarting")
           elif retcode!=0:
-              syslog.syslog("updated instance " + str(self.riverid) + " which has crashed")
+              syslog.syslog("river-thread: updated instance " + str(self.riverid) + " which has crashed")
           else:
-              syslog.syslog("ERROR deleting document " + str(self.riverid) + " status:" + str(st) + " " + str(res))
-
+              syslog.syslog("river-thread: deleted instance " + str(self.riverid) + " which has finished")
+    except Exception as exc:
+      syslog.syslog(str(exc))
     #end threads, connections
     syslog.syslog('closing HTTP connection')
     tmp_conn.close()
