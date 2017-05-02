@@ -337,7 +337,7 @@ class river_thread(threading.Thread):
           if st==404 or host_changed:
               try:
                   #doc was manually deleted or taken over, kill the process
-                  syslog.syslog('detected hijack of ' + self.riverid)
+                  syslog.syslog('detected hijack or deletion of ' + self.riverid)
                   self.give_up=True
                   self.proc.terminate()
               except Exception as ex:
