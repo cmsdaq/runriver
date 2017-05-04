@@ -159,7 +159,7 @@ def query(conn,method,path,query=None,retry=False):
       cstatus = None
       cdata = None
       if cnt%200==0:
-          syslog.syslog("exception:"+str(ex))
+          syslog.syslog("exception type:"+str(type(ex).__name__)+" msg:"+str(ex))
       time.sleep(.5)
       #restart connection
       conn.close()
@@ -404,11 +404,10 @@ class river_thread(threading.Thread):
           tries-=1
           if st not in [200,201,409]:
               #start complaining if it starts failing repeatedly.
-              if tries<40:
-                  if not self.restart and retcode==0:
-                      syslog.syslog("ERROR deleting document "+str(self.riverid)+" status:"+str(st)+" "+str(res) + "  tries left: " + str(tries))
-                  else:
-                      syslog.syslog("ERROR updating document "+str(self.riverid)+" status:"+str(st)+" "+str(res) + "  tries left: " + str(tries))
+              if not self.restart and retcode==0:
+                  syslog.syslog("ERROR deleting document "+str(self.riverid)+" status:"+str(st)+" "+str(res) + "  tries left: " + str(tries))
+              else:
+                  syslog.syslog("ERROR updating document "+str(self.riverid)+" status:"+str(st)+" "+str(res) + "  tries left: " + str(tries))
           elif st!=409:
               break
           #sleep period 0.5 to 5 seconds
