@@ -33,7 +33,7 @@ ls
 #pluginpath="/opt/fff/esplugins/"
 #pluginname1="license"
 
-riverfile="river-runriver-1.7.2-jar-with-dependencies.jar"
+riverfile="river-runriver-1.7.3-jar-with-dependencies.jar"
 
 if [ ! -f $SCRIPTDIR/../target/$riverfile ]; then
  echo "missing river file $SCRIPTDIR/../target/$riverfile"

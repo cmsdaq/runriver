@@ -695,6 +695,11 @@ public class Collector extends AbstractRunRiverThread {
             xbClassSummary.field("date",start_time_millis);
             xbClassSummary.field("cpuslotsmax",cpuinfo[0]);
             xbClassSummary.field("cpuslots",cpuinfo[1]);
+            try {
+              xbClassSummary.field("cpuid",cpuinfo[2]);
+            } catch (Exception e) {
+              //missing last token, no cpuid will be stored in the document
+            }
             xbClassSummary.endObject();
             client.prepareIndex(runIndex_write, "state-hist-summary")
               .setParent(runNumber)

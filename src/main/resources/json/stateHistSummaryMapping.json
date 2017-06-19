@@ -88,6 +88,9 @@
       },
       "cpuslots":{
         "type":"short"
+      },
+      "cpuid":{
+        "type":"keyword"
       }
     }
   }
