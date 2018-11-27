@@ -3,7 +3,7 @@ elasticsearch-river-RunRiver service
 
 ##Requirements
 
-Maven3, java-8 (Oracle or OpenJDK), elasticsearch 2.2.0 or higher
+Maven3, java-8 (Oracle or OpenJDK), elasticsearch 5.2.0 or higher
 
 ##Compile and Install
 
@@ -15,6 +15,8 @@ wget http://mirrors.gigenet.com/apache/maven/maven-3/3.3.9/binaries/apache-maven
 tar xzf apache-maven-3.3.9-bin.tar.gz
 ln -s apache-maven-3.3.9-bin maven
 rm -rf apache-maven-3.3.9-bin.tar.gz
+
+NOTE: only needed if mvn version is too old on host OS (e.g. SLC6).
 
 edit /etc/profile.d/maven.sh and add the following lines:
 
