@@ -1,0 +1,4 @@
+- move to REST API (internal one is getting deprecated)
+- store per-BU micro-completion. Possibly package more information about missing FUs
+- deduplication (also consider timeout adjustement in anelastic)?
+- analysis of eols, prc-in and fu-out information to detect FU which is problematic
