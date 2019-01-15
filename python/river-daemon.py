@@ -731,7 +731,7 @@ def esClusterName():
 if __name__ == "__main__":
 
     escname = esClusterName()
-    if not (escname.startswith('es-vm-cdaq') or escname.startswith('es-cdaq')):
+    if not (escname.startswith('es-vm-cdaq') or escname.startswith('es-cdaq')) or escname.startswith('es-cdaq-run2'):
       print "Service is disabled on machines which are not es-vm-cdaq or es-cdaq cluster"
       sys.exit(0)
 
