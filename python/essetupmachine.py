@@ -16,8 +16,9 @@ elasticsysconf = '/etc/sysconfig/elasticsearch'
 elasticconf = '/etc/elasticsearch/elasticsearch.yml'
 #elasticlogconf = '/etc/elasticsearch/logging.yml'
 
-es_cdaq_list = ['ncsrv-c2e42-09-02', 'ncsrv-c2e42-11-02', 'ncsrv-c2e42-13-02', 'ncsrv-c2e42-19-02']
-es_local_list =[ 'ncsrv-c2e42-21-02', 'ncsrv-c2e42-23-02', 'ncsrv-c2e42-13-03', 'ncsrv-c2e42-23-03']
+es_cdaq_run2_list = ['ncsrv-c2e42-09-02', 'ncsrv-c2e42-11-02', 'ncsrv-c2e42-13-02', 'ncsrv-c2e42-19-02']
+es_cdaq_list = ['ncsrv-c2e42-21-02', 'ncsrv-c2e42-23-02']
+es_local_list =['ncsrv-c2e42-13-03', 'ncsrv-c2e42-23-03']
 
 myhost = os.uname()[1]
 
@@ -26,8 +27,15 @@ def getmachinetype():
     #print "running on host ",myhost
     if myhost.startswith('ncsrv-'):
         try:
+            es_cdaq_run2_list_ip = socket.gethostbyname_ex('es-cdaq-run2')[2]
             es_cdaq_list_ip = socket.gethostbyname_ex('es-cdaq')[2]
             es_local_list_ip = socket.gethostbyname_ex('es-local')[2]
+
+            for es in es_cdaq_run2_list:
+                try:
+                    es_cdaq_run2_list_ip.append(socket.gethostbyname_ex(es)[2][0])
+                except Exception as ex:
+                    print ex
             for es in es_cdaq_list:
                 try:
                     es_cdaq_list_ip.append(socket.gethostbyname_ex(es)[2][0])
@@ -40,6 +48,9 @@ def getmachinetype():
                     print ex
 
             myaddr = socket.gethostbyname(myhost)
+
+            if myaddr in es_cdaq_run2_list_ip:
+                return 'es','escdaqrun2','prod'
             if myaddr in es_cdaq_list_ip:
                 return 'es','escdaq','prod'
             elif myaddr in es_local_list_ip:
@@ -225,7 +236,7 @@ if __name__ == "__main__":
         if esEdited == False:
             shutil.copy(elasticconf,os.path.join(backup_dir,os.path.basename(elasticconf)))
 
-        if type == 'eslocal' or type == 'escdaq':
+        if type == 'eslocal' or type == 'escdaq' or type == 'escdaqrun2':
 
             essyscfg = FileManager(elasticsysconf,'=',essysEdited)
             if env=='vm':
@@ -280,12 +291,16 @@ if __name__ == "__main__":
             #eslogcfg.reg('es.logger.level','INFO')
             #eslogcfg.commit()
 
-        if type == 'escdaq':
+        if type == 'escdaq' or type == 'escdaqrun2':
             escfg = FileManager(elasticconf,':',esEdited,'',' ',recreate=True)
             escfg.reg('network.publish_host',es_publish_host)
             escfg.reg('network.bind_host','_local_,'+es_publish_host)
-            escfg.reg('cluster.name','es-cdaq')
-            escfg.reg('discovery.zen.ping.unicast.hosts',json.dumps(es_cdaq_list))
+            if type == 'escdaqrun2': #separate run2 and LS2 operational cluster
+                escfg.reg('cluster.name','es-cdaq-run2')
+                escfg.reg('discovery.zen.ping.unicast.hosts',json.dumps(es_cdaq_run2_list))
+            else:
+                escfg.reg('cluster.name','es-cdaq')
+                escfg.reg('discovery.zen.ping.unicast.hosts',json.dumps(es_cdaq_list))
             if env=='vm':
                 escfg.reg('discovery.zen.minimum_master_nodes','1')
             else:
