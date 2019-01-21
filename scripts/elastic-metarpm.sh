@@ -33,7 +33,7 @@ ls
 #pluginpath="/opt/fff/esplugins/"
 #pluginname1="license"
 
-riverfile="river-runriver-1.7.3-jar-with-dependencies.jar"
+riverfile="river-runriver-1.7.4-jar-with-dependencies.jar"
 
 if [ ! -f $SCRIPTDIR/../target/$riverfile ]; then
  echo "missing river file $SCRIPTDIR/../target/$riverfile"
@@ -83,7 +83,7 @@ cd $TOPDIR
 # we are done here, write the specs and make the fu***** rpm
 cat > fffmeta-elastic.spec <<EOF
 Name: $PACKAGENAME
-Version: 2.3.4
+Version: 2.3.5
 Release: 0
 Summary: hlt daemon
 License: gpl

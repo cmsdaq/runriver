@@ -25,6 +25,8 @@ import org.elasticsearch.index.get.GetField;
 
 
 import org.elasticsearch.index.query.QueryBuilders;
+//import org.elasticsearch.index.query.TermQueryBuilders;
+import org.elasticsearch.join.query.JoinQueryBuilders;
 import static org.elasticsearch.common.xcontent.XContentFactory.*;
 
 //Remote query stuff
@@ -290,7 +292,8 @@ public class Collector extends AbstractRunRiverThread {
 
                     SearchResponse sResponseEoLS = client.prepareSearch(runIndex_write).setTypes("eols")
                                                          .setRouting(runNumber)
-                                                         .setQuery(QueryBuilders.boolQuery().must(QueryBuilders.parentId("eols",runNumber)).must(QueryBuilders.termQuery("ls",ls)))
+                                                         //.setQuery(QueryBuilders.boolQuery().must(QueryBuilders.parentId("eols",runNumber)).must(QueryBuilders.termQuery("ls",ls)))
+                                                         .setQuery(QueryBuilders.boolQuery().must(JoinQueryBuilders.hasParentQuery("run",QueryBuilders.termQuery("_id",runNumber),false)).must(QueryBuilders.termQuery("ls",ls)))
                                                          //.setQuery(QueryBuilders.prefixQuery("_id",idStr))
                                                          .setSize(0)
                                                          .addAggregation(AggregationBuilders.sum("NEvents").field("NEvents"))
@@ -491,7 +494,7 @@ public class Collector extends AbstractRunRiverThread {
         }
         if (ustatesReserved==-1) {
           //SearchResponse sResponseUstates = client.prepareSearch(runIndex_read).setTypes("microstatelegend").setRouting(runNumber).setQuery(QueryBuilders.termQuery("_parent", runNumber)).setSize(1).execute().actionGet();
-          SearchResponse sResponseUstates = client.prepareSearch(runIndex_read).setTypes("microstatelegend").setRouting(runNumber).setQuery(QueryBuilders.parentId("microstatelegend", runNumber)).setSize(1).execute().actionGet();
+          SearchResponse sResponseUstates = client.prepareSearch(runIndex_read).setTypes("microstatelegend").setRouting(runNumber).setQuery(JoinQueryBuilders.hasParentQuery("run", QueryBuilders.termQuery("_id",runNumber),false)).setSize(1).execute().actionGet();
           SearchHit[] searchHits = sResponseUstates.getHits().getHits();
           if(searchHits.length != 0) {
             logger.info("microstatelegend query returns hits");
