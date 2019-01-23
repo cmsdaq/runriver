@@ -11,7 +11,7 @@ import java.net.InetSocketAddress;
 import org.elasticsearch.client.Client;
 //import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.transport.client.PreBuiltTransportClient;
-import org.elasticsearch.common.transport.InetSocketTransportAddress;
+//import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.common.inject.Inject;
@@ -40,7 +40,7 @@ public class Main {
     String river_escluster = argv[3];
     String river_esindex = argv[4];
     int river_runnumber = Integer.parseInt(argv[5]);
-    Logger logger = Loggers.getLogger("Main", "river",river_id);
+    Logger logger = Loggers.getLogger(Main.class, "river",river_id);
     logger.info( "!" + river_id + " " + river_subsys + " " + river_eshost + " " + river_escluster + " " +river_esindex);
 
     if (river_id.equals("mapping")) role = "mapping";
@@ -52,7 +52,7 @@ public class Main {
       //ES 2.X API:
 
       Settings settings = Settings.builder().put("cluster.name", river_escluster).build();
-      client =  new PreBuiltTransportClient(settings).addTransportAddress(new InetSocketTransportAddress(new InetSocketAddress(InetAddress.getByName(river_eshost), 9300)));
+      client =  new PreBuiltTransportClient(settings).addTransportAddress((new TransportAddress(InetAddress.getByName(river_eshost), 9300)));
     }
     catch (Exception e) {
       logger.error("TransportClient exception: ", e);

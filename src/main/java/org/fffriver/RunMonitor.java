@@ -16,7 +16,7 @@ import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequestBuilder;
-import org.elasticsearch.action.admin.indices.mapping.put.PutMappingResponse;
+//import org.elasticsearch.action.admin.indices.mapping.put.PutMappingResponse;
 import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsResponse;
 //import org.elasticsearch.index.engine.DocumentAlreadyExistsException;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
@@ -81,7 +81,7 @@ public class RunMonitor extends AbstractRunRiverThread {
         if (response.getHits().getTotalHits() == 0 ) { return; }
         
         for (SearchHit hit : response.getHits().getHits()) {
-            String runNumber = hit.getSource().get("runNumber").toString();
+            String runNumber = hit.getSourceAsMap().get("runNumber").toString();
             if (!runExists(runNumber)){ createRun(runNumber); }
         }
     }

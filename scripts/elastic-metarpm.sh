@@ -33,7 +33,7 @@ ls
 #pluginpath="/opt/fff/esplugins/"
 #pluginname1="license"
 
-riverfile="river-runriver-1.7.4-jar-with-dependencies.jar"
+riverfile="river-runriver-1.8.0-jar-with-dependencies.jar"
 
 if [ ! -f $SCRIPTDIR/../target/$riverfile ]; then
  echo "missing river file $SCRIPTDIR/../target/$riverfile"
@@ -94,7 +94,7 @@ Source: none
 %define _topdir $TOPDIR
 BuildArch: $BUILD_ARCH
 AutoReqProv: no
-Requires:elasticsearch => 5.2, cx_Oracle >= 5.1.2, java-1.8.0-oracle-headless >= 1.8.0.45, php >= 5.3.3, php-oci8 >= 1.4.9
+Requires:elasticsearch => 6.5.4, cx_Oracle >= 5.1.2, java-1.8.0-oracle-headless >= 1.8.0.45, php >= 5.3.3, php-oci8 >= 1.4.9
 
 Provides:/opt/fff/configurefff.sh
 Provides:/opt/fff/essetupmachine.py

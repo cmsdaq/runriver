@@ -2,3 +2,4 @@
 - store per-BU micro-completion. Possibly package more information about missing FUs
 - deduplication (also consider timeout adjustement in anelastic)?
 - analysis of eols, prc-in and fu-out information to detect FU which is problematic
+- use xml etree to get runriver jar and elasticsearch version from pom.xml

@@ -21,7 +21,7 @@ import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.index.get.GetField;
+//import org.elasticsearch.index.get.GetField;
 
 
 import org.elasticsearch.index.query.QueryBuilders;
@@ -30,12 +30,14 @@ import org.elasticsearch.join.query.JoinQueryBuilders;
 import static org.elasticsearch.common.xcontent.XContentFactory.*;
 
 //Remote query stuff
+import org.elasticsearch.search.aggregations.BucketOrder;
 import org.elasticsearch.search.aggregations.bucket.terms.Terms;
-import org.elasticsearch.search.aggregations.bucket.histogram.Histogram;
+//import org.elasticsearch.search.aggregations.bucket.histogram.Histogram;
 //import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.transport.client.PreBuiltTransportClient;
 
-import org.elasticsearch.common.transport.InetSocketTransportAddress;
+import java.net.InetSocketAddress;
+//#import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.search.aggregations.metrics.sum.Sum;
 import org.elasticsearch.search.aggregations.metrics.max.Max;
@@ -174,13 +176,13 @@ public class Collector extends AbstractRunRiverThread {
                                                .setSize(0)
                                                .addSort(SortBuilders.fieldSort("ls").order(SortOrder.DESC))
                                                .addAggregation(AggregationBuilders.terms("streams").field("stream").size(200)
-                                                 .subAggregation(AggregationBuilders.terms("ls").field("ls").size(size).order(Terms.Order.term(false))
+                                                 .subAggregation(AggregationBuilders.terms("ls").field("ls").size(size).order(BucketOrder.key(false))
                                                    .subAggregation(AggregationBuilders.sum("in").field("data.in"))
                                                    .subAggregation(AggregationBuilders.sum("out").field("data.out"))
                                                    .subAggregation(AggregationBuilders.sum("error").field("data.errorEvents"))
                                                    .subAggregation(AggregationBuilders.sum("filesize").field("data.fileSize"))
                                                    .subAggregation(AggregationBuilders.max("fm_date").field("fm_date"))
-                                                   .subAggregation(AggregationBuilders.terms("mergeType").field("data.MergeType").size(2).order(Terms.Order.term(false)))
+                                                   .subAggregation(AggregationBuilders.terms("mergeType").field("data.MergeType").size(2).order(BucketOrder.key(false)))
                                                  )
                                                )
         .execute().actionGet();
@@ -471,14 +473,14 @@ public class Collector extends AbstractRunRiverThread {
                                                .setTypes("prc-i-state")
                                                .setQuery(QueryBuilders.rangeQuery("fm_date").from("now-4s").to("now-2s"))
                                                .setSize(0)
-                                               .addAggregation(AggregationBuilders.terms("mclass").field("mclass").size(9999).order(Terms.Order.term(true)).minDocCount(1)
-                                                 .subAggregation(AggregationBuilders.terms("hmicro").field("micro").size(9999).order(Terms.Order.term(true)).minDocCount(1))
-                                                 .subAggregation(AggregationBuilders.terms("hinput").field("instate").size(9999).order(Terms.Order.term(true)).minDocCount(1))
+                                               .addAggregation(AggregationBuilders.terms("mclass").field("mclass").size(9999).order(BucketOrder.key(true)).minDocCount(1)
+                                                 .subAggregation(AggregationBuilders.terms("hmicro").field("micro").size(9999).order(BucketOrder.key(true)).minDocCount(1))
+                                                 .subAggregation(AggregationBuilders.terms("hinput").field("instate").size(9999).order(BucketOrder.key(true)).minDocCount(1))
                                                )
-                                               .addAggregation(AggregationBuilders.terms("hmicro").field("micro").size(9999).order(Terms.Order.term(true)).minDocCount(1))
-                                               .addAggregation(AggregationBuilders.terms("hmini").field("mini").size(9999).order(Terms.Order.term(true)).minDocCount(1))
-                                               .addAggregation(AggregationBuilders.terms("hmacro").field("macro").size(9999).order(Terms.Order.term(true)).minDocCount(1))
-                                               .addAggregation(AggregationBuilders.terms("hinput").field("instate").size(9999).order(Terms.Order.term(true)).minDocCount(1))
+                                               .addAggregation(AggregationBuilders.terms("hmicro").field("micro").size(9999).order(BucketOrder.key(true)).minDocCount(1))
+                                               .addAggregation(AggregationBuilders.terms("hmini").field("mini").size(9999).order(BucketOrder.key(true)).minDocCount(1))
+                                               .addAggregation(AggregationBuilders.terms("hmacro").field("macro").size(9999).order(BucketOrder.key(true)).minDocCount(1))
+                                               .addAggregation(AggregationBuilders.terms("hinput").field("instate").size(9999).order(BucketOrder.key(true)).minDocCount(1))
                                                .addAggregation(AggregationBuilders.max("fm_date").field("fm_date"))
                                                .execute().actionGet();
 
@@ -498,18 +500,18 @@ public class Collector extends AbstractRunRiverThread {
           SearchHit[] searchHits = sResponseUstates.getHits().getHits();
           if(searchHits.length != 0) {
             logger.info("microstatelegend query returns hits");
-            //List<String> keys = new ArrayList<String>(searchHits[0].sourceAsMap().keySet());
+            //List<String> keys = new ArrayList<String>(searchHits[0].getSourceAsMap().keySet());
             //for (String key: keys) { logger.info("key:");logger.info(key);}
-            if (searchHits[0].sourceAsMap().get("reserved")!=null) {
+            if (searchHits[0].getSourceAsMap().get("reserved")!=null) {
               //Integer reservedVal = sResponseUstates.getHits().getHits()[0].getSource().field("reserved");
-              Integer reservedVal = (Integer) searchHits[0].sourceAsMap().get("reserved");
+              Integer reservedVal = (Integer) searchHits[0].getSourceAsMap().get("reserved");
               ustatesReserved = reservedVal;
 
-              if (searchHits[0].sourceAsMap().get("special")!=null)
-                ustatesSpecial = (Integer) searchHits[0].sourceAsMap().get("special");
+              if (searchHits[0].getSourceAsMap().get("special")!=null)
+                ustatesSpecial = (Integer) searchHits[0].getSourceAsMap().get("special");
 
-              if (searchHits[0].sourceAsMap().get("output")!=null)
-                ustatesOutput = (Integer) searchHits[0].sourceAsMap().get("output");
+              if (searchHits[0].getSourceAsMap().get("output")!=null)
+                ustatesOutput = (Integer) searchHits[0].getSourceAsMap().get("output");
 
               if (ustatesOutput<0 || ustatesSpecial<0) {
                 ustatesOutput=-1;
@@ -769,14 +771,14 @@ public class Collector extends AbstractRunRiverThread {
         //remoteClient = TransportClient.builder().settings(settings).build()
         remoteAddress = new InetSocketAddress(InetAddress.getByName(es_tribe_host), 9300);
         remoteClient = new PreBuiltTransportClient(settings)
-            .addTransportAddress(new InetSocketTransportAddress(remoteAddress));
+            .addTransportAddress(new TransportAddress(remoteAddress));
     }
 
     public void resetRemoteClient() {
         Settings settings = Settings.builder()
             .put("cluster.name", es_tribe_cluster).build();
         remoteClient = new PreBuiltTransportClient(settings)
-            .addTransportAddress(new InetSocketTransportAddress(remoteAddress));
+            .addTransportAddress(new TransportAddress(remoteAddress));
     }
 
     public void getQueries(){

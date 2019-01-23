@@ -229,7 +229,7 @@ public class AbstractRunRiverThread extends Thread  {
                     .field("rivername", rivername)
                     .field("index", index)
                     .field("query_name", queryname)
-                    .field("took", sResponse.getTookInMillis())
+                    .field("took", sResponse.getTook().getMillis())
                     .field("timed_out", sResponse.isTimedOut())
                     .field("shards_total", sResponse.getTotalShards())
                     .field("shards_successful", sResponse.getSuccessfulShards())
