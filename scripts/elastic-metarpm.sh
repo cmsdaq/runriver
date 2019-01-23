@@ -99,9 +99,7 @@ Requires:elasticsearch => 6.5.4, cx_Oracle >= 5.1.2, java-1.8.0-oracle-headless 
 Provides:/opt/fff/configurefff.sh
 Provides:/opt/fff/essetupmachine.py
 Provides:/opt/fff/init.d/fff-config
-Provides:/opt/fff/insertSubsys.py
-Provides:/opt/fff/insertScript.py
-Provides:/opt/fff/delSubsys.py
+Provides:/opt/fff/insertRiver.py
 Provides:/opt/fff/setup_river_index.py
 Provides:/opt/fff/river-daemon.py
 Provides:/opt/fff/demote.py
@@ -168,15 +166,9 @@ cp $BASEDIR/esplugins/uninstall.sh %{buildroot}/opt/fff/esplugins/uninstall.sh
 %attr( 755 ,root, root) /opt/fff/demote.py
 %attr( 755 ,root, root) /opt/fff/demote.pyc
 %attr( 755 ,root, root) /opt/fff/demote.pyo
-%attr( 755 ,root, root) /opt/fff/insertSubsys.py
-%attr( 755 ,root, root) /opt/fff/insertSubsys.pyc
-%attr( 755 ,root, root) /opt/fff/insertSubsys.pyo
-%attr( 755 ,root, root) /opt/fff/insertScript.py
-%attr( 755 ,root, root) /opt/fff/insertScript.pyc
-%attr( 755 ,root, root) /opt/fff/insertScript.pyo
-%attr( 755 ,root, root) /opt/fff/delSubsys.py
-%attr( 755 ,root, root) /opt/fff/delSubsys.pyc
-%attr( 755 ,root, root) /opt/fff/delSubsys.pyo
+%attr( 755 ,root, root) /opt/fff/insertRiver.py
+%attr( 755 ,root, root) /opt/fff/insertRiver.pyc
+%attr( 755 ,root, root) /opt/fff/insertRiver.pyo
 %attr( 755 ,root, root) /opt/fff/setup_river_index.py
 %attr( 755 ,root, root) /opt/fff/setup_river_index.pyo
 %attr( 755 ,root, root) /opt/fff/setup_river_index.pyc
@@ -188,7 +180,6 @@ cp $BASEDIR/esplugins/uninstall.sh %{buildroot}/opt/fff/esplugins/uninstall.sh
 %attr( 755 ,root, root) /opt/fff/init.d/fff-config
 %attr( 755 ,root, root) /usr/lib/systemd/system/fff.service
 %attr( 755 ,root, root) /usr/lib/systemd/system/riverd.service
-%attr( 755 ,root, root) /opt/fff/init.d/riverd
 %attr( 755 ,root, root) /opt/fff/esplugins/install.sh
 %attr( 755 ,root, root) /opt/fff/esplugins/uninstall.sh
 %attr( 755 ,root, root) /opt/fff/$riverfile
@@ -202,16 +193,12 @@ cp $BASEDIR/esplugins/uninstall.sh %{buildroot}/opt/fff/esplugins/uninstall.sh
 
 %post
 #echo "post install trigger"
-chkconfig --del fffmeta || true
-chkconfig --del riverd || true
 echo "making symbolic links"
 ln -s -f river.jar /opt/fff/river_dv.jar
 ln -s -f $riverfile /opt/fff/river.jar
 
 %triggerin -- elasticsearch
 #echo "triggered on elasticsearch update or install as well as this rpm update"
-
-##/sbin/service elasticsearch stop
 
 python2 /opt/fff/essetupmachine.py restore
 python2 /opt/fff/essetupmachine.py
@@ -236,12 +223,10 @@ then
   fi
 fi
         
-##/sbin/service elasticsearch start
 /usr/bin/systemctl enable elasticsearch
 
 /usr/bin/systemctl reenable riverd
-systemctl reenable fff
-/sbin/service riverd stop
+/usr/bin/systemctl reenable fff
 /usr/bin/systemctl daemon-reload
 
 /usr/bin/systemctl reenable riverd
@@ -254,17 +239,13 @@ systemctl reenable fff
 
 if [ \$1 == 0 ]; then 
 
-  systemctl disable fff
-  systemctl stop riverd
-  systemctl disable riverd
-  chkconfig --del riverd
+  /usr/bin/systemctl disable fff
+  /usr/bin/systemctl stop riverd
+  /usr/bin/systemctl disable riverd
   /usr/bin/systemctl disable elasticsearch
 
   #delete symbolic links
   rm -rf /opt/fff/river_dv.jar /opt/fff/river.jar
-
-  ##/sbin/service elasticsearch stop || true
-  ##/opt/fff/esplugins/uninstall.sh /usr/share/elasticsearch $pluginname1 || true
 
   python2 /opt/fff/essetupmachine.py restore
 fi

@@ -4,18 +4,18 @@ import sys
 import httplib
 import json
 
-def insertScript():
+def insertRiver(args):
   try:
-    rivertype=sys.argv[1]
+    rivertype=args[1]
   except:
     print "Please specify system or script as arg[1]"
     return 1
   if rivertype=="system":
       try:
-        subsys=sys.argv[2]
+        subsys=args[2]
         name = "river_"+subsys+"_main"
         try:
-          trhost = sys.argv[3]
+          trhost = args[3]
         except:
            trhost = "es-local"
       except:
@@ -25,19 +25,22 @@ def insertScript():
         print "    insertRiver.py system cdaq es-local"
         return 1
 
-  elif rivertypr=="script":
+  elif rivertype=="script":
     try:
-      name=sys.argv[2]
-      itype=sys.argv[3]
-      path=sys.argv[4]
-      role=sys.argv[5]
-      subsys=sys.argv[6]
+      name=args[2]
+      itype=args[3]
+      path=args[4]
+      role=args[5]
+      subsys=args[6]
     except:
       print "Must specify for arg[1] script   : name, type (nodejs or python), path, role and subsystem. Injection will fail if document exists."
       print "Example usage:"
       print "    insertRiver.py script mon_cpustats nodejs /cmsnfses-web/es-web/prod/daemons/lastcpu.js append_db_mon cdaq"
       print "    insertRiver.py script index_del python /cmsnfses-web/es-web/prod/daemons/eslocal_index_cleaner.py admin all"
       return 1
+  elif rivertype=="delete":
+    print "delete document invoked..."
+    doc_name = args[2]
   else:
     print "unknown river type"
     return 1
@@ -72,6 +75,14 @@ def insertScript():
         "subsystem" : subsys
         "node" : { "status" : "created" }
     }
+  elif rivertype == 'delete':
+    #
+    creq = conn.request('DELETE','/river/instance/'+name,json.dumps({})
+    cresp = conn.getresponse()
+    cstatus = cresp.status
+    cdata = cresp.read()
+    print cdata,'\n' 
+    return 0
   else:
     print "invalid river type!"
     return 1
@@ -87,4 +98,4 @@ def insertScript():
   return 0
  
 if __name__ == "__main__":
-  return(insertScript())
+  return(insertRiver(sys.argv))
