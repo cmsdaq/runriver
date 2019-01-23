@@ -64,11 +64,11 @@ riverInstMapping = {
 			"type" : "string",
 			"index":"not_analyzed"
 		},
-		"es_tribe_cluster" : {
+		"es_local_cluster" : {
 			"type" : "string",
 			"index":"not_analyzed"
 		},
-		"es_tribe_host" : {
+		"es_local_host" : {
 			"type" : "string",
 			"index":"not_analyzed"
 		},

@@ -56,8 +56,8 @@ public class AbstractRunRiverThread extends Thread  {
     protected final Client client;
 
     //Runrivercomponent
-    public String es_tribe_host;
-    public String es_tribe_cluster;
+    public String es_local_host;
+    public String es_local_cluster;
     public String role;
     public int polling_interval;
     public int fetching_interval;
@@ -93,8 +93,8 @@ public class AbstractRunRiverThread extends Thread  {
         sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
 
         //RunRiver Settings
-        es_tribe_host = XContentMapValues.nodeStringValue(rSettings.get("es_tribe_host"), "es-tribe");
-        es_tribe_cluster = XContentMapValues.nodeStringValue(rSettings.get("es_tribe_cluster"), "es-tribe");
+        es_local_host = XContentMapValues.nodeStringValue(rSettings.get("es_local_host"), "es-local");
+        es_local_cluster = XContentMapValues.nodeStringValue(rSettings.get("es_local_cluster"), "es-local");
         role = XContentMapValues.nodeStringValue(rSettings.get("role"), "monitor");
         subsystem = XContentMapValues.nodeStringValue(rSettings.get("subsystem"), "cdaq");
         polling_interval = XContentMapValues.nodeIntegerValue(rSettings.get("polling_interval"), 30);

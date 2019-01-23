@@ -71,8 +71,8 @@ public class Main {
 
         /*
         settings.put("runNumber",0);
-        settings.put("es_tribe_host", "");
-        settings.put("es_tribe_cluster", "");
+        settings.put("es_local_host", "");
+        settings.put("es_local_cluster", "");
         settings.put("polling_interval","");
         settings.put("fetching_interval","");
         settings.put("runIndex_read","");
@@ -106,8 +106,8 @@ public class Main {
     settings.put("role",role);
     settings.put("subsystem",river_subsys);
     settings.put("runNumber",river_runnumber);
-    settings.put("es_tribe_host", response.getSource().get("es_tribe_host"));
-    settings.put("es_tribe_cluster", response.getSource().get("es_tribe_cluster"));
+    settings.put("es_local_host", response.getSource().get("es_local_host"));
+    settings.put("es_local_cluster", response.getSource().get("es_local_cluster"));
     settings.put("polling_interval",response.getSource().get("polling_interval"));
     settings.put("fetching_interval",response.getSource().get("fetching_interval"));
     settings.put("runIndex_read",response.getSource().get("runIndex_read"));

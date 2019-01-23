@@ -65,10 +65,11 @@ public class RunMonitor extends AbstractRunRiverThread {
 
     public void runPolling() throws Exception {
         logger.info("runPolling on index: "+runIndex_read);
-        SearchResponse response = client.prepareSearch(runIndex_read).setTypes("run")
+        SearchResponse response = client.prepareSearch(runIndex_read).setTypes("doc")
                                         .setSize(100)
                                         .addSort(SortBuilders.fieldSort("startTime").order(SortOrder.DESC))
                                         .setQuery(QueryBuilders.boolQuery()
+                                                               .must(QueryBuilders.termQuery("doc_type","run"))
                                                                .should(QueryBuilders.boolQuery().mustNot(QueryBuilders.existsQuery("endTime")))
                                                                .should(QueryBuilders.rangeQuery("activeBUs").from(1))
                                                                .minimumShouldMatch("1"))
@@ -109,8 +110,8 @@ public class RunMonitor extends AbstractRunRiverThread {
                         .field("instance_name",river_id)
                         .field("subsystem",subsystem)
                         .field("runNumber", Integer.parseInt(runNumber))
-                        .field("es_tribe_host", es_tribe_host)
-                        .field("es_tribe_cluster", es_tribe_cluster)
+                        .field("es_local_host", es_local_host)
+                        .field("es_local_cluster", es_local_cluster)
                         .field("fetching_interval", fetching_interval)
                         .field("runIndex_read", runIndex_read)
                         .field("runIndex_write", runIndex_write)

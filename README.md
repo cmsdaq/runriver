@@ -56,8 +56,8 @@ sudo /etc/init.d/riverd restart
 ```
 curl -XPUT es-cdaq:9200/river/instance/river_cdaq_main -d '{
     "es_central_cluster":"es-cdaq",
-    "es_tribe_host" : "es-local",
-    "es_tribe_cluster" : "es-local",
+    "es_local_host" : "es-local",
+    "es_local_cluster" : "es-local",
     "polling_interval" : 15,
     "fetching_interval" : 5,
     "runIndex_read" : "runindex_cdaq_read",
@@ -75,8 +75,8 @@ curl -XPUT es-cdaq:9200/river/instance/river_cdaq_main -d '{
 ```
 curl -XPUT es-cdaq:9200/river/instance/river_minidaq_main -d '{
     "es_central_cluster":"es-cdaq",
-    "es_tribe_host" : "es-local",
-    "es_tribe_cluster" : "es-local",
+    "es_local_host" : "es-local",
+    "es_local_cluster" : "es-local",
     "polling_interval" : 15,
     "fetching_interval" : 5,
     "runIndex_read" : "runindex_minidaq_read",
@@ -104,8 +104,8 @@ curl -XPUT es-cdaq:9200/river/instance/river_cdaq_111222 -d'{
     "instance_name" : "river_cdaq_111222",
     "subsystem" : "cdaq",
     "runNumber" : 111222,
-    "es_tribe_host" : "es-local",
-    "es_tribe_cluster" : "es-local",
+    "es_local_host" : "es-local",
+    "es_local_cluster" : "es-local",
     "fetching_interval" : 5,
     "runIndex_read" : "runindex_cdaq_read",
     "runIndex_write" : "runindex_cdaq_write",

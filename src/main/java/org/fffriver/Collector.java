@@ -84,7 +84,7 @@ public class Collector extends AbstractRunRiverThread {
     InetSocketAddress remoteAddress;
     Client remoteClient;
     Boolean EoR=false;
-    String tribeIndex;
+    String eslocalIndex;
     String runStrPrefix;
     Boolean firstTime=true;
     Boolean shouldCloseRun = false;
@@ -107,7 +107,7 @@ public class Collector extends AbstractRunRiverThread {
     public void beforeLoop() throws UnknownHostException {
         logger.info("Collector started.");
         this.interval = fetching_interval;
-        this.tribeIndex = "run"+String.format("%06d", Integer.parseInt(runNumber))+"*";
+        this.eslocalIndex = "run"+String.format("%06d", Integer.parseInt(runNumber))+"*";
         if (runNumber.length()<6)
             runStrPrefix = "run" + "000000".substring(runNumber.length()) + runNumber + "_ls";
         else
@@ -170,9 +170,10 @@ public class Collector extends AbstractRunRiverThread {
         //SearchSourceBuilder ssBuilder = new SearchSourceBuilder();
 
         //.setSource(streamQuery)
-        SearchResponse sResponse = remoteClient.prepareSearch(tribeIndex)
-                                               .setTypes("fu-out")
-                                               .setQuery(QueryBuilders.matchAllQuery())
+        SearchResponse sResponse = remoteClient.prepareSearch(eslocalIndex)
+                                               //.setTypes("fu-out")
+                                               .setTypes("doc")
+                                               .setQuery(QueryBuilders.termQuery("doc_type","fu-out"))
                                                .setSize(0)
                                                .addSort(SortBuilders.fieldSort("ls").order(SortOrder.DESC))
                                                .addAggregation(AggregationBuilders.terms("streams").field("stream").size(200)
@@ -186,7 +187,7 @@ public class Collector extends AbstractRunRiverThread {
                                                  )
                                                )
         .execute().actionGet();
-        collectStats(riverName,"streamQuery",tribeIndex,sResponse);
+        collectStats(riverName,"streamQuery",eslocalIndex,sResponse);
         //logger.info(String.valueOf(sResponse.getHits().getTotalHits()));
         if(sResponse.getHits().getTotalHits() == 0L){ 
             logger.info("streamQuery returns 0 hits");
@@ -252,9 +253,6 @@ public class Collector extends AbstractRunRiverThread {
             for (String ls : fuoutlshist.get(stream).keySet()){
        
                 //EoLS aggregation for this LS
-                //GetResponse sresponseEoL = client.prepareGet(runIndex_write, "eols", id)
-                //                                .setRouting(runNumber)
-                //                                .setRefresh(true).execute().actionGet();
                 Double eventsVal=0.0;
                 Double lostEventsVal=0.0;
                 Double totalEventsVal=0.0;
@@ -286,17 +284,13 @@ public class Collector extends AbstractRunRiverThread {
                       idStr = runStrPrefix + ls;
  
                     //logger.info("DEBUG: idStr:"+idStr); 
-                    //eolsQuery.getJSONObject("query").getJSONObject("prefix").put("_id",idStr);
 
-                    //SearchResponse sResponseEoLS = client.prepareSearch(runIndex_write).setTypes("eols")
-                    //                                       .setRouting(runNumber)
-                    //                                       .setSource(eolsQuery).execute().actionGet();
-
-                    SearchResponse sResponseEoLS = client.prepareSearch(runIndex_write).setTypes("eols")
+                    SearchResponse sResponseEoLS = client.prepareSearch(runIndex_write)
+                                                         //.setTypes("eols")
+                                                         .setTypes("doc")
                                                          .setRouting(runNumber)
                                                          //.setQuery(QueryBuilders.boolQuery().must(QueryBuilders.parentId("eols",runNumber)).must(QueryBuilders.termQuery("ls",ls)))
-                                                         .setQuery(QueryBuilders.boolQuery().must(JoinQueryBuilders.hasParentQuery("run",QueryBuilders.termQuery("_id",runNumber),false)).must(QueryBuilders.termQuery("ls",ls)))
-                                                         //.setQuery(QueryBuilders.prefixQuery("_id",idStr))
+                                                         .setQuery(QueryBuilders.boolQuery().must(QueryBuilders.termQuery("doc_type","eols")).must(JoinQueryBuilders.hasParentQuery("run",QueryBuilders.termQuery("_id",runNumber),false)).must(QueryBuilders.termQuery("ls",ls)))
                                                          .setSize(0)
                                                          .addAggregation(AggregationBuilders.sum("NEvents").field("NEvents"))
                                                          .addAggregation(AggregationBuilders.sum("NLostEvents").field("NLostEvents"))
@@ -469,9 +463,13 @@ public class Collector extends AbstractRunRiverThread {
 
         //logger.info("states query: "+statesQuery.toString());
 
-        SearchResponse sResponse = remoteClient.prepareSearch(tribeIndex)
-                                               .setTypes("prc-i-state")
-                                               .setQuery(QueryBuilders.rangeQuery("fm_date").from("now-4s").to("now-2s"))
+        SearchResponse sResponse = remoteClient.prepareSearch(eslocalIndex)
+                                               //.setTypes("prc-i-state")
+                                               .setTypes("doc")
+                                               .setQuery(QueryBuilders.boolQuery()
+                                                 .must(QueryBuilders.termQuery("doc_type","prc-i-state"))
+                                                 .must(QueryBuilders.rangeQuery("fm_date").from("now-4s").to("now-2s"))
+                                               )
                                                .setSize(0)
                                                .addAggregation(AggregationBuilders.terms("mclass").field("mclass").size(9999).order(BucketOrder.key(true)).minDocCount(1)
                                                  .subAggregation(AggregationBuilders.terms("hmicro").field("micro").size(9999).order(BucketOrder.key(true)).minDocCount(1))
@@ -484,10 +482,8 @@ public class Collector extends AbstractRunRiverThread {
                                                .addAggregation(AggregationBuilders.max("fm_date").field("fm_date"))
                                                .execute().actionGet();
 
-//        SearchResponse sResponse = remoteClient.prepareSearch(tribeIndex).setTypes("prc-i-state")
-//            .setSource(statesQuery).execute().actionGet();
         
-        collectStats(riverName,"statesQuery",tribeIndex,sResponse);
+        collectStats(riverName,"statesQuery",eslocalIndex,sResponse);
         
         //logger.info(String.valueOf(sResponse.getHits().getTotalHits()));
         if(sResponse.getHits().getTotalHits() == 0L){ 
@@ -495,8 +491,15 @@ public class Collector extends AbstractRunRiverThread {
             return;
         }
         if (ustatesReserved==-1) {
-          //SearchResponse sResponseUstates = client.prepareSearch(runIndex_read).setTypes("microstatelegend").setRouting(runNumber).setQuery(QueryBuilders.termQuery("_parent", runNumber)).setSize(1).execute().actionGet();
-          SearchResponse sResponseUstates = client.prepareSearch(runIndex_read).setTypes("microstatelegend").setRouting(runNumber).setQuery(JoinQueryBuilders.hasParentQuery("run", QueryBuilders.termQuery("_id",runNumber),false)).setSize(1).execute().actionGet();
+          SearchResponse sResponseUstates = client.prepareSearch(runIndex_read)
+          //.setTypes("microstatelegend")
+          .setTypes("doc")
+          .setRouting(runNumber)
+          .setQuery(QueryBuilders.boolQuery()
+            .must(QueryBuilders.termQuery("doc_type","microstatelegend"))
+            .must(JoinQueryBuilders.hasParentQuery("run", QueryBuilders.termQuery("_id",runNumber),false))
+          ).setSize(1).execute().actionGet();
+
           SearchHit[] searchHits = sResponseUstates.getHits().getHits();
           if(searchHits.length != 0) {
             logger.info("microstatelegend query returns hits");
@@ -767,16 +770,16 @@ public class Collector extends AbstractRunRiverThread {
         //Settings.Builder settingsBuilder = Settings.builder();
         //Settings settings = settingsBuilder
         Settings settings = Settings.builder()
-            .put("cluster.name", es_tribe_cluster).build();
+            .put("cluster.name", es_local_cluster).build();
         //remoteClient = TransportClient.builder().settings(settings).build()
-        remoteAddress = new InetSocketAddress(InetAddress.getByName(es_tribe_host), 9300);
+        remoteAddress = new InetSocketAddress(InetAddress.getByName(es_local_host), 9300);
         remoteClient = new PreBuiltTransportClient(settings)
             .addTransportAddress(new TransportAddress(remoteAddress));
     }
 
     public void resetRemoteClient() {
         Settings settings = Settings.builder()
-            .put("cluster.name", es_tribe_cluster).build();
+            .put("cluster.name", es_local_cluster).build();
         remoteClient = new PreBuiltTransportClient(settings)
             .addTransportAddress(new TransportAddress(remoteAddress));
     }
@@ -799,7 +802,7 @@ public class Collector extends AbstractRunRiverThread {
         }
         logger.info("closing index for run "+runNumber.toString() 
                       + " (index " + "run" + runNumber.toString()
-                      + "_" + subsystem +" on " + es_tribe_host + " - " + es_tribe_cluster + ")");
+                      + "_" + subsystem +" on " + es_local_host + " - " + es_local_cluster + ")");
 
 	//close index using JAVA API
 
@@ -817,7 +820,7 @@ public class Collector extends AbstractRunRiverThread {
           resetRemoteClient();
           logger.info("closing index for run "+runNumber.toString() 
                       + " (index " + "run" + runNumber.toString()
-                      + "_" + subsystem +" on " + es_tribe_host + " - " + es_tribe_cluster + ")");
+                      + "_" + subsystem +" on " + es_local_host + " - " + es_local_cluster + ")");
           if (remoteClient.admin().indices().close(Requests.closeIndexRequest("run"+runNumber.toString()+"_"+subsystem)).actionGet().isAcknowledged())
             logger.info("executed index close for run "+runNumber.toString());
           else
