@@ -6,6 +6,7 @@ import json
 import shutil
 import syslog
 import time
+from __future__ import print_function
 
 backup_dir = '/opt/fff/backup'
 try:
@@ -35,17 +36,17 @@ def getmachinetype():
                 try:
                     es_cdaq_run2_list_ip.append(socket.gethostbyname_ex(es)[2][0])
                 except Exception as ex:
-                    print ex
+                    print(ex)
             for es in es_cdaq_list:
                 try:
                     es_cdaq_list_ip.append(socket.gethostbyname_ex(es)[2][0])
                 except Exception as ex:
-                    print ex
+                    print(ex)
             for es in es_local_list:
                 try:
                     es_local_list_ip.append(socket.gethostbyname_ex(es)[2][0])
                 except Exception as ex:
-                    print ex
+                    print(ex)
 
             myaddr = socket.gethostbyname(myhost)
 
@@ -57,23 +58,23 @@ def getmachinetype():
                 return 'es','eslocal','prod'
             else:
                 return 'unknown','unknown'
-        except socket.gaierror, ex:
-            print 'dns lookup error ',str(ex)
+        except socket.gaierror as ex:
+            print('dns lookup error ',str(ex))
             raise ex
     elif myhost.startswith('es-vm-cdaq'):
         return 'es','escdaq','vm'
     elif myhost.startswith('es-vm-local'):
         return 'es','eslocal','vm'
     else:
-        print "unknown machine type"
+        print("unknown machine type")
         return 'unknown','unknown','unknown'
 
 
 def getIPs(hostname):
     try:
         ips = socket.gethostbyname_ex(hostname)
-    except socket.gaierror, ex:
-        print 'unable to get ',hostname,'IP address:',str(ex)
+    except socket.gaierror as ex:
+        print('unable to get ',hostname,'IP address:',str(ex))
         raise ex
     return ips
 
@@ -194,28 +195,33 @@ def restoreFileMaybe(file):
             shouldCopy = True
 
         if shouldCopy:
-            print "restoring ",file
+            print("restoring ",file)
             backuppath = os.path.join(backup_dir,os.path.basename(file))
             f = open(backuppath)
             blines = f.readlines()
             f.close()
             if  checkModifiedConfig(blines) == False and len(blines)>0:
                 shutil.move(backuppath,file)
-    except Exception, ex:
-        print "restoring problem: " , ex
+    except Exception as ex:
+        print("restoring problem: " , ex)
         pass
 
 #main function
 if __name__ == "__main__":
     if len(sys.argv)>1:
         if 'restore'==sys.argv[1]:
-            print "restoring configuration..."
+            print("restoring configuration...")
             restoreFileMaybe(elasticsysconf)
             restoreFileMaybe(elasticconf)
             sys.exit(0)
 
     cluster,type,env = getmachinetype()
-    print "running configuration for machine",os.uname()[1],"of type",type,"in cluster",cluster
+
+    if type == "escdaqrun2":
+     print("ERROR: this should NEVER be installed or run on es-cdaq-run2 cluster! Exiting script.")
+     exit(1)
+
+    print("running configuration for machine",os.uname()[1],"of type",type,"in cluster",cluster)
 
 
     if True:
@@ -243,7 +249,7 @@ if __name__ == "__main__":
                 essyscfg.reg('ES_JAVA_OPTS','"-Xms1G -Xmx1G"')
             else:
                 essyscfg.reg('ES_JAVA_OPTS','"-Xms30G -Xmx30G"')
-            essyscfg.reg('DATA_DIR','/elasticsearch/lib/elasticsearch')
+            #essyscfg.reg('DATA_DIR','/elasticsearch/lib/elasticsearch')
             essyscfg.removeEntry('CONF_FILE')
             essyscfg.removeEntry('ES_HEAP_SIZE')
             essyscfg.commit()
@@ -260,30 +266,23 @@ if __name__ == "__main__":
                 escfg.reg('discovery.zen.minimum_master_nodes','3')
             escfg.reg('node.master','true')
             escfg.reg('node.data','true')
+            escfg.reg('path.data','/elasticsearch/lib/elasticsearch')
             escfg.reg('http.cors.enabled','true')
             escfg.reg('http.cors.allow-origin','"*"')
             escfg.reg('bootstrap.system_call_filter','false')
             escfg.reg('transport.tcp.compress','true')
-            escfg.reg('script.max_compilations_per_minute', '10000')
-            escfg.reg("script.engine.groovy.inline.update", 'true')
-            escfg.reg("script.engine.groovy.inline.aggs", 'true')
-            escfg.reg("script.engine.groovy.inline.search", 'true')
-            escfg.reg("script.engine.groovy.stored.update", 'true')
-            escfg.reg("script.engine.groovy.stored.aggs", 'true')
-            escfg.reg("script.engine.groovy.stored.search", 'true')
+            escfg.reg('script.max_compilations_rate', '10000/1m')
             escfg.reg('cluster.routing.allocation.disk.watermark.low','92%')
             escfg.reg('cluster.routing.allocation.disk.watermark.high','95%')
+
             #other optimizations:
             #if env!='vm':
-            if True:
-                #escfg.reg('index.store.throttle.type','none') #index setting, already covered by line below
-                escfg.reg('indices.store.throttle.type','none') #merge for throttling
-                escfg.reg("indices.recovery.max_bytes_per_sec","100mb") #default:40mb
-                escfg.reg('thread_pool.index.queue_size','1000') #default:200
-                escfg.reg('thread_pool.bulk.queue_size','3000') #default:50
-                escfg.reg('cluster.routing.allocation.node_concurrent_recoveries','5') #default:2
-                escfg.reg('cluster.routing.allocation.node_initial_primaries_recoveries', '5') #default:4
-                #escfg.reg('index.translog.flush_threshold_size','4g') #default:512 mb, only es-local,must be template
+            escfg.reg("indices.recovery.max_bytes_per_sec","100mb") #default:40mb
+            escfg.reg('thread_pool.index.queue_size','1000') #default:200
+            escfg.reg('thread_pool.bulk.queue_size','3000') #default:50
+            escfg.reg('cluster.routing.allocation.node_concurrent_recoveries','5') #default:2
+            escfg.reg('cluster.routing.allocation.node_initial_primaries_recoveries', '5') #default:4
+            #escfg.reg('index.translog.flush_threshold_size','4g') #default:512 mb, only es-local,must be template
             escfg.commit()
  
             #modify logging.yml --> TODO: adjust /etc/elasticsearch/log4j2.properties
@@ -307,29 +306,22 @@ if __name__ == "__main__":
                 escfg.reg('discovery.zen.minimum_master_nodes','3')
             escfg.reg('node.master','true')
             escfg.reg('node.data','true')
+            escfg.reg('path.data','/elasticsearch/lib/elasticsearch')
             escfg.reg('http.cors.enabled','true')
             escfg.reg('http.cors.allow-origin','"*"')
             escfg.reg('bootstrap.system_call_filter','false')
             escfg.reg('transport.tcp.compress','true')
             escfg.reg('action.auto_create_index','.marvel-*')
-            escfg.reg('script.max_compilations_per_minute', '10000')
-            escfg.reg("script.engine.groovy.inline.update", 'true')
-            escfg.reg("script.engine.groovy.inline.aggs", 'true')
-            escfg.reg("script.engine.groovy.inline.search", 'true')
-            escfg.reg("script.engine.groovy.stored.update", 'true')
-            escfg.reg("script.engine.groovy.stored.aggs", 'true')
-            escfg.reg("script.engine.groovy.stored.search", 'true')
+            escfg.reg('script.max_compilations_rate', '10000/1m')
             escfg.reg("action.destructive_requires_name", 'true')
             escfg.reg('cluster.routing.allocation.disk.watermark.low','92%')
             escfg.reg('cluster.routing.allocation.disk.watermark.high','95%')
+
             #if env!='vm':
-            if True:
-                #escfg.reg('index.store.throttle.type','none') #index setting, already covered by line below
-                escfg.reg('indices.store.throttle.type','none') #merge for throttling
-                escfg.reg("indices.recovery.max_bytes_per_sec","100mb") #default:40mb
-                escfg.reg('thread_pool.index.queue_size','1000') #default:200
-                escfg.reg('thread_pool.bulk.queue_size','3000') #default:50
-                escfg.reg('cluster.routing.allocation.node_concurrent_recoveries','5') #default:2
-                escfg.reg('cluster.routing.allocation.node_initial_primaries_recoveries', '5') #default:4
+            escfg.reg("indices.recovery.max_bytes_per_sec","100mb") #default:40mb
+            escfg.reg('thread_pool.index.queue_size','1000') #default:200
+            escfg.reg('thread_pool.bulk.queue_size','3000') #default:50
+            escfg.reg('cluster.routing.allocation.node_concurrent_recoveries','5') #default:2
+            escfg.reg('cluster.routing.allocation.node_initial_primaries_recoveries', '5') #default:4
             escfg.commit()
 
