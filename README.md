@@ -3,7 +3,7 @@ elasticsearch-river-RunRiver service
 
 ##Requirements
 
-Maven3, java-8 (Oracle or OpenJDK), elasticsearch 5.2.0 or higher
+Maven3, java-8 (Oracle or OpenJDK), elasticsearch 6.5.4 or higher
 
 ##Compile and Install
 
@@ -50,7 +50,9 @@ curl -XDELETE localhost:9200/river/instance/river_$SUBSYSTEM_main
 ```
 After cleanup, restart riverd service on all es-cdaq machines
 ```
-sudo /etc/init.d/riverd restart
+sudo systemctl restart riverd
+
+Note: riverd will inject/update mapping for the instance type in riverd
 ```
 ##Adding/modifying river for the subsystem (cdaq):
 ```
@@ -94,7 +96,7 @@ Equivalent subsystem name for daq2val is "dv".
 
 Restart river service on es-cdaq nodes in case another version of the document was existing previously (i.e. it was updated):
 ```
-sudo /sbin/service riverd restart
+sudo systemctl restart riverd
 ```
 Alternatively, use restart mechanism (see restarting section).
 
