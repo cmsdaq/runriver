@@ -99,6 +99,7 @@ Requires:elasticsearch => 6.5.4, cx_Oracle >= 5.1.2, java-1.8.0-oracle-headless 
 Provides:/opt/fff/configurefff.sh
 Provides:/opt/fff/essetupmachine.py
 Provides:/opt/fff/init.d/fff-config
+Provides:/opt/fff/riverMapping.py
 Provides:/opt/fff/insertRiver.py
 Provides:/opt/fff/setup_river_index.py
 Provides:/opt/fff/river-daemon.py
@@ -166,6 +167,9 @@ cp $BASEDIR/esplugins/uninstall.sh %{buildroot}/opt/fff/esplugins/uninstall.sh
 %attr( 755 ,root, root) /opt/fff/demote.py
 %attr( 755 ,root, root) /opt/fff/demote.pyc
 %attr( 755 ,root, root) /opt/fff/demote.pyo
+%attr( 755 ,root, root) /opt/fff/riverMapping.py
+%attr( 755 ,root, root) /opt/fff/riverMapping.pyc
+%attr( 755 ,root, root) /opt/fff/riverMapping.pyo
 %attr( 755 ,root, root) /opt/fff/insertRiver.py
 %attr( 755 ,root, root) /opt/fff/insertRiver.pyc
 %attr( 755 ,root, root) /opt/fff/insertRiver.pyo

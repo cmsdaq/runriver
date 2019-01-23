@@ -1,12 +1,11 @@
 #!/bin/env python
-
+from __future__ import print_function
 import os,sys,socket
 import shutil
 import json
 import shutil
 import syslog
 import time
-from __future__ import print_function
 
 backup_dir = '/opt/fff/backup'
 try:

@@ -63,7 +63,7 @@ def insertRiver(args):
         "boxinfo_read" : "boxinfo_"+subsys+"_read",
         "enable_stats" : False,
         "node":{"status":"created"},
-        "close_indices": True }
+        "close_indices": True
     }
 
   elif rivertype == 'script':
@@ -72,12 +72,12 @@ def insertRiver(args):
         "process_type" : itype,
         "path" : path,
         "role" : role,
-        "subsystem" : subsys
+        "subsystem" : subsys,
         "node" : { "status" : "created" }
     }
   elif rivertype == 'delete':
     #
-    creq = conn.request('DELETE','/river/instance/'+name,json.dumps({})
+    creq = conn.request('DELETE','/river/instance/'+name)
     cresp = conn.getresponse()
     cstatus = cresp.status
     cdata = cresp.read()
@@ -90,7 +90,7 @@ def insertRiver(args):
 
   print json.dumps(q),'\n'
 
-  creq = conn.request('PUT','/river/instance/'+name'?op_type=create',json.dumps(q))
+  creq = conn.request('PUT','/river/instance/'+name+'?op_type=create',json.dumps(q))
   cresp = conn.getresponse()
   cstatus = cresp.status
   cdata = cresp.read()
@@ -98,4 +98,4 @@ def insertRiver(args):
   return 0
  
 if __name__ == "__main__":
-  return(insertRiver(sys.argv))
+  exit(insertRiver(sys.argv))

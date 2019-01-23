@@ -7,7 +7,7 @@ sys.path.append('/opt/fff')
 
 from insertRiver import insertRiver
 
-from river-daemon import riverInstMapping
+from riverMapping import riverInstMapping
 
 riverInstSettings = {
     "index" : {
@@ -23,7 +23,7 @@ riverInstSettings = {
 conn = httplib.HTTPConnection(host='localhost',port=9200)
 
 print("creating index: river")
-success,st,ret = conn.request("PUT","/river",json.dumps("mappings":{"instance":riverInstMapping},"settings":riverInstSettings))
+success,st,ret = conn.request("PUT","/river",json.dumps({"mappings":{"instance":riverInstMapping},"settings":riverInstSettings}))
 print success,st,ret
 
 eslocal = "es-local"
