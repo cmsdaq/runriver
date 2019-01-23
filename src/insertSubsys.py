@@ -7,7 +7,7 @@ import json
 try:
   subsys=sys.argv[1]
 except:
-  print "Must specify subsystem (and optionally es local server hostname)"
+  print "Must specify subsystem (and optionally es local server hostname). Injection will fail if document exists."
   sys.exit(1)
 
 try:
