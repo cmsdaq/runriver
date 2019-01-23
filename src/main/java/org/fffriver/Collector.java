@@ -399,10 +399,13 @@ public class Collector extends AbstractRunRiverThread {
                   }
                   if (retDate >  Double.NEGATIVE_INFINITY) {
                     IndexResponse iResponse = client.prepareIndex(runIndex_write, "stream-hist").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                    .setParent(runNumber)
+                    .setRouting(runNumber)
                     .setId(id)
                     .setSource(jsonBuilder()
                         .startObject()
+                        .startObject("runRelation").field("name","member").field("parent",Integer.parseInt(runNumber)).endObject()
+                        .field("doc_type","stream-hist")
+                        .field("runNumber",runNumber)
                         .field("stream", stream)
                         .field("ls", ls_num)
                         .field("in", fuinlshist.get(stream).get(ls))
@@ -421,10 +424,13 @@ public class Collector extends AbstractRunRiverThread {
                     //if no date, create indexing date explicitely
                     long start_time_millis = System.currentTimeMillis();
                     IndexResponse iResponse = client.prepareIndex(runIndex_write, "stream-hist").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                    .setParent(runNumber)
+                    .setRouting(runNumber)
                     .setId(id)
                     .setSource(jsonBuilder()
                         .startObject()
+                        .startObject("runRelation").field("name","member").field("parent",Integer.parseInt(runNumber)).endObject()
+                        .field("doc_type","stream-hist")
+                        .field("runNumber",runNumber)
                         .field("stream", stream)
                         .field("ls", Integer.parseInt(ls))
                         .field("in", fuinlshist.get(stream).get(ls))
@@ -624,17 +630,23 @@ public class Collector extends AbstractRunRiverThread {
         long start_time_millis = System.currentTimeMillis();
         xb.field("fm_date",fm_date.longValue());
         xb.field("date",start_time_millis);
+        xb.field("runNumber",runNumber);
+        xb.field("doc_type","state-hist");
+        xb.startObject("runRelation").field("name","member").field("parent",Integer.parseInt(runNumber)).endObject();
         xb.endObject();
-        client.prepareIndex(runIndex_write, "state-hist")
-            .setParent(runNumber)
+        client.prepareIndex(runIndex_write, "doc")
+            .setRouting(runNumber)
             .setSource(xb)
             .execute();
 
         xbSummary.field("fm_date",fm_date.longValue());
         xbSummary.field("date",start_time_millis);
+        xbSummary.field("runNumber",runNumber);
+        xbSummary.field("doc_type","state-hist-summary");
+        xbSummary.startObject("runRelation").field("name","member").field("parent",Integer.parseInt(runNumber)).endObject();
         xbSummary.endObject();
-        client.prepareIndex(runIndex_write, "state-hist-summary")
-            .setParent(runNumber)
+        client.prepareIndex(runIndex_write, "doc")
+            .setRouting(runNumber)
             .setSource(xbSummary)
             .execute();                  
 
@@ -708,9 +720,14 @@ public class Collector extends AbstractRunRiverThread {
             } catch (Exception e) {
               //missing last token, no cpuid will be stored in the document
             }
+
+            xbClassSummary.field("runNumber",runNumber);
+            xbClassSummary.field("doc_type","state-hist-summary");
+            xbClassSummary.startObject("runRelation").field("name","member").field("parent",Integer.parseInt(runNumber)).endObject();
+
             xbClassSummary.endObject();
             client.prepareIndex(runIndex_write, "state-hist-summary")
-              .setParent(runNumber)
+              .setRouting(runNumber)
               .setSource(xbClassSummary)
               .execute();                  
           }

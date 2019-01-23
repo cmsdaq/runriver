@@ -1,0 +1,168 @@
+{
+  "doc": {
+    "properties": {
+      "runRelation":  {"type":"join","relations":{"run":"member"}}
+      "doc_type":{"type":"keyword"},
+      "runNumber":{"type":"long"},
+
+      "stream": {"type": "keyword"},
+      "ls": {
+        "type": "integer"
+      },
+      "in": {
+        "type": "float"
+      },
+      "out": {
+        "type": "float"
+      },
+      "err": {
+        "type": "float"
+      },
+      "filesize": {
+        "type": "float"
+      },
+      "completion":{
+        "type": "double"
+      },
+      "fm_date":{
+        "type": "date"
+      },
+      "date":{
+        "type": "date"
+      },
+      "mergeType":{"type": "keyword"},
+      "hminiv": {
+        "properties": {
+          "entries": {
+            "properties": {
+              "key": {
+                "type": "short"
+              },
+              "count": {
+                "type": "integer"
+              }
+            }
+          },
+          "total": {
+            "type": "integer"
+          }
+        }
+      },
+      "hmicrov": {
+        "properties": {
+          "entries": {
+            "properties": {
+              "key": {
+                "type": "short"
+              },
+              "count": {
+                "type": "integer"
+              }
+            }
+          },
+          "total": {
+            "type": "integer"
+          }
+        }
+      },
+      "hmacrov": {
+        "properties": {
+          "entries": {
+            "properties": {
+              "key": {
+                "type": "short"
+              },
+              "count": {
+                "type": "integer"
+              }
+            }
+          },
+          "total": {
+            "type": "integer"
+          }
+        }
+      },
+      "cpuslotsmax":{
+        "type":"short"
+      },
+      "cpuslots":{
+        "type":"short"
+      },
+      "cpuid":{
+        "type":"keyword"
+      },
+      "hmini": {
+        "properties": {
+          "entries": {
+            "type" : "nested",
+            "properties": {
+              "key": {
+                "type": "short"
+              },
+              "count": {
+                "type": "integer"
+              }
+            }
+          },
+          "total": {
+            "type": "integer"
+          }
+        }
+      },
+      "hmicro": {
+        "properties": {
+          "entries": {
+            "type" : "nested",
+            "properties": {
+              "key": {
+                "type": "short"
+              },
+              "count": {
+                "type": "integer"
+              }
+            }
+          },
+          "total": {
+            "type": "integer"
+          }
+        }
+      },
+      "hmacro": {
+        "properties": {
+          "entries": {
+            "type" : "nested",
+            "properties": {
+              "key": {
+                "type": "short"
+              },
+              "count": {
+                "type": "integer"
+              }
+            }
+          },
+          "total": {
+            "type": "integer"
+          }
+        }
+      },
+      "hinput": {
+        "properties": {
+          "entries": {
+            "type" : "nested",
+            "properties": {
+              "key": {
+                "type": "short"
+              },
+              "count": {
+                "type": "integer"
+              }
+            }
+          },
+          "total": {
+            "type": "integer"
+          }
+        }
+      }
+    }
+  }
+}

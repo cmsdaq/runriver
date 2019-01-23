@@ -1,8 +1,5 @@
 {
-  "stats": {
-    "_timestamp": {
-      "enabled": "true",
-    },
+  "doc": {
     "properties": {
       "rivername": {
         "type": "string",

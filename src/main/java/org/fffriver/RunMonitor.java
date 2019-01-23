@@ -36,9 +36,7 @@ import org.apache.commons.io.IOUtils;
 
 public class RunMonitor extends AbstractRunRiverThread {
         
-    JSONObject streamHistMapping;
-    JSONObject stateHistMapping;
-    JSONObject stateHistSummaryMapping;
+    JSONObject commonMapping;
     JSONObject statsMapping;
     //JSONObject runQuery;
 
@@ -75,8 +73,6 @@ public class RunMonitor extends AbstractRunRiverThread {
                                                                .minimumShouldMatch("1"))
                                         .execute().actionGet();
         
-        //SearchResponse response = client.prepareSearch(runIndex_read).setTypes("run")
-        //    .setSource(runQuery).execute().actionGet();
         collectStats(riverName,"runRanger",runIndex_read,response);
 
         if (response.getHits().getTotalHits() == 0 ) { return; }
@@ -150,9 +146,7 @@ public class RunMonitor extends AbstractRunRiverThread {
     public void getQueries() {
         try {
                 //runQuery = getJson("runRanger");
-                stateHistMapping = getJson("stateHistMapping");
-                stateHistSummaryMapping = getJson("stateHistSummaryMapping");
-                streamHistMapping = getJson("streamHistMapping"); 
+                commonMapping = getJson("commonMapping"); 
                 statsMapping = getJson("statsMapping"); 
             } catch (Exception e) {
                 logger.error("RunMonitor getQueries Exception: ", e);
@@ -162,49 +156,20 @@ public class RunMonitor extends AbstractRunRiverThread {
 
     public void prepareServer(Client client, String runIndex) {
         //runindexCheck(client,runIndex);
-        createStreamMapping(client,runIndex);
-        createStateMapping(client,runIndex);
-        createStateSummaryMapping(client,runIndex);
+        createCommonMapping(client,runIndex);
         createStatIndex(client,"runriver_stats"); 
     }
 
-    public void createStateMapping(Client client, String runIndex){
+    public void createCommonMapping(Client client, String runIndex){
         client.admin().cluster().prepareHealth().setWaitForYellowStatus().execute().actionGet();
         GetMappingsResponse response = client.admin().indices().prepareGetMappings(runIndex_write)
-            .setTypes("state-hist").execute().actionGet();
-        //if (!response.mappings().isEmpty()){ logger.info("State Mapping already exists"); return; }
-        logger.info("create/update StateMapping");
-        client.admin().indices().preparePutMapping()
-            .setIndices(runIndex_write)
-            .setType("state-hist")
-            .setSource(stateHistMapping)
-            .execute().actionGet();
-    }
-
-    public void createStateSummaryMapping(Client client, String runIndex){
-        client.admin().cluster().prepareHealth().setWaitForYellowStatus().execute().actionGet();
-        GetMappingsResponse response = client.admin().indices().prepareGetMappings(runIndex_write)
-            .setTypes("state-hist-summary").execute().actionGet();
-        //if (!response.mappings().isEmpty()){ logger.info("State Summary Mapping already exists"); return; }
-        logger.info("create/update StateSummaryMapping");
-        client.admin().indices().preparePutMapping()
-            .setIndices(runIndex_write)
-            .setType("state-hist-summary")
-            .setSource(stateHistSummaryMapping)
-            .execute().actionGet();
-    }
-
-
-    public void createStreamMapping(Client client, String runIndex){
-        client.admin().cluster().prepareHealth().setWaitForYellowStatus().execute().actionGet();
-        GetMappingsResponse response = client.admin().indices().prepareGetMappings(runIndex_write)
-            .setTypes("stream-hist").execute().actionGet();
+            .setTypes("doc").execute().actionGet();
         //if (!response.mappings().isEmpty()){ logger.info("Stream Mapping already exists"); return; }
-        logger.info("create/update StreamMapping");
+        logger.info("create/update CommonMapping");
         client.admin().indices().preparePutMapping()
             .setIndices(runIndex_write)
-            .setType("stream-hist")
-            .setSource(streamHistMapping)
+            .setType("doc")
+            .setSource(commonMapping)
             .execute().actionGet();
     }
 
