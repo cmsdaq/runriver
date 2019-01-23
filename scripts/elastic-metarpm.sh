@@ -99,6 +99,10 @@ Requires:elasticsearch => 6.5.4, cx_Oracle >= 5.1.2, java-1.8.0-oracle-headless 
 Provides:/opt/fff/configurefff.sh
 Provides:/opt/fff/essetupmachine.py
 Provides:/opt/fff/init.d/fff-config
+Provides:/opt/fff/insertSubsys.py
+Provides:/opt/fff/insertScript.py
+Provides:/opt/fff/delSubsys.py
+Provides:/opt/fff/setup_river_index.py
 Provides:/opt/fff/river-daemon.py
 Provides:/opt/fff/demote.py
 Provides:/opt/fff/log4j2.properties
@@ -140,14 +144,11 @@ cp $SCRATCHDIR/usr/lib64/$python_dir/site-packages/python_prctl-1.5.0-py${python
 
 cp $BASEDIR/etc/rsyslog.d/48-river.conf %{buildroot}/etc/rsyslog.d/48-river.conf
 cp $BASEDIR/etc/logrotate.d/river %{buildroot}/etc/logrotate.d/river
-cp $BASEDIR/python/essetupmachine.py %{buildroot}/opt/fff/essetupmachine.py
-cp $BASEDIR/python/demote.py %{buildroot}/opt/fff/demote.py
-cp $BASEDIR/python/river-daemon.py %{buildroot}/opt/fff/river-daemon.py
 cp $BASEDIR/python/log4j2.properties %{buildroot}/opt/fff/log4j2.properties
 
-cp $BASEDIR/init.d/riverd %{buildroot}/opt/fff/init.d/
-cp $BASEDIR/init.d/fff-config %{buildroot}/opt/fff/init.d/fff-config
+cp $BASEDIR/python/*.py %{buildroot}/opt/fff/
 
+cp $BASEDIR/init.d/fff-config %{buildroot}/opt/fff/init.d/fff-config
 cp $BASEDIR/init.d/*.service %{buildroot}/usr/lib/systemd/system/
 
 echo "#!/bin/bash" > %{buildroot}/opt/fff/configurefff.sh
@@ -167,6 +168,18 @@ cp $BASEDIR/esplugins/uninstall.sh %{buildroot}/opt/fff/esplugins/uninstall.sh
 %attr( 755 ,root, root) /opt/fff/demote.py
 %attr( 755 ,root, root) /opt/fff/demote.pyc
 %attr( 755 ,root, root) /opt/fff/demote.pyo
+%attr( 755 ,root, root) /opt/fff/insertSubsys.py
+%attr( 755 ,root, root) /opt/fff/insertSubsys.pyc
+%attr( 755 ,root, root) /opt/fff/insertSubsys.pyo
+%attr( 755 ,root, root) /opt/fff/insertScript.py
+%attr( 755 ,root, root) /opt/fff/insertScript.pyc
+%attr( 755 ,root, root) /opt/fff/insertScript.pyo
+%attr( 755 ,root, root) /opt/fff/delSubsys.py
+%attr( 755 ,root, root) /opt/fff/delSubsys.pyc
+%attr( 755 ,root, root) /opt/fff/delSubsys.pyo
+%attr( 755 ,root, root) /opt/fff/setup_river_index.py
+%attr( 755 ,root, root) /opt/fff/setup_river_index.pyo
+%attr( 755 ,root, root) /opt/fff/setup_river_index.pyc
 %attr( 755 ,root, root) /opt/fff/river-daemon.py
 %attr( 755 ,root, root) /opt/fff/river-daemon.pyc
 %attr( 755 ,root, root) /opt/fff/river-daemon.pyo
