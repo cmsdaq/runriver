@@ -62,8 +62,8 @@ public class AbstractRunRiverThread extends Thread  {
     public int polling_interval;
     public int fetching_interval;
     public String runNumber;
-    public String runIndex_read;
-    public String runIndex_write;
+    public String runindex_read;
+    public String runindex_write;
     public String boxinfo_read;
     public Boolean statsEnabled; 
     public Boolean closeIndices; 
@@ -100,8 +100,8 @@ public class AbstractRunRiverThread extends Thread  {
         polling_interval = XContentMapValues.nodeIntegerValue(rSettings.get("polling_interval"), 30);
         fetching_interval = XContentMapValues.nodeIntegerValue(rSettings.get("fetching_interval"), 5);
         runNumber = XContentMapValues.nodeStringValue(rSettings.get("runNumber"), "0");
-        runIndex_read = XContentMapValues.nodeStringValue(rSettings.get("runIndex_read"), "runindex_cdaq_read");
-        runIndex_write = XContentMapValues.nodeStringValue(rSettings.get("runIndex_write"), "runindex_cdaq_write");
+        runindex_read = XContentMapValues.nodeStringValue(rSettings.get("runindex_read"), "runindex_cdaq_read");
+        runindex_write = XContentMapValues.nodeStringValue(rSettings.get("runindex_write"), "runindex_cdaq_write");
         boxinfo_read = XContentMapValues.nodeStringValue(rSettings.get("boxinfo_read"), "boxinfo_cdaq_read");
         statsEnabled = Boolean.valueOf(XContentMapValues.nodeStringValue(rSettings.get("enable_stats"), "false"));
         closeIndices = Boolean.valueOf(XContentMapValues.nodeStringValue(rSettings.get("close_indices"), "true"));

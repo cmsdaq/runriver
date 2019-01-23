@@ -62,9 +62,8 @@ curl -XPUT es-cdaq:9200/river/instance/river_cdaq_main -d '{
     "es_local_cluster" : "es-local",
     "polling_interval" : 15,
     "fetching_interval" : 5,
-    "runIndex_read" : "runindex_cdaq_read",
-    "runIndex_write" : "runindex_cdaq_write",
-    "boxinfo_write" : "boxinfo_cdaq_write",
+    "runindex_read" : "runindex_cdaq_read",
+    "runindex_write" : "runindex_cdaq_write",
     "boxinfo_read" : "boxinfo_cdaq_read",
     "enable_stats" : false,
     "node":{"status":"created"},
@@ -81,9 +80,8 @@ curl -XPUT es-cdaq:9200/river/instance/river_minidaq_main -d '{
     "es_local_cluster" : "es-local",
     "polling_interval" : 15,
     "fetching_interval" : 5,
-    "runIndex_read" : "runindex_minidaq_read",
-    "runIndex_write" : "runindex_minidaq_write",
-    "boxinfo_write" : "boxinfo_minidaq_write",
+    "runindex_read" : "runindex_minidaq_read",
+    "runindex_write" : "runindex_minidaq_write",
     "boxinfo_read" : "boxinfo_minidaq_read",
     "enable_stats" : false,
     "node":{"status":"created"},
@@ -109,10 +107,9 @@ curl -XPUT es-cdaq:9200/river/instance/river_cdaq_111222 -d'{
     "es_local_host" : "es-local",
     "es_local_cluster" : "es-local",
     "fetching_interval" : 5,
-    "runIndex_read" : "runindex_cdaq_read",
-    "runIndex_write" : "runindex_cdaq_write",
+    "runindex_read" : "runindex_cdaq_read",
+    "runindex_write" : "runindex_cdaq_write",
     "boxinfo_read" : "boxinfo_cdaq_read",
-    "boxinfo_write" : "boxinfo_cdaq_read",
     "enable_stats" : false,
     "close_indices" : true,
     "es_central_cluster" : "es-cdaq",
@@ -127,3 +124,5 @@ curl -XPUT es-cdaq:9200/river/instance/river_cdaq_main -d'{"doc":{"node":{"statu
 
 curl -XPUT es-cdaq:9200/river/instance/river_cdaq_111222 -d'{"doc":{"node":{"status":"restart"}}}'
 ```
+
+##Setting up daemons:

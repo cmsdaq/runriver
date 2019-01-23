@@ -48,7 +48,7 @@ public class RunMonitor extends AbstractRunRiverThread {
     public void beforeLoop() throws UnknownHostException {
         logger.info("RunMonitor Started v1.4.4");
         getQueries();
-        prepareServer(client,runIndex_write);
+        prepareServer(client,runindex_write);
         this.interval = polling_interval;
         
     }
@@ -62,8 +62,8 @@ public class RunMonitor extends AbstractRunRiverThread {
     }
 
     public void runPolling() throws Exception {
-        logger.info("runPolling on index: "+runIndex_read);
-        SearchResponse response = client.prepareSearch(runIndex_read).setTypes("doc")
+        logger.info("runPolling on index: "+runindex_read);
+        SearchResponse response = client.prepareSearch(runindex_read).setTypes("doc")
                                         .setSize(100)
                                         .addSort(SortBuilders.fieldSort("startTime").order(SortOrder.DESC))
                                         .setQuery(QueryBuilders.boolQuery()
@@ -73,7 +73,7 @@ public class RunMonitor extends AbstractRunRiverThread {
                                                                .minimumShouldMatch("1"))
                                         .execute().actionGet();
         
-        collectStats(riverName,"runRanger",runIndex_read,response);
+        collectStats(riverName,"runRanger",runindex_read,response);
 
         if (response.getHits().getTotalHits() == 0 ) { return; }
         
@@ -109,10 +109,9 @@ public class RunMonitor extends AbstractRunRiverThread {
                         .field("es_local_host", es_local_host)
                         .field("es_local_cluster", es_local_cluster)
                         .field("fetching_interval", fetching_interval)
-                        .field("runIndex_read", runIndex_read)
-                        .field("runIndex_write", runIndex_write)
+                        .field("runindex_read", runindex_read)
+                        .field("runindex_write", runindex_write)
                         .field("boxinfo_read", boxinfo_read)
-                        .field("boxinfo_write", boxinfo_read)//fallback option
                         .field("enable_stats", statsEnabled)
                         .field("close_indices", closeIndices)
                         .field("es_central_cluster", es_central_cluster)
@@ -154,20 +153,20 @@ public class RunMonitor extends AbstractRunRiverThread {
         
     }
 
-    public void prepareServer(Client client, String runIndex) {
-        //runindexCheck(client,runIndex);
-        createCommonMapping(client,runIndex);
+    public void prepareServer(Client client, String runindex) {
+        //runindexCheck(client,runindex);
+        createCommonMapping(client,runindex);
         createStatIndex(client,"runriver_stats"); 
     }
 
-    public void createCommonMapping(Client client, String runIndex){
+    public void createCommonMapping(Client client, String runindex){
         client.admin().cluster().prepareHealth().setWaitForYellowStatus().execute().actionGet();
-        GetMappingsResponse response = client.admin().indices().prepareGetMappings(runIndex_write)
+        GetMappingsResponse response = client.admin().indices().prepareGetMappings(runindex_write)
             .setTypes("doc").execute().actionGet();
         //if (!response.mappings().isEmpty()){ logger.info("Stream Mapping already exists"); return; }
         logger.info("create/update CommonMapping");
         client.admin().indices().preparePutMapping()
-            .setIndices(runIndex_write)
+            .setIndices(runindex_write)
             .setType("doc")
             .setSource(commonMapping)
             .execute().actionGet();

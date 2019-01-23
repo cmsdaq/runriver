@@ -53,32 +53,22 @@ keep_running = True
 riverInstMapping = {
 	"properties" : {
                 "es_central_cluster": {
-			"type" : "string",
-			"index":"not_analyzed"
+			"type" : "keyword"
                 },
-		"boxinfo_write" : {
-			"type" : "string",
-			"index":"not_analyzed"
-		},
-		"boxinfo_read" : {
-			"type" : "string",
-			"index":"not_analyzed"
-		},
 		"es_local_cluster" : {
-			"type" : "string",
-			"index":"not_analyzed"
+			"type" : "keyword"
 		},
 		"es_local_host" : {
-			"type" : "string",
-			"index":"not_analyzed"
+			"type" : "keyword"
 		},
-		"runIndex_read" : {
-			"type" : "string",
-			"index":"not_analyzed"
+		"runindex_read" : {
+			"type" : "keyword"
 		},
-		"runIndex_write" : {
-			"type" : "string",
-			"index":"not_analyzed"
+		"runindex_write" : {
+			"type" : "keyword"
+		},
+		"boxinfo_read" : {
+			"type" : "keyword"
 		},
 		"polling_interval" : {
 			"type" : "integer"
@@ -87,37 +77,30 @@ riverInstMapping = {
 			"type" : "integer"
 		},
 		"subsystem" : { #cdaq,minidaq, etc.
-			"type" : "string",
-			"index":"not_analyzed"
+			"type" : "keyword"
 		},
 		"runNumber": { #0 or unset if main instance
 			"type":"integer"
 		},
 		"instance_name" : { #e.g. river_cdaq_run123456, river_minidaq_main etc. (same as _id?)
-			"type" : "string",
-			"index":"not_analyzed"
+			"type" : "keyword"
 		},
                 "process_type" : {
-			"type" : "string",
-			"index":"not_analyzed"
+			"type" : "keyword"
                 },
                 "path" : {
-			"type" : "string",
-			"index":"not_analyzed"
+			"type" : "keyword"
                 },
                 "role":{
-                        "type" : "string",
-                        "index":"not_analyzed"
+			"type" : "keyword"
                 },
 		"node" : {
 			"properties" : {
 				"name" : { #fqdn
-					"type" : "string",
-					"index":"not_analyzed"
+			                "type" : "keyword"
 				},
 				"status": { #created, crashed, running, done, stale? ...
-					"type":"string",
-					"index":"not_analyzed"
+			                "type" : "keyword"
 				},
 				"ping_timestamp":{ #last update (keep alive status?)
 					"type":"date"
@@ -129,14 +112,13 @@ riverInstMapping = {
 			}
 		},
 		"errormsg" : { #crash or exception error
-			"type" : "string",
-			"index":"not_analyzed"
+			"type" : "keyword"
 		},
 		"enable_stats" : { #write stats document
 			"type" : "boolean"
 		},
                 "close_indices" : {
-                        "type": "boolean"
+                        "type" : "boolean"
                 }
 	}
 }

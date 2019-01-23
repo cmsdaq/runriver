@@ -67,20 +67,7 @@ public class Main {
         settings.put("role",role);
         settings.put("es_central_cluster",river_escluster);
         settings.put("subsystem",river_subsys);
-        settings.put("runIndex_write",river_esindex);//reuse arg
-
-        /*
-        settings.put("runNumber",0);
-        settings.put("es_local_host", "");
-        settings.put("es_local_cluster", "");
-        settings.put("polling_interval","");
-        settings.put("fetching_interval","");
-        settings.put("runIndex_read","");
-        settings.put("boxinfo_read","");
-        settings.put("enable_stats",false);
-        settings.put("close_indices",false);
-        settings.put("river_esindex","");
-        */
+        settings.put("runindex_write",river_esindex);//reuse arg
 
         rm = new RunMonitor(river_id,settings,client);
         rm.injectMapping();
@@ -110,15 +97,9 @@ public class Main {
     settings.put("es_local_cluster", response.getSource().get("es_local_cluster"));
     settings.put("polling_interval",response.getSource().get("polling_interval"));
     settings.put("fetching_interval",response.getSource().get("fetching_interval"));
-    settings.put("runIndex_read",response.getSource().get("runIndex_read"));
-    settings.put("runIndex_write",response.getSource().get("runIndex_write"));
-    try {
-      settings.put("boxinfo_read",response.getSource().get("boxinfo_read"));
-    }
-    catch (Exception e) {
-      //fallback to old name
-      settings.put("boxinfo_read",response.getSource().get("boxinfo_write"));
-    }
+    settings.put("runindex_read",response.getSource().get("runindex_read"));
+    settings.put("runindex_write",response.getSource().get("runindex_write"));
+    settings.put("boxinfo_read",response.getSource().get("boxinfo_read"));
     settings.put("enable_stats",response.getSource().get("enable_stats"));
     settings.put("close_indices",response.getSource().get("close_indices"));
     settings.put("river_esindex",river_esindex);
