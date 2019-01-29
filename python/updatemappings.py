@@ -1,6 +1,8 @@
 #!/bin/env python
 
-import sys#,traceback
+import sys
+#allow importing files from running directory (mapping)
+sys.path.append(".")
 import os
 
 import requests
