@@ -51,6 +51,7 @@ query_daemon = "/cmsnfses-web/es-web/prod/lastcpu.js"
 keep_running = True
 #river doc mapping
 
+headers={'Content-Type':'application/json'}
 
 def query(conn,method,path,query=None,retry=False):
 
@@ -58,7 +59,7 @@ def query(conn,method,path,query=None,retry=False):
 
   while True:
     try:
-      creq = conn.request(method,path,query)
+      creq = conn.request(method,path,query,headers=headers)
       cresp = conn.getresponse()
       cstatus = cresp.status
       cdata = cresp.read()

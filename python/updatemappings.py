@@ -11,6 +11,8 @@ try:
 except:
   import json
 
+headers={'Content-Type':'application/json'}
+
 class elasticUpdater:
 
     def __init__(self,argArray):
@@ -47,7 +49,7 @@ class elasticUpdater:
           self.updateIndexMappingMaybe(argv[5],mappings.central_hltdlogs_mapping)
         elif argv[2]=="copy":
           #copy single index mapping to another
-          res = requests.get('http://'+self.url+':9200/'+argv[3]+'/_mapping')
+          res = requests.get('http://'+self.url+':9200/'+argv[3]+'/_mapping',headers=headers)
           if res.status_code==200:
             res_j = json.loads(res.content)
             for idx in res_j:
@@ -57,7 +59,7 @@ class elasticUpdater:
               self.updateIndexMappingMaybe(argv[4],new_mapping)
               break
         elif argv[2]=="aliases":
-          res = requests.get('http://'+self.url+':9200/_aliases')
+          res = requests.get('http://'+self.url+':9200/_aliases',headers=headers)
           aliases = json.loads(res.content)
           old_idx_list = []
           actions = []
@@ -97,15 +99,15 @@ class elasticUpdater:
 
           data = json.dumps({"actions":actions})
           print data
-          res = requests.post('http://'+self.url+':9200/_aliases',data)
+          res = requests.post('http://'+self.url+':9200/_aliases',data,headers=headers)
           print res.status_code
 
           print "current",argv[3],"alias removed from indices: ",",".join(set(old_idx_list)).strip('"')
           
           pass
-        elif argv[2]=="riveraliase":
+        elif argv[2]=="riveralias":
 
-          res = requests.get('http://'+self.url+':9200/_aliases')
+          res = requests.get('http://'+self.url+':9200/_aliases',headers=headers)
           aliases = json.loads(res.content)
           old_idx_list = []
           actions = []
@@ -116,21 +118,12 @@ class elasticUpdater:
                 actions.append({"remove":{"index":idx,"alias":alias}})
                 old_idx_list.append(idx)
 
-          actions.append({"add":{"alias":"river_"+argv[3],"index":"river"}})
-
-
-          #adding all-year index if required
-          if len(argv)>8 and argv[8].isdigit():
-              year_suffix = argv[3]+argv[8]
-              actions.append({"add":{"alias":"runindex_"+year_suffix+"_read","index":argv[4]}})
-              actions.append({"add":{"alias":"boxinfo_" +year_suffix+"_read","index":argv[5]}})
-              actions.append({"add":{"alias":"hltdlogs_"+year_suffix+"_read","index":argv[6]}})
-              actions.append({"add":{"alias":"runindex_"+year_suffix+"_read","index":argv[7]}}) #!
+          actions.append({"add":{"alias":"river","index":argv[3]}})
 
           data = json.dumps({"actions":actions})
           print data
-          res = requests.post('http://'+self.url+':9200/_aliases',data)
-          print res.status_code
+          res = requests.post('http://'+self.url+':9200/_aliases',data,headers=headers)
+          print res.status_code,res.content
 
           print "current",argv[3],"alias removed from indices: ",",".join(set(old_idx_list)).strip('"')
           
@@ -155,7 +148,7 @@ class elasticUpdater:
 #                if 'format' not in doc[key]["properties"][d]:
 #                  doc[key]["properties"][d]['format']="epoch_millis||dateOptionalTime"
 
-            res = requests.post('http://'+self.url+':9200/'+index_name+'/_mapping/'+key,json.dumps(doc))
+            res = requests.post('http://'+self.url+':9200/'+index_name+'/_mapping/'+key,json.dumps(doc),headers=headers)
             if res.status_code==200:
               print index_name,key
             else:

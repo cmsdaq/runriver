@@ -3,6 +3,9 @@
 import sys
 import httplib
 import json
+import requests
+
+headers={'Content-Type':'application/json'}
 
 def insertRiver(args):
   try:
@@ -46,7 +49,6 @@ def insertRiver(args):
     return 1
 
 
-  conn = httplib.HTTPConnection(host='localhost',port=9200)
 
   if rivertype == 'system':
 
@@ -76,11 +78,9 @@ def insertRiver(args):
         "node" : { "status" : "created" }
     }
   elif rivertype == 'delete':
-    #
-    creq = conn.request('DELETE','/river/instance/'+name)
-    cresp = conn.getresponse()
-    cstatus = cresp.status
-    cdata = cresp.read()
+    creq = requests.delete('http://localhost:9200/river/instance/'+name,headers=headers)
+    cstatus = creq.status_code
+    cdata = creq.content
     print cdata,'\n' 
     return 0
   else:
@@ -90,10 +90,9 @@ def insertRiver(args):
 
   print json.dumps(q),'\n'
 
-  creq = conn.request('PUT','/river/instance/'+name+'?op_type=create',json.dumps(q))
-  cresp = conn.getresponse()
-  cstatus = cresp.status
-  cdata = cresp.read()
+  creq = requests.put('http://localhost:9200/river/instance/'+name+'?op_type=create',json.dumps(q),headers=headers)
+  cstatus = creq.status_code
+  cdata = creq.content
   print cdata,'\n' 
   return 0
  

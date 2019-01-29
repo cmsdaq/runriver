@@ -241,9 +241,10 @@ if __name__ == "__main__":
         if esEdited == False:
             shutil.copy(elasticconf,os.path.join(backup_dir,os.path.basename(elasticconf)))
 
-        if type == 'eslocal' or type == 'escdaq' or type == 'escdaqrun2':
+        if type == 'eslocal' or type == 'escdaq':
 
             essyscfg = FileManager(elasticsysconf,'=',essysEdited)
+            essyscfg.reg('ES_PATH_CONF','/etc/elasticsearch')
             if env=='vm':
                 essyscfg.reg('ES_JAVA_OPTS','"-Xms1G -Xmx1G"')
             else:
@@ -252,6 +253,7 @@ if __name__ == "__main__":
             essyscfg.removeEntry('CONF_FILE')
             essyscfg.removeEntry('ES_HEAP_SIZE')
             essyscfg.commit()
+            os.chmod(elasticsysconf,0o664) #fix permissions (readable)
 
         if type == 'eslocal':
             escfg = FileManager(elasticconf,':',esEdited,'',' ',recreate=True)
@@ -265,7 +267,9 @@ if __name__ == "__main__":
                 escfg.reg('discovery.zen.minimum_master_nodes','3')
             escfg.reg('node.master','true')
             escfg.reg('node.data','true')
-            escfg.reg('path.data','/elasticsearch/lib/elasticsearch')
+            escfg.reg('path.logs','/var/log/elasticsearch')
+            #escfg.reg('path.data','/elasticsearch/lib/elasticsearch')
+            escfg.reg('path.data','/elasticsearch/lib/elasticsearch/es-local')
             escfg.reg('http.cors.enabled','true')
             escfg.reg('http.cors.allow-origin','"*"')
             escfg.reg('bootstrap.system_call_filter','false')
@@ -289,28 +293,26 @@ if __name__ == "__main__":
             #eslogcfg.reg('es.logger.level','INFO')
             #eslogcfg.commit()
 
-        if type == 'escdaq' or type == 'escdaqrun2':
+        if type == 'escdaq':
             escfg = FileManager(elasticconf,':',esEdited,'',' ',recreate=True)
             escfg.reg('network.publish_host',es_publish_host)
             escfg.reg('network.bind_host','_local_,'+es_publish_host)
-            if type == 'escdaqrun2': #separate run2 and LS2 operational cluster
-                escfg.reg('cluster.name','es-cdaq-run2')
-                escfg.reg('discovery.zen.ping.unicast.hosts',json.dumps(es_cdaq_run2_list))
-            else:
-                escfg.reg('cluster.name','es-cdaq')
-                escfg.reg('discovery.zen.ping.unicast.hosts',json.dumps(es_cdaq_list))
+            escfg.reg('cluster.name','es-cdaq')
+            escfg.reg('discovery.zen.ping.unicast.hosts',json.dumps(es_cdaq_list))
             if env=='vm':
                 escfg.reg('discovery.zen.minimum_master_nodes','1')
             else:
                 escfg.reg('discovery.zen.minimum_master_nodes','3')
             escfg.reg('node.master','true')
             escfg.reg('node.data','true')
-            escfg.reg('path.data','/elasticsearch/lib/elasticsearch')
+            escfg.reg('path.logs','/var/log/elasticsearch')
+            #escfg.reg('path.data','/elasticsearch/lib/elasticsearch')
+            escfg.reg('path.data','/elasticsearch/lib/elasticsearch/es-cdaq')
             escfg.reg('http.cors.enabled','true')
             escfg.reg('http.cors.allow-origin','"*"')
             escfg.reg('bootstrap.system_call_filter','false')
             escfg.reg('transport.tcp.compress','true')
-            escfg.reg('action.auto_create_index','.marvel-*')
+            escfg.reg('action.auto_create_index','.watches,.triggered_watches,.watcher-history-*,.marvel-*')
             escfg.reg('script.max_compilations_rate', '10000/1m')
             escfg.reg("action.destructive_requires_name", 'true')
             escfg.reg('cluster.routing.allocation.disk.watermark.low','92%')
