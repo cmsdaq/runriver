@@ -102,6 +102,7 @@ Provides:/opt/fff/init.d/fff-config
 Provides:/opt/fff/riverMapping.py
 Provides:/opt/fff/insertRiver.py
 Provides:/opt/fff/setup_river_index.py
+Provides:/opt/fff/updatemappings.py
 Provides:/opt/fff/river-daemon.py
 Provides:/opt/fff/demote.py
 Provides:/opt/fff/log4j2.properties
@@ -176,6 +177,9 @@ cp $BASEDIR/esplugins/uninstall.sh %{buildroot}/opt/fff/esplugins/uninstall.sh
 %attr( 755 ,root, root) /opt/fff/setup_river_index.py
 %attr( 755 ,root, root) /opt/fff/setup_river_index.pyo
 %attr( 755 ,root, root) /opt/fff/setup_river_index.pyc
+%attr( 755 ,root, root) /opt/fff/updatemappings.py
+%attr( 755 ,root, root) /opt/fff/updatemappings.pyo
+%attr( 755 ,root, root) /opt/fff/updatemappings.pyc
 %attr( 755 ,root, root) /opt/fff/river-daemon.py
 %attr( 755 ,root, root) /opt/fff/river-daemon.pyc
 %attr( 755 ,root, root) /opt/fff/river-daemon.pyo

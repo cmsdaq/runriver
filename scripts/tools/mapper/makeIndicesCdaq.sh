@@ -24,10 +24,10 @@ curl -XPUT es-cdaq:9200/hltdlogs_${subsystem}_${newdate}?pretty -d'{"settings":{
 echo
 echo "#executing inject mapping:"
 /usr/bin/java -jar river.jar mapping ${subsystem} es-cdaq es-cdaq runindex_${subsystem}_${newdate} 0
-./updatemappings.py es-cdaq auto runindex_${subsystem}_${newdate} boxinfo_${subsystem}_${newdate} hltdlogs_${subsystem}_${newdate}
-./updatemappings.py es-cdaq copy runindex_${subsystem}_${newdate} merging_${subsystem}_${newdate}
+/opt/fff/updatemappings.py es-cdaq auto runindex_${subsystem}_${newdate} boxinfo_${subsystem}_${newdate} hltdlogs_${subsystem}_${newdate}
+/opt/fff/updatemappings.py es-cdaq copy runindex_${subsystem}_${newdate} merging_${subsystem}_${newdate}
 echo
 echo "#add set up aliases:"
-echo ./updatemappings.py es-cdaq aliases ${subsystem} runindex_${subsystem}_${newdate} boxinfo_${subsystem}_${newdate} hltdlogs_${subsystem}_${newdate} merging_${subsystem}_${newdate} $year
+echo /opt/fff/updatemappings.py es-cdaq aliases ${subsystem} runindex_${subsystem}_${newdate} boxinfo_${subsystem}_${newdate} hltdlogs_${subsystem}_${newdate} merging_${subsystem}_${newdate} $year
 
 #TODO: add year alias mapping (like runindex_minidaq2017_read)
