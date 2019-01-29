@@ -2,6 +2,7 @@
 
 import sys
 import httplib
+import datetime
 
 sys.path.append('/opt/fff')
 
@@ -22,9 +23,17 @@ riverInstSettings = {
 
 conn = httplib.HTTPConnection(host='localhost',port=9200)
 
-print("creating index: river")
-success,st,ret = conn.request("PUT","/river",json.dumps({"mappings":{"instance":riverInstMapping},"settings":riverInstSettings}))
+
+now = datetime.datetime.now()
+newdate = str(now.year)+str(now.month).zfill(2)+str(now.day).zfill(2)
+
+print("creating index: river_"+newdate)
+success,st,ret = conn.request("PUT","/river_"+newdate,json.dumps({"mappings":{"instance":riverInstMapping},"settings":riverInstSettings}))
 print success,st,ret
+
+from updatemappings import elasticUpdatesr
+
+elasticUpdater(["localhost","riveralias","river_"+newdate])
 
 eslocal = "es-local"
 if os.uname()[-1]=="es-vm-cdaq-01": eslocal="es-vm-local-01"
