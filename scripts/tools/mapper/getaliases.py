@@ -38,7 +38,7 @@ class elasticUpdater:
         #!/bin/env python
         now = datetime.datetime.now()
         newdate=str(now.year)+"-"+str(now.month).zfill(2)+"-"+str(now.day).zfill(2)
-	print("curl -XPUT es-cdaq:9200/_snapshot/es_cdaq_run2_backup/snapshot_"+system+year+"_"+newdate,"-d'"+'{"indices":"'+','.join(selected.keys())+'"}'+"'")
+	print("curl -H \"Content-Type:application/json\" -XPUT es-cdaq:9200/_snapshot/es_cdaq_run2_backup/snapshot_"+system+year+"_"+newdate,"-d'"+'{"indices":"'+','.join(selected.keys())+'"}'+"'")
 #            for alias in aliases[idx]["aliases"]:
 #              if alias in ['runindex_'+sys.argv[3],'runindex_'+sys.argv[3]+'_read','runindex_'+sys.argv[3]+'_write',
 #                           'boxinfo_'+sys.argv[3],'boxinfo_'+sys.argv[3]+'_read','boxinfo_'+sys.argv[3]+'_write',
