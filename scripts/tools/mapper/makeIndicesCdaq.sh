@@ -14,8 +14,11 @@ year=${newdate:0:4}   ## or put explicit year if newdate doesn't start with year
 
 
 #make indices
+
+#TODO: in LS2 number f replicas for runindex_cdaq is 1. With more servers this can be again 2. Also applies to "river" indices
+
 echo "make ${subsystem}_${newdate}"
-curl -H "Content-Type:application/json" -XPUT localhost:9200/runindex_${subsystem}_${newdate}?pretty -d'{"settings":{"index":{"number_of_shards" : "8","number_of_replicas" : "2","codec" : "best_compression"},"mapper" : { "dynamic" : "false"}, "translog" : {"durability" : "async","flush_threshold_size":"4g"},"analysis" : {"analyzer" : {"default" : {"type" : "keyword"}}}}}'
+curl -H "Content-Type:application/json" -XPUT localhost:9200/runindex_${subsystem}_${newdate}?pretty -d'{"settings":{"index":{"number_of_shards" : "8","number_of_replicas" : "1","codec" : "best_compression"},"mapper" : { "dynamic" : "false"}, "translog" : {"durability" : "async","flush_threshold_size":"4g"},"analysis" : {"analyzer" : {"default" : {"type" : "keyword"}}}}}'
 curl -H "Content-Type:application/json" -XPUT localhost:9200/merging_${subsystem}_${newdate}?pretty  -d'{"settings":{"index":{"number_of_shards" : "8","number_of_replicas" : "1","codec" : "best_compression"},"mapper" : { "dynamic" : "false"}, "translog" : {"durability" : "async","flush_threshold_size":"4g"},"analysis" : {"analyzer" : {"default" : {"type" : "keyword"}}}}}'
 curl -H "Content-Type:application/json" -XPUT localhost:9200/boxinfo_${subsystem}_${newdate}?pretty  -d'{"settings":{"index":{"number_of_shards" : "8","number_of_replicas" : "1","codec" : "best_compression"},"mapper" : { "dynamic" : "false"}, "translog" : {"durability" : "async","flush_threshold_size":"4g"},"analysis" : {"analyzer" : {"default" : {"type" : "keyword"}}}}}'
 curl -H "Content-Type:application/json" -XPUT localhost:9200/hltdlogs_${subsystem}_${newdate}?pretty -d'{"settings":{"index":{"number_of_shards" : "2","number_of_replicas" : "1","codec" : "best_compression"},"mapper" : { "dynamic" : "false"}, "translog" : {"durability" : "async","flush_threshold_size":"4g"},"analysis":{"analyzer":{"prefix-test-analyzer":{"type":"custom","tokenizer":"prefix-test-tokenizer"}},"tokenizer":{"prefix-test-tokenizer":{"type": "path_hierarchy","delimiter":" "}}}}}'
