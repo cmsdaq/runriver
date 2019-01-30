@@ -27,6 +27,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.index.query.QueryBuilders;
 //import org.elasticsearch.index.query.TermQueryBuilders;
 import org.elasticsearch.join.query.JoinQueryBuilders;
+//import org.elasticsearch.join.query.ParentIdQueryBuilder;
 import static org.elasticsearch.common.xcontent.XContentFactory.*;
 
 //Remote query stuff
@@ -289,8 +290,12 @@ public class Collector extends AbstractRunRiverThread {
                                                          //.setTypes("eols")
                                                          .setTypes("doc")
                                                          .setRouting(runNumber)
-                                                         //.setQuery(QueryBuilders.boolQuery().must(QueryBuilders.parentId("eols",runNumber)).must(QueryBuilders.termQuery("ls",ls)))
-                                                         .setQuery(QueryBuilders.boolQuery().must(QueryBuilders.termQuery("doc_type","eols")).must(JoinQueryBuilders.hasParentQuery("run",QueryBuilders.termQuery("_id",runNumber),false)).must(QueryBuilders.termQuery("ls",ls)))
+                                                         .setQuery(QueryBuilders.boolQuery()
+                                                           .must(JoinQueryBuilders.parentId("eols",runNumber))
+                                                           .must(QueryBuilders.termQuery("ls",ls))
+                                                         )
+                                                         //.setQuery(QueryBuilders.boolQuery().must(QueryBuilders.termQuery("doc_type","eols")).must(JoinQueryBuilders.hasParentQuery("run",QueryBuilders.termQuery("_id",runNumber),false)).must(QueryBuilders.termQuery("ls",ls)))
+                                                         //.setQuery(QueryBuilders.boolQuery().must(QueryBuilders.termQuery("doc_type","eols")).must(JoinQueryBuilders.hasParentQuery("run",QueryBuilders.termQuery("_id",runNumber),false)).must(QueryBuilders.termQuery("ls",ls)))
                                                          .setSize(0)
                                                          .addAggregation(AggregationBuilders.sum("NEvents").field("NEvents"))
                                                          .addAggregation(AggregationBuilders.sum("NLostEvents").field("NLostEvents"))
@@ -501,10 +506,11 @@ public class Collector extends AbstractRunRiverThread {
           //.setTypes("microstatelegend")
           .setTypes("doc")
           .setRouting(runNumber)
-          .setQuery(QueryBuilders.boolQuery()
-            .must(QueryBuilders.termQuery("doc_type","microstatelegend"))
-            .must(JoinQueryBuilders.hasParentQuery("run", QueryBuilders.termQuery("_id",runNumber),false))
-          ).setSize(1).execute().actionGet();
+          //.setQuery(QueryBuilders.boolQuery()
+          .setQuery(JoinQueryBuilders.parentId("microstatelegend",runNumber))
+            //.must(QueryBuilders.termQuery("doc_type","microstatelegend"))
+            //.must(JoinQueryBuilders.hasParentQuery("run", QueryBuilders.termQuery("_id",runNumber),false))
+          .setSize(1).execute().actionGet();
 
           SearchHit[] searchHits = sResponseUstates.getHits().getHits();
           if(searchHits.length != 0) {
