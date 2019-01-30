@@ -11,7 +11,14 @@ try:
 except:
   import json
 
+
+
 headers={'Content-Type':'application/json'}
+
+try:
+  import mappings
+except:
+  print "running without mappings"
 
 class elasticUpdater:
 
@@ -130,7 +137,6 @@ class elasticUpdater:
           pass
  
         else:
-          import mappings
           self.runindex_name="runindex_"+argv[2]
           self.boxinfo_name="boxinfo_"+argv[2]
           self.hltdlogs_name="hltdlogs_"+argv[2]
