@@ -1,7 +1,7 @@
 {
   "doc": {
     "properties": {
-      "runRelation":  {"type":"join","relations":{"run":"member"}},
+      "runRelation":  {"type":"join","relations":{"run":["eols","stream-hist","state-hist","state-hist-summary","microstatelegend","inputstatelegend","pathlegend","stream_label"]}},
       "doc_type":{"type":"keyword"},
       "runNumber":{"type":"long"},
 

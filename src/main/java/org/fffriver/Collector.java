@@ -403,7 +403,7 @@ public class Collector extends AbstractRunRiverThread {
                     .setId(id)
                     .setSource(jsonBuilder()
                         .startObject()
-                        .startObject("runRelation").field("name","member").field("parent",Integer.parseInt(runNumber)).endObject()
+                        .startObject("runRelation").field("name","stream-hist").field("parent",Integer.parseInt(runNumber)).endObject()
                         .field("doc_type","stream-hist")
                         .field("runNumber",runNumber)
                         .field("stream", stream)
@@ -428,7 +428,7 @@ public class Collector extends AbstractRunRiverThread {
                     .setId(id)
                     .setSource(jsonBuilder()
                         .startObject()
-                        .startObject("runRelation").field("name","member").field("parent",Integer.parseInt(runNumber)).endObject()
+                        .startObject("runRelation").field("name","stream-hist").field("parent",Integer.parseInt(runNumber)).endObject()
                         .field("doc_type","stream-hist")
                         .field("runNumber",runNumber)
                         .field("stream", stream)
@@ -632,7 +632,7 @@ public class Collector extends AbstractRunRiverThread {
         xb.field("date",start_time_millis);
         xb.field("runNumber",runNumber);
         xb.field("doc_type","state-hist");
-        xb.startObject("runRelation").field("name","member").field("parent",Integer.parseInt(runNumber)).endObject();
+        xb.startObject("runRelation").field("name","state-hist").field("parent",Integer.parseInt(runNumber)).endObject();
         xb.endObject();
         client.prepareIndex(runindex_write, "doc")
             .setRouting(runNumber)
@@ -643,7 +643,7 @@ public class Collector extends AbstractRunRiverThread {
         xbSummary.field("date",start_time_millis);
         xbSummary.field("runNumber",runNumber);
         xbSummary.field("doc_type","state-hist-summary");
-        xbSummary.startObject("runRelation").field("name","member").field("parent",Integer.parseInt(runNumber)).endObject();
+        xbSummary.startObject("runRelation").field("name","state-hist-summary").field("parent",Integer.parseInt(runNumber)).endObject();
         xbSummary.endObject();
         client.prepareIndex(runindex_write, "doc")
             .setRouting(runNumber)
@@ -723,7 +723,7 @@ public class Collector extends AbstractRunRiverThread {
 
             xbClassSummary.field("runNumber",runNumber);
             xbClassSummary.field("doc_type","state-hist-summary");
-            xbClassSummary.startObject("runRelation").field("name","member").field("parent",Integer.parseInt(runNumber)).endObject();
+            xbClassSummary.startObject("runRelation").field("name","state-hist-summary").field("parent",Integer.parseInt(runNumber)).endObject();
 
             xbClassSummary.endObject();
             client.prepareIndex(runindex_write, "state-hist-summary")
