@@ -329,7 +329,7 @@ public class Collector extends AbstractRunRiverThread {
                 String id = String.format("%06d", Integer.parseInt(runNumber))+"_"+stream+"_"+ls;
 
                 //Check if data is changed (to avoid to update timestamp if not necessary)
-                GetResponse sresponse = client.prepareGet(runindex_write, "stream-hist", id)
+                GetResponse sresponse = client.prepareGet(runindex_write, "doc", id)
                                             .setRouting(runNumber)
                                             .setRefresh(true).execute().actionGet();
 
@@ -752,7 +752,7 @@ public class Collector extends AbstractRunRiverThread {
 
     public void checkRunEnd(){
         if (EoR){return;}
-        GetResponse response = client.prepareGet(runindex_write, "run", runNumber).setRefresh(true).execute().actionGet();
+        GetResponse response = client.prepareGet(runindex_write, "doc", runNumber).setRefresh(true).execute().actionGet();
         if (!response.isExists()){return;}
         if (response.getSource().get("endTime") != null) { 
             Integer activeBUs = (Integer)response.getSource().get("activeBUs");
@@ -770,7 +770,10 @@ public class Collector extends AbstractRunRiverThread {
         //boxinfoQuery.getJSONObject("filter").getJSONObject("term")
         //        .put("activeRuns",runNumber);
         SearchResponse response = client.prepareSearch(boxinfo_read)
-                                        .setQuery(QueryBuilders.boolQuery().must(QueryBuilders.rangeQuery("fm_date").from("now-1m"))
+                                        .setTypes("doc")
+                                        .setQuery(QueryBuilders.boolQuery()
+                                                                           .must(QueryBuilders.rangeQuery("fm_date").from("now-1m"))
+                                                                           .must(QueryBuilders.termQuery("doc_type","boxinfo"))
                                                                            .must(QueryBuilders.termQuery("activeRuns",runNumber)))
                                         .setSize(1)
                                         .execute().actionGet();
