@@ -403,7 +403,7 @@ public class Collector extends AbstractRunRiverThread {
                       }
                   }
                   if (retDate >  Double.NEGATIVE_INFINITY) {
-                    IndexResponse iResponse = client.prepareIndex(runindex_write, "stream-hist").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                    IndexResponse iResponse = client.prepareIndex(runindex_write, "doc").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                     .setRouting(runNumber)
                     .setId(id)
                     .setSource(jsonBuilder()
@@ -428,7 +428,7 @@ public class Collector extends AbstractRunRiverThread {
                   else {
                     //if no date, create indexing date explicitely
                     long start_time_millis = System.currentTimeMillis();
-                    IndexResponse iResponse = client.prepareIndex(runindex_write, "stream-hist").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                    IndexResponse iResponse = client.prepareIndex(runindex_write, "doc").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                     .setRouting(runNumber)
                     .setId(id)
                     .setSource(jsonBuilder()
@@ -732,7 +732,7 @@ public class Collector extends AbstractRunRiverThread {
             xbClassSummary.startObject("runRelation").field("name","state-hist-summary").field("parent",Integer.parseInt(runNumber)).endObject();
 
             xbClassSummary.endObject();
-            client.prepareIndex(runindex_write, "state-hist-summary")
+            client.prepareIndex(runindex_write, "doc")
               .setRouting(runNumber)
               .setSource(xbClassSummary)
               .execute();                  
