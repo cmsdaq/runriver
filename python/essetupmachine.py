@@ -248,7 +248,7 @@ if __name__ == "__main__":
             if env=='vm':
                 essyscfg.reg('ES_JAVA_OPTS','"-Xms1G -Xmx1G"')
             else:
-                essyscfg.reg('ES_JAVA_OPTS','"-Xms30G -Xmx30G"')
+                essyscfg.reg('ES_JAVA_OPTS','"-Xms30G -Xmx30G"')  #-XX:+PrintFlagsFinal to print all parameters at startup
             #essyscfg.reg('DATA_DIR','/elasticsearch/lib/elasticsearch')
             essyscfg.removeEntry('CONF_FILE')
             essyscfg.removeEntry('ES_HEAP_SIZE')
