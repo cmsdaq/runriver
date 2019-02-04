@@ -302,7 +302,7 @@ if __name__ == "__main__":
             if env=='vm':
                 escfg.reg('discovery.zen.minimum_master_nodes','1')
             else:
-                escfg.reg('discovery.zen.minimum_master_nodes','3')
+                escfg.reg('discovery.zen.minimum_master_nodes','2')
             escfg.reg('node.master','true')
             escfg.reg('node.data','true')
             escfg.reg('path.logs','/var/log/elasticsearch')
