@@ -1,16 +1,22 @@
 #!/bin/env python
+from __future__ import print_function
 import sys
 import os
 import pwd
 import time
 import datetime 
 import socket
-import httplib
 import json
 import threading
 import subprocess
 import signal
 import syslog
+
+try:
+  from httplib import HTTPConnection
+except:
+  from http.client import HTTPConnection
+
 
 #hltd daemon2
 sys.path.append('/opt/fff')
@@ -18,7 +24,7 @@ sys.path.append('/opt/fff')
 #demote, prctl (not essential)
 try:
   import prctl
-except:
+except Exception as ex:
   pass
 
 #local:
@@ -44,9 +50,6 @@ sleep_int=5
 jar_path  = "/opt/fff/river.jar"
 jar_path_dv  = "/opt/fff/river_dv.jar"
 jar_logparam="-Dlog4j.configurationFile=/opt/fff/log4j2.properties"
-
-#NFS script test version is default path (for now)
-query_daemon = "/cmsnfses-web/es-web/prod/lastcpu.js"
 
 keep_running = True
 #river doc mapping
@@ -74,8 +77,9 @@ def query(conn,method,path,query=None,retry=False):
       time.sleep(.5)
       #restart connection
       conn.close()
-      conn = httplib.HTTPConnection(host=host,port=9200)
+      conn = HTTPConnection(host=host,port=9200)
       if not retry: 
+        syslog.syslog("will not retry:" +str(type(ex).__name__)+" msg:"+str(ex))
         cstatus=-1
         cdata=ex
         break
@@ -84,7 +88,9 @@ def query(conn,method,path,query=None,retry=False):
         syslog.syslog("WARNING:retrying connection with:"+str(method)+' '+str(path) + ' iteration:'+str(cnt))
       cnt+=1
       #quit if requested globally and stuck in no-connect loop 
-      if global_quit:break
+      if global_quit:
+        syslog.syslog("global quit, interrupted on:" +str(type(ex).__name__)+" msg:"+str(ex))
+        break
 
   return conn_success,cstatus,cdata
 
@@ -119,28 +125,23 @@ def preexec_function_elasticsearch():
     try:
       dem = demote.demote('elasticsearch')
       dem()
-    except:
+    except Exception as ex:
       pass
     try:
       prctl.set_pdeathsig(signal.SIGKILL) #is this necessary?
-    except:pass
+    except Exception as ex:
+      pass
 
 def preexec_function_escdaq():
     try:
       dem = demote.demote('es-cdaq')
       dem()
-    except:
+    except Exception as ex:
       pass
     try:
       prctl.set_pdeathsig(signal.SIGKILL) #is this necessary?
-    except:pass
-
-    #other way (no demote)
-    #user_pw = pwd.getpwnam('elasticsearch')
-    #user_uid = user_pw[2]
-    #user_gid = user_pw[3]
-    #os.setuid(user_uid)
-    #os.setgid(user_gid)
+    except Exception as ex:
+      pass
 
 
 #todo: tell main thread that should be joined (e.g. - moving to another list)
@@ -171,7 +172,7 @@ class river_thread(threading.Thread):
       if self.path: jpath = self.path
       else:
         jpath = jar_path_dv if self.subsys=='dv' else jar_path
-      print "running",["/usr/bin/java -Xms1g -Xmx1g", jar_logparam, "-jar",jpath]+self.proc_args
+      print("running",["/usr/bin/java -Xms1g -Xmx1g", jar_logparam, "-jar",jpath]+self.proc_args)
       self.fdo = os.open('/var/log/river/'+self.riverid+'.log',os.O_WRONLY | os.O_CREAT | os.O_APPEND)
       #tentatively change log file ownership to what the process will be
       chown_file('elasticsearch',self.fdo)
@@ -182,7 +183,7 @@ class river_thread(threading.Thread):
       if self.path: qdpath = self.path
       else:
         qdpath = '/dev/null'
-      print "running",["/usr/bin/node", qdpath]
+      print("running",["/usr/bin/node", qdpath])
       self.fdo = os.open('/var/log/river/'+self.riverid+'.log',os.O_WRONLY | os.O_CREAT | os.O_APPEND)
       #tentatively change log file ownership to what the process will be
       chown_file('es-cdaq',self.fdo)
@@ -193,7 +194,7 @@ class river_thread(threading.Thread):
       if self.path: qdpath = self.path
       else:
         qdpath = '/dev/null'
-      print "running",["/usr/bin/python", qdpath]
+      print("running",["/usr/bin/python", qdpath])
       self.fdo = os.open('/var/log/river/'+self.riverid+'.log',os.O_WRONLY | os.O_CREAT | os.O_APPEND)
       #tentatively change log file ownership to what the process will be
       chown_file('es-cdaq',self.fdo)
@@ -242,7 +243,7 @@ class river_thread(threading.Thread):
       while not self.stopped:
         try:
           if not tmp_conn_w:
-              tmp_conn_w = httplib.HTTPConnection(host=host,port=9200)
+              tmp_conn_w = HTTPConnection(host=host,port=9200)
 
           success,st,doc_ver,host_changed,doc = self.getSelfDoc(tmp_conn_w)
           if st==404 or host_changed:
@@ -282,7 +283,7 @@ class river_thread(threading.Thread):
     self.proc.wait()
     if self.fdo:os.close(self.fdo)
     retcode = self.proc.returncode
-    tmp_conn = httplib.HTTPConnection(host=host,port=9200)
+    tmp_conn = HTTPConnection(host=host,port=9200)
 
     try:
       if not self.give_up:
@@ -451,7 +452,7 @@ def checkOtherRivers():
           doc_ver = hit['_version']
           host_r="null"
           try:
-              time_s = (time.time()*1000 - hit['_source']['node']['ping_timestamp'])/1000;
+              time_s = (time.time()*1000 - hit['_source']['node']['ping_timestamp'])//1000;
               host_r =  hit['_source']['node']['name']
           except:
             syslog.syslog('could not check document ' + doc_id)
@@ -470,7 +471,7 @@ def checkOtherRivers():
 
 def runDaemon():
   global gconn
-  gconn = httplib.HTTPConnection(host=host,port=9200)
+  gconn = HTTPConnection(host=host,port=9200)
 
   #require functioning server status before getting to checks and main loop
   while True:
@@ -520,7 +521,9 @@ def runDaemon():
       if rt.stopped:
         try:
           rt.join()
-        except:
+        except Exception as ex:
+
+          syslog.syslog("error joining river thread (runDaemon loop_ :" +str(type(ex).__name__)+" msg:"+str(ex))
           pass
         river_threads.remove(rt)
 
@@ -562,8 +565,8 @@ class LogCleaner(threading.Thread):
                         os.remove(os.path.join(self.path,f))
                 else:
                     os.remove(os.path.join(self.path,f))
-            except Exception,ex:
-                print "could not delete log file",ex
+            except Exception as ex:
+                print("could not delete log file",ex)
 
     def run(self):
         self.threadEvent.wait(60)
@@ -584,7 +587,7 @@ class LogCleaner(threading.Thread):
 
 #signal handler to allow graceful exit on SIGINT. will be used for control from the main service
 def signal_handler(signal, frame):
-        print 'Caught sigint!'
+        print('Caught sigint!')
         syslog.syslog('Caught sigint...')
         time.sleep(1)
         global global_quit
@@ -609,15 +612,22 @@ class RiverDaemon():
     #run log cleaning thread
     self.logCleaner.start()
     #main loop
-    runDaemon()
+    try:
+      runDaemon()
+    except Exception as ex:
+     syslog.syslog("error executing runDaemon:" +str(type(ex).__name__)+" msg:"+str(ex))
+     #let this sleep for one hour before we restart (should be resilient to errors)
+     time.sleep(3600)
+     os._exit(0)
 
+    syslog.syslog("exited runDaemon...")
     #kill everything
     for rt in river_threads[:]:
       try:
         rt.force_stop()
         rt.join()
       except Exception as ex:
-        print ex
+        syslog.syslog("error stopping/joining river thread during shutdown:" +str(type(ex).__name__)+" msg:"+str(ex))
         syslog.syslog(str(ex))
 
     syslog.syslog("quitting (1)")
@@ -635,15 +645,16 @@ def esClusterName():
           sline = line.strip()
           if line.startswith("cluster.name"):
             return line.split(':')[1].strip()
-    except:
-      pass
+    except Exception as ex:
+      syslog.syslog("could not parse cluster name:" +str(type(ex).__name__)+" msg:"+str(ex))
+
     return ""
 
 if __name__ == "__main__":
 
     escname = esClusterName()
     if not (escname.startswith('es-vm-cdaq') or escname.startswith('es-cdaq')) or escname.startswith('es-cdaq-run2'):
-      print "Service is disabled on machines which are not es-vm-cdaq or es-cdaq cluster"
+      print("Service is disabled on machines which are not es-vm-cdaq or es-cdaq cluster")
       sys.exit(0)
 
     daemon = RiverDaemon()
