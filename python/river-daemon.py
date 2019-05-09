@@ -366,8 +366,13 @@ def getDocInfo(doc_id,conn):
   success,st,res = query(conn,"GET","/river/instance/"+str(doc_id))
   if not success or st!=200:
     syslog.syslog("ERROR:Failed to query!:"+str(doc_id)+", HTTP status: "+str(st)+", reply:"+str(res))
+    #TODO: return different value for error than for no doc and handle differently
     return False,None
   doc = json.loads(res)
+  if doc['found']==False:
+    syslog.syslog("Requested document not found: "+str(doc_id)+". Possibly deleted by other instance?")
+    return False,None
+    
   doc_seqn = doc['_seq_no']
   doc_pterm = doc['_primary_term']
   return True,'?if_seq_no='+str(doc_seqn)+'&if_primary_term='+str(doc_pterm)+'&refresh=true'
@@ -449,7 +454,7 @@ def checkRivers():
           syslog.syslog("no mother thread found for river id "+ doc_id + " in state " + doc_st)
 
           success, qattribs = getDocInfo(doc_id,gconn)
-          if not success return
+          if not success continue
 
           success,st,res = query(gconn,
                                  "POST",
@@ -481,7 +486,7 @@ def checkOtherRivers():
             syslog.syslog("stale river id "+ doc_id + " in state " + doc_st + " host:"+ host_r)
 
             success, qattribs = getDocInfo(doc_id,gconn)
-            if not success return
+            if not success continue
 
             success,st,res = query(gconn,
                                  "POST",
@@ -521,7 +526,7 @@ def runDaemon():
         doc_id = hit['_id']
 
         success, qattribs = getDocInfo(doc_id,gconn)
-        if not success return
+        if not success continue #should avoid break later if there is error?
 
         success,st,res = query(gconn,"POST","/river/instance/"+str(doc_id)+'/_update'+qattribs,json.dumps({'doc':gen_node_doc('crashed')}))
         syslog.syslog('recovering instance ' + doc_id + " success:" + str(success) + " status:" + str(st))
