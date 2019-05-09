@@ -202,7 +202,7 @@ class river_thread(threading.Thread):
       self.start() #start thread to pick up the process
       return True #if success, else False
 
-  def setRestart(self,version):
+  def setRestart(self):
     if self.restart:return
     try:
       self.watchdogEvent.set()
@@ -212,7 +212,7 @@ class river_thread(threading.Thread):
     except:
       pass
 
-  def setTerminate(self,version):
+  def setTerminate(self):
     if self.restart:return
     try:
       self.watchdogEvent.set()
@@ -226,17 +226,19 @@ class river_thread(threading.Thread):
   def getSelfDoc(self,conn):
     success,st,res = query(conn,"GET","/river/instance/"+str(self.riverid))
     ret_success=False
-    doc_ver=None
+    doc_seqn=None
+    doc_pterm=None
     doc=None
     host_changed=False
     if st==200:
       ret_success=True
       doc = json.loads(res)
-      doc_ver= doc['_version']
+      doc_seqn=doc['_seq_no']
+      doc_pterm==doc['_primary_term']
       if 'node' in doc['_source'] and 'name' in doc['_source']['node']:
         if doc['_source']['node']['name'] != os.uname()[1]:
           host_changed=True
-    return ret_success,st,doc_ver,host_changed,doc
+    return ret_success,st,doc_seqn,doc_pterm,host_changed,doc
 
   def watch(self):
       tmp_conn_w = None
@@ -245,7 +247,7 @@ class river_thread(threading.Thread):
           if not tmp_conn_w:
               tmp_conn_w = HTTPConnection(host=host,port=9200)
 
-          success,st,doc_ver,host_changed,doc = self.getSelfDoc(tmp_conn_w)
+          success,st,doc_seqn,doc_pterm,host_changed,doc = self.getSelfDoc(tmp_conn_w)
           if st==404 or host_changed:
               try:
                   #doc was manually deleted or taken over, kill the process
@@ -257,8 +259,9 @@ class river_thread(threading.Thread):
                     syslog.syslog('failed to terminate process ' + str(ex))
               break
           else:
-              if doc_ver:
-                success,st,res = query(tmp_conn_w,"POST","/river/instance/"+str(self.riverid)+'/_update?version='+str(doc_ver)+'&refresh=true',json.dumps({'doc':gen_node_doc_time()}))
+              if doc_seqn and doc_pterm:
+                qattribs='?if_seq_no='+str(doc_seqn)+'&if_primary_term='+str(doc_pterm)+'&refresh=true'
+                success,st,res = query(tmp_conn_w,"POST","/river/instance/"+str(self.riverid)+'/_update'+qattribs,json.dumps({'doc':gen_node_doc_time()}))
                 if success:
                   if st==409:
                     self.watchdogEvent.wait(5)
@@ -299,17 +302,21 @@ class river_thread(threading.Thread):
               syslog.syslog("WARNING:"+self.riverid+" exited with code "+str(retcode))
 
         while st not in [200,201] and tries>0:
-          success,st,doc_ver,host_changed,doc = self.getSelfDoc(tmp_conn)
+          success,st,doc_seqn,doc_pterm,host_changed,doc = self.getSelfDoc(tmp_conn)
           #give up if document is no longer there or taken over by another host
           if st==404 or host_changed:break
-          #document version should be there
-          if doc_ver:
+          #document seq and term should be there
+          if doc_seqn and doc_pterm:
               if not self.restart and retcode==0:
                   #delete document
-                  success,st,res = query(tmp_conn,"DELETE","/river/instance/"+str(self.riverid)+'?version='+str(doc_ver),retry=True)
+                  qattribs='?if_seq_no='+str(doc_seqn)+'&if_primary_term='+str(doc_pterm)
+                  success,st,res = query(tmp_conn,"DELETE","/river/instance/"+str(self.riverid)+qattribs,retry=True)
               else:
+                  qattribs='?if_seq_no='+str(doc_seqn)+'&if_primary_term='+str(doc_pterm)+'&refresh=true'
                   msg = 'crashed' if not self.restart else 'restarting'
-                  success,st,res = query(tmp_conn,"POST","/river/instance/"+str(self.riverid)+'/_update?version='+str(doc_ver)+'&refresh=true',json.dumps({'doc':gen_node_doc(msg)}))
+                  success,st,res = query(tmp_conn,"POST","/river/instance/"+str(self.riverid)+'/_update'+qattribs,json.dumps({'doc':gen_node_doc(msg)}))
+          else:
+              print("could not get doc sequence number or primary term :"+str(doc_seqn) + " " + str(doc_pterm))
           if st==429:
             tries=50 #no finite tries for this error (es is overloaded, keep trying...)
 
@@ -352,7 +359,20 @@ class river_thread(threading.Thread):
         self.proc.terminate()
       except:
         pass
- 
+
+
+#helper: gets sequence and primary term only available with GET by id
+def getDocInfo(doc_id,conn):
+  success,st,res = query(conn,"GET","/river/instance/"+str(doc_id))
+  if not success or st!=200:
+    syslog.syslog("ERROR:Failed to query!:"+str(doc_id)+", HTTP status: "+str(st)+", reply:"+str(res))
+    return False,None
+  doc = json.loads(res)
+  doc_seqn = doc['_seq_no']
+  doc_pterm = doc['_primary_term']
+  return True,'?if_seq_no='+str(doc_seqn)+'&if_primary_term='+str(doc_pterm)+'&refresh=true'
+
+
 def runRiver(doc):
 
   src = doc['_source']
@@ -367,12 +387,8 @@ def runRiver(doc):
 
   #main instance
   doc_id = doc['_id']
-  success,st,res = query(gconn,"GET","/river/instance/"+str(doc_id))
-  if not success or st!=200:
-    syslog.syslog("ERROR:Failed to query!:"+str(doc_id)+" "+str(st)+" "+str(res))
-    return
-  doc = json.loads(res)
-  doc_ver = doc['_version']
+  success, qattribs = getDocInfo(doc_id,gconn)
+  if not success return
 
   #check again the state from latest query
   if doc['_source']['node']['status'] in ['created','crashed','restarting']:
@@ -382,13 +398,13 @@ def runRiver(doc):
     try:
       for instance in river_threads:
         if instance.riverid == doc_id:
-          instance.setTerminate(doc_ver)
+          instance.setTerminate()
     except Exception as ex:
       syslog.syslog("problem checking rivers:"+str(ex))
     time.sleep(.05)
 
     #update doc before starting the process
-    success,st,res = query(gconn,"POST","/river/instance/"+str(doc_id)+'/_update?version='+str(doc_ver)+'&refresh=true',json.dumps({'doc':gen_node_doc('starting')}))
+    success,st,res = query(gconn,"POST","/river/instance/"+str(doc_id)+'/_update'+qattribs,json.dumps({'doc':gen_node_doc('starting')}))
     if success and st == 200:
       #success,proceed with fork
       syslog.syslog("successfully updated "+str(doc_id)+" document. will start the instance")
@@ -405,10 +421,10 @@ def runRiver(doc):
     #manual restart was issued, check if this instance is running here and tell the thread to finish and set status to restarting
     for instance in river_threads:
       if instance.riverid == doc_id:
-        instance.setRestart(doc_ver)
+        instance.setRestart()
         return
     #if handler was not found, try to set restarting flag to allow someone to pick it up
-    success,st,res = query(gconn,"POST","/river/instance/"+str(doc_id)+'/_update?version='+str(doc_ver)+'&refresh=true',json.dumps({'doc':gen_node_doc('restarting')}))
+    success,st,res = query(gconn,"POST","/river/instance/"+str(doc_id)+'/_update'+qattribs,json.dumps({'doc':gen_node_doc('restarting')}))
     if not (success and st == 200) and st!=409:
       syslog.syslog("error restarting river thread, code "+str(st))
 
@@ -416,13 +432,13 @@ def runRiver(doc):
 def checkRivers():
 
   #get all plugins running on the same node
-  success,st,res = query(gconn,"GET","/river/instance/_search?size=1000",json.dumps({"version":True,"query":{"term":{"node.name":os.uname()[1]}}}),retry = False)
+  success,st,res = query(gconn,"GET","/river/instance/_search?size=1000",json.dumps({"query":{"term":{"node.name":os.uname()[1]}}}),retry = False)
   if success and st in [200,201]:
     doc_json = json.loads(res)
     for hit in doc_json['hits']['hits']:
       doc_st = hit["_source"]["node"]["status"]
       doc_id = hit["_id"]
-      doc_ver = hit['_version']
+
       if doc_st=='running' or doc_st=='starting': #other states are handled
         found_rt = None
         for rt in river_threads:
@@ -431,9 +447,13 @@ def checkRivers():
             break
         if not found_rt: #river not handled by thread obj, take over
           syslog.syslog("no mother thread found for river id "+ doc_id + " in state " + doc_st)
+
+          success, qattribs = getDocInfo(doc_id,gconn)
+          if not success return
+
           success,st,res = query(gconn,
                                  "POST",
-                                 "/river/instance/"+str(doc_id)+'/_update?version='+str(doc_ver)+'&refresh=true',
+                                 "/river/instance/"+str(doc_id)+'/_update'+qattribs,
                                  json.dumps({'doc':gen_node_doc('crashed')}),retry = False)
           #if success and st!=409:
           if success and st==200:
@@ -441,7 +461,7 @@ def checkRivers():
 
 def checkOtherRivers():
 
-    success,st,res = query(gconn,"GET","/river/instance/_search?size=1000",json.dumps({"version":True,"query":{"bool":{"must_not":[{"term":{"node.name":os.uname()[1]}}]}}}),retry = False)
+    success,st,res = query(gconn,"GET","/river/instance/_search?size=1000",json.dumps({"query":{"bool":{"must_not":[{"term":{"node.name":os.uname()[1]}}]}}}),retry = False)
     c_time = time.time()
     if success and st in [200,201]:
       doc_json = json.loads(res)
@@ -449,7 +469,6 @@ def checkOtherRivers():
         doc_st = hit["_source"]["node"]["status"]
         if doc_st in ['running','starting','restart']: #other states are picked up
           doc_id = hit["_id"]
-          doc_ver = hit['_version']
           host_r="null"
           try:
               time_s = (time.time()*1000 - hit['_source']['node']['ping_timestamp'])//1000;
@@ -460,9 +479,13 @@ def checkOtherRivers():
           if time_s>120:
             #stale document
             syslog.syslog("stale river id "+ doc_id + " in state " + doc_st + " host:"+ host_r)
+
+            success, qattribs = getDocInfo(doc_id,gconn)
+            if not success return
+
             success,st,res = query(gconn,
                                  "POST",
-                                 "/river/instance/"+str(doc_id)+'/_update?version='+str(doc_ver)+'&refresh=true',
+                                 "/river/instance/"+str(doc_id)+'/_update'+qattribs,
                                  json.dumps({'doc':gen_node_doc('crashed')}),retry = False)
             #if success and st!=409:
             if success and st==200:
@@ -491,13 +514,16 @@ def runDaemon():
 
   #recovery if river status is running on this node:
   while True:
-    success,st,res = query(gconn,"GET","/river/instance/_search?size=1000", '{"version":true,"query":{"bool":{"must":[{"term":{"node.status":"running"}},{"term":{"node.name":"'+os.uname()[1]+'"}}] }}}', retry = True)
+    success,st,res = query(gconn,"GET","/river/instance/_search?size=1000", '{"query":{"bool":{"must":[{"term":{"node.status":"running"}},{"term":{"node.name":"'+os.uname()[1]+'"}}] }}}', retry = True)
     if success and st==200:
       jsres = json.loads(res)
       for hit in jsres['hits']['hits']:
         doc_id = hit['_id']
-        doc_ver = hit['_version']
-        success,st,res = query(gconn,"POST","/river/instance/"+str(doc_id)+'/_update?refresh=true&version='+str(doc_ver),json.dumps({'doc':gen_node_doc('crashed')}))
+
+        success, qattribs = getDocInfo(doc_id,gconn)
+        if not success return
+
+        success,st,res = query(gconn,"POST","/river/instance/"+str(doc_id)+'/_update'+qattribs,json.dumps({'doc':gen_node_doc('crashed')}))
         syslog.syslog('recovering instance ' + doc_id + " success:" + str(success) + " status:" + str(st))
       break
     else:
@@ -531,12 +557,12 @@ def runDaemon():
     if global_quit:break
 
     #find instances that need to be started
-    success,st,res = query(gconn,"GET","/river/instance/_search?size=1000", '{"version":true,"query":{"bool":{"should":[{"term":{"node.status":"restart"}},{"term":{"node.status":"restarting"}},{"term":{"node.status":"crashed"}},{"term":{"node.status":"created"}}] }}}')
+    success,st,res = query(gconn,"GET","/river/instance/_search?size=1000", '{"query":{"bool":{"should":[{"term":{"node.status":"restart"}},{"term":{"node.status":"restarting"}},{"term":{"node.status":"crashed"}},{"term":{"node.status":"created"}}] }}}')
     #TODO: add detection of stale objects (search for > amount of time since last ping
     if success and st==200:
       jsres = json.loads(res)
       for hit in jsres['hits']['hits']:
-        #(try) to instantiate using doc version
+        #(try) to instantiate using doc sequence and term
         runRiver(hit)
       pass
     else:
