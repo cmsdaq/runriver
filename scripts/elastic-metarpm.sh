@@ -33,7 +33,8 @@ ls
 #pluginpath="/opt/fff/esplugins/"
 #pluginname1="license"
 
-riverfile="river-runriver-1.8.0-jar-with-dependencies.jar"
+jarversion=`$SCRIPTDIR/getpom.py $SCRIPTDIR/../pom.xml`
+riverfile="river-runriver-$jarversion-jar-with-dependencies.jar"
 
 if [ ! -f $SCRIPTDIR/../target/$riverfile ]; then
  echo "missing river file $SCRIPTDIR/../target/$riverfile"

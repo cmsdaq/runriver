@@ -40,8 +40,8 @@ import org.elasticsearch.transport.client.PreBuiltTransportClient;
 import java.net.InetSocketAddress;
 //#import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.search.aggregations.metrics.sum.Sum;
-import org.elasticsearch.search.aggregations.metrics.max.Max;
+import org.elasticsearch.search.aggregations.metrics.Sum;
+import org.elasticsearch.search.aggregations.metrics.Max;
 import org.elasticsearch.search.aggregations.Aggregation;
 //import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -190,7 +190,7 @@ public class Collector extends AbstractRunRiverThread {
         .execute().actionGet();
         collectStats(riverName,"streamQuery",eslocalIndex,sResponse);
         //logger.info(String.valueOf(sResponse.getHits().getTotalHits()));
-        if(sResponse.getHits().getTotalHits() == 0L){ 
+        if(sResponse.getHits().getTotalHits().value == 0L){ 
             logger.info("streamQuery returns 0 hits");
             return;
         }
@@ -304,12 +304,12 @@ public class Collector extends AbstractRunRiverThread {
  
 
 
-                    if(sResponseEoLS.getHits().getTotalHits() == 0L){ 
+                    if(sResponseEoLS.getHits().getTotalHits().value == 0L){ 
                         logger.info("eolsQuery returns 0 hits for LS " + ls + ", skipping collection without EoLS docs");
                         continue;
                     }
-                    logger.info("eolsQuery returned " + String.valueOf(sResponseEoLS.getHits().getTotalHits()) + " hits for LS "+ ls);
-                    //else logger.info(String.valueOf(sResponseEoLS.getHits().getTotalHits()));
+                    logger.info("eolsQuery returned " + String.valueOf(sResponseEoLS.getHits().getTotalHits().value) + " hits for LS "+ ls);
+                    //else logger.info(String.valueOf(sResponseEoLS.getHits().getTotalHits().value));
                     Sum eolEvents = sResponseEoLS.getAggregations().get("NEvents");
                     Sum eolLostEvents = sResponseEoLS.getAggregations().get("NLostEvents");
                     Max eolTotalEvents = sResponseEoLS.getAggregations().get("TotalEvents");
@@ -497,7 +497,7 @@ public class Collector extends AbstractRunRiverThread {
         collectStats(riverName,"statesQuery",eslocalIndex,sResponse);
         
         //logger.info(String.valueOf(sResponse.getHits().getTotalHits()));
-        if(sResponse.getHits().getTotalHits() == 0L){ 
+        if(sResponse.getHits().getTotalHits().value == 0L){ 
             logger.info("statesQuery returns 0 hits");
             return;
         }
@@ -784,7 +784,7 @@ public class Collector extends AbstractRunRiverThread {
         collectStats(riverName,"boxinfoQuery",boxinfo_read,response);
         
         logger.info("Boxinfo: "+ String.valueOf(response.getHits().getTotalHits()));
-        if (response.getHits().getTotalHits() == 0 ) {
+        if (response.getHits().getTotalHits().value == 0 ) {
           //execRunClose();
           shouldCloseRun = true;
           setRunning(false);

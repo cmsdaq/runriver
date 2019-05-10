@@ -75,7 +75,7 @@ public class RunMonitor extends AbstractRunRiverThread {
         
         collectStats(riverName,"runRanger",runindex_read,response);
 
-        if (response.getHits().getTotalHits() == 0 ) { return; }
+        if (response.getHits().getTotalHits().value == 0 ) { return; }
         
         for (SearchHit hit : response.getHits().getHits()) {
             String runNumber = hit.getSourceAsMap().get("runNumber").toString();
