@@ -261,10 +261,6 @@ if __name__ == "__main__":
             escfg.reg('network.bind_host','_local_,'+es_publish_host)
             escfg.reg('cluster.name','es-local')
             escfg.reg('discovery.zen.ping.unicast.hosts',json.dumps(es_local_list))
-            if env=='vm':
-                escfg.reg('discovery.zen.minimum_master_nodes','1')
-            else:
-                escfg.reg('discovery.zen.minimum_master_nodes','2')
             escfg.reg('node.master','true')
             escfg.reg('node.data','true')
             escfg.reg('path.logs','/var/log/elasticsearch')
@@ -286,6 +282,11 @@ if __name__ == "__main__":
             escfg.reg('cluster.routing.allocation.node_concurrent_recoveries','5') #default:2
             escfg.reg('cluster.routing.allocation.node_initial_primaries_recoveries', '5') #default:4
             #escfg.reg('index.translog.flush_threshold_size','4g') #default:512 mb, only es-local,must be template
+            #7.0 settings
+            #escfg.reg('node.name',myhost)
+            escfg.reg('cluster.initial_master_nodes',json.dumps(es_local_list))
+            escfg.reg('cluster.max_shards_per_node','100000')
+            escfg.reg('search.max_buckets','1000000')
             escfg.commit()
  
             #modify logging.yml --> TODO: adjust /etc/elasticsearch/log4j2.properties
@@ -299,10 +300,6 @@ if __name__ == "__main__":
             escfg.reg('network.bind_host','_local_,'+es_publish_host)
             escfg.reg('cluster.name','es-cdaq')
             escfg.reg('discovery.zen.ping.unicast.hosts',json.dumps(es_cdaq_list))
-            if env=='vm':
-                escfg.reg('discovery.zen.minimum_master_nodes','1')
-            else:
-                escfg.reg('discovery.zen.minimum_master_nodes','2')
             escfg.reg('node.master','true')
             escfg.reg('node.data','true')
             escfg.reg('path.logs','/var/log/elasticsearch')
@@ -324,5 +321,10 @@ if __name__ == "__main__":
             escfg.reg('thread_pool.bulk.queue_size','3000') #default:50
             escfg.reg('cluster.routing.allocation.node_concurrent_recoveries','5') #default:2
             escfg.reg('cluster.routing.allocation.node_initial_primaries_recoveries', '5') #default:4
+            #7.0 settings
+            #escfg.reg('node.name',myhost)
+            escfg.reg('cluster.initial_master_nodes',json.dumps(es_cdaq_list))
+            escfg.reg('cluster.max_shards_per_node','10000')
+            escfg.reg('search.max_buckets','1000000')
             escfg.commit()
 
