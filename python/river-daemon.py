@@ -393,7 +393,7 @@ def runRiver(doc):
   #main instance
   doc_id = doc['_id']
   success, qattribs = getDocInfo(doc_id,gconn)
-  if not success return
+  if not success: return
 
   #check again the state from latest query
   if doc['_source']['node']['status'] in ['created','crashed','restarting']:
@@ -454,7 +454,7 @@ def checkRivers():
           syslog.syslog("no mother thread found for river id "+ doc_id + " in state " + doc_st)
 
           success, qattribs = getDocInfo(doc_id,gconn)
-          if not success continue
+          if not success: continue
 
           success,st,res = query(gconn,
                                  "POST",
@@ -486,7 +486,7 @@ def checkOtherRivers():
             syslog.syslog("stale river id "+ doc_id + " in state " + doc_st + " host:"+ host_r)
 
             success, qattribs = getDocInfo(doc_id,gconn)
-            if not success continue
+            if not success: continue
 
             success,st,res = query(gconn,
                                  "POST",
@@ -526,7 +526,7 @@ def runDaemon():
         doc_id = hit['_id']
 
         success, qattribs = getDocInfo(doc_id,gconn)
-        if not success continue #should avoid break later if there is error?
+        if not success: continue #should avoid break later if there is error?
 
         success,st,res = query(gconn,"POST","/river/instance/"+str(doc_id)+'/_update'+qattribs,json.dumps({'doc':gen_node_doc('crashed')}))
         syslog.syslog('recovering instance ' + doc_id + " success:" + str(success) + " status:" + str(st))
