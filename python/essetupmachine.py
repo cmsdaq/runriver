@@ -277,8 +277,7 @@ if __name__ == "__main__":
             #other optimizations:
             #if env!='vm':
             escfg.reg("indices.recovery.max_bytes_per_sec","100mb") #default:40mb
-            escfg.reg('thread_pool.index.queue_size','1000') #default:200
-            escfg.reg('thread_pool.bulk.queue_size','3000') #default:50
+            escfg.reg('thread_pool.write.queue_size','3000') #default:50(?)
             escfg.reg('cluster.routing.allocation.node_concurrent_recoveries','5') #default:2
             escfg.reg('cluster.routing.allocation.node_initial_primaries_recoveries', '5') #default:4
             #escfg.reg('index.translog.flush_threshold_size','4g') #default:512 mb, only es-local,must be template
@@ -318,8 +317,7 @@ if __name__ == "__main__":
 
             #if env!='vm':
             escfg.reg("indices.recovery.max_bytes_per_sec","100mb") #default:40mb
-            escfg.reg('thread_pool.index.queue_size','1000') #default:200
-            escfg.reg('thread_pool.bulk.queue_size','3000') #default:50
+            escfg.reg('thread_pool.write.queue_size','3000') #default:50 (?)
             escfg.reg('cluster.routing.allocation.node_concurrent_recoveries','5') #default:2
             escfg.reg('cluster.routing.allocation.node_initial_primaries_recoveries', '5') #default:4
             #7.0 settings
