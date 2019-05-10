@@ -1,4 +1,5 @@
 #!/bin/env python
+from __future__ import print_function
 
 import sys
 import os
@@ -28,7 +29,7 @@ newdate = str(now.year)+str(now.month).zfill(2)+str(now.day).zfill(2)
 
 print("creating index: river_"+newdate)
 ret = requests.put("http://localhost:9200/river_"+newdate,json.dumps({"mappings":{"instance":riverInstMapping},"settings":riverInstSettings}),headers={'Content-Type':'application/json'})
-print ret.content
+print(ret.content)
 
 from updatemappings import elasticUpdater
 
@@ -47,4 +48,4 @@ if eslocal!="es-vm-local-01":
 insertRiver(["","script", "mon_cpustats", "nodejs", "/cmsnfses-web/es-web/prod/daemons/lastcpu.js", "append_db_mon", "cdaq"])
 insertRiver(["","script", "index_del", "python", "/cmsnfses-web/es-web/prod/daemons/eslocal_index_cleaner.py", "admin", "all"])
 
-print "injected river documents..."
+print("injected river documents...")

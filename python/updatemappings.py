@@ -1,5 +1,5 @@
 #!/bin/env python
-
+from __future__ import print_function
 import sys
 #allow importing files from running directory (mapping)
 sys.path.append(".")
@@ -18,7 +18,7 @@ headers={'Content-Type':'application/json'}
 try:
   import mappings
 except:
-  print "running without mappings"
+  print("running without mappings")
 
 class elasticUpdater:
 
@@ -29,22 +29,22 @@ class elasticUpdater:
 
     def execUpdater (self,argv):
         if len(argv)<2:
-          print "Usage:"
-          print "  for runindex, boxinfo and hltdlogs indices:"
-          print "       python updatemappings.py central-es-hostname subsystem"
-          print "       (es-vm-cdaq-01 cdaq)"
-          print "  or use this syntax to specify exact index names for runindex,boxinfo and hltdlogs:"
-          print "       python updatemappings.py central-es-hostname 'null' runindex_index boxinfo_index hltdlogs_index"
-          print "       (es-vm-cdaq-01 auto runindex_cdaq_20170101 boxinfo_cdaq_20170101 hltdlogs_cdaq_20170101)"
-          print "  or for copying mapping from one index to another:"
-          print "       python updatemappings.py central-es-hostname 'subsystem' input_index_mapping target_index"
-          print "       (es-vm-cdaq-01 copy runindex_cdaq merging_cdaq)"
-          print " or for setting up subsystem aliases:"
-          print "       python updatemappings.py central-es-hostname 'aliases' subsystem runindex_index boxinfo_index hltdlogs_index merging_index"
-          print "       (es-vm-cdaq-01 aliases cdaq runindex_cdaq_20170101 boxinfo_cdaq_20170101 hltdlogs_cdaq_20170101 merging_cdaq_20170101 2017)"
-          print " or for setting up river alias:"
-          print "       python updatemappings.py central-es-hostname 'riveralias' river_index"
-          print "       (es-vm-cdaq-01 riveralias river_20190129)"
+          print("Usage:")
+          print("  for runindex, boxinfo and hltdlogs indices:")
+          print("       python updatemappings.py central-es-hostname subsystem")
+          print("       (es-vm-cdaq-01 cdaq)")
+          print("  or use this syntax to specify exact index names for runindex,boxinfo and hltdlogs:")
+          print("       python updatemappings.py central-es-hostname 'null' runindex_index boxinfo_index hltdlogs_index")
+          print("       (es-vm-cdaq-01 auto runindex_cdaq_20170101 boxinfo_cdaq_20170101 hltdlogs_cdaq_20170101)")
+          print("  or for copying mapping from one index to another:")
+          print("       python updatemappings.py central-es-hostname 'subsystem' input_index_mapping target_index")
+          print("       (es-vm-cdaq-01 copy runindex_cdaq merging_cdaq)")
+          print(" or for setting up subsystem aliases:")
+          print("       python updatemappings.py central-es-hostname 'aliases' subsystem runindex_index boxinfo_index hltdlogs_index merging_index")
+          print("       (es-vm-cdaq-01 aliases cdaq runindex_cdaq_20170101 boxinfo_cdaq_20170101 hltdlogs_cdaq_20170101 merging_cdaq_20170101 2017)")
+          print(" or for setting up river alias:")
+          print("       python updatemappings.py central-es-hostname 'riveralias' river_index")
+          print("       (es-vm-cdaq-01 riveralias river_20190129)")
           os._exit(0)
 
         self.url=argv[1]
@@ -62,7 +62,7 @@ class elasticUpdater:
             for idx in res_j:
               #else:alias
               new_mapping = res_j[idx]['mappings']
-              print idx
+              print(idx)
               self.updateIndexMappingMaybe(argv[4],new_mapping)
               break
         elif argv[2]=="aliases":
@@ -105,11 +105,11 @@ class elasticUpdater:
               actions.append({"add":{"alias":"runindex_"+year_suffix+"_read","index":argv[7]}}) #!
 
           data = json.dumps({"actions":actions})
-          print data
+          print(data)
           res = requests.post('http://'+self.url+':9200/_aliases',data,headers=headers)
-          print res.status_code
+          print(res.status_code)
 
-          print "current",argv[3],"alias removed from indices: ",",".join(set(old_idx_list)).strip('"')
+          print("current",argv[3],"alias removed from indices: ",",".join(set(old_idx_list)).strip('"'))
           
           pass
         elif argv[2]=="riveralias":
@@ -128,11 +128,11 @@ class elasticUpdater:
           actions.append({"add":{"alias":"river","index":argv[3]}})
 
           data = json.dumps({"actions":actions})
-          print data
+          print(data)
           res = requests.post('http://'+self.url+':9200/_aliases',data,headers=headers)
-          print res.status_code,res.content
+          print(res.status_code,res.content)
 
-          print "current",argv[3],"alias removed from indices: ",",".join(set(old_idx_list)).strip('"')
+          print("current",argv[3],"alias removed from indices: ",",".join(set(old_idx_list)).strip('"'))
           
           pass
  
@@ -156,7 +156,7 @@ class elasticUpdater:
 
             res = requests.post('http://'+self.url+':9200/'+index_name+'/_mapping/'+key,json.dumps(doc),headers=headers)
             if res.status_code==200:
-              print index_name,key
+              print(index_name,key)
             else:
 #              res_c = json.loads(res.content)
 #              for ret_err in  res_c["error"]["root_cause"]:
@@ -192,8 +192,8 @@ class elasticUpdater:
 #                if res.status_code==200:
 #                  print index_name,key,res.status_code
 #                else:
-                  print "FAILED"
-                  print index_name,key,res.status_code,res.content
+                  print("FAILED")
+                  print(index_name,key,res.status_code,res.content)
 
 
         for mkey in mapping:
