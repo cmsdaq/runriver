@@ -56,7 +56,7 @@ class elasticUpdater:
           self.updateIndexMappingMaybe(argv[5],mappings.central_hltdlogs_mapping)
         elif argv[2]=="copy":
           #copy single index mapping to another
-          res = requests.get('http://'+self.url+':9200/'+argv[3]+'/_mapping',headers=headers) #NOTE: in es7 will drop type name, modification is needed
+          res = requests.get('http://'+self.url+':9200/'+argv[3]+'/_mapping?include_type_name=true',headers=headers) #NOTE: in es7 will drop type name (but this is just copy)
           if res.status_code==200:
             res_j = json.loads(res.content)
             for idx in res_j:
@@ -112,6 +112,36 @@ class elasticUpdater:
           print("current",argv[3],"alias removed from indices: ",",".join(set(old_idx_list)).strip('"'))
           
           pass
+
+        elif argv[2]=="alias":
+         if not argv[3]=="merging": #exclude this special case
+          res = requests.get('http://'+self.url+':9200/_aliases',headers=headers)
+          aliases = json.loads(res.content)
+          old_idx_list = []
+          actions = []
+          for idx in aliases:
+            #print idx
+            for alias in aliases[idx]["aliases"]:
+              if alias in [argv[3]+'_'+argv[4],argv[3]+'_'+argv[4]+'_read',argv[3]+'_'+argv[4]+'_write']:
+                actions.append({"remove":{"index":idx,"alias":alias}})
+                old_idx_list.append(idx)
+
+          actions.append({"add":{"alias":argv[3]+'_'+argv[4],"index":argv[5]}})
+          actions.append({"add":{"alias":argv[3]+'_'+argv[4]+"_read","index":argv[5]}})
+          actions.append({"add":{"alias":argv[3]+'_'+argv[4]+"_write","index":argv[5]}})
+
+          #adding all-year index if required
+          if len(argv)>6 and argv[6].isdigit():
+              year_suffix = argv[4]+argv[6]
+              actions.append({"add":{"alias":argv[3]+'_'+year_suffix+"_read","index":argv[5]}})
+
+          data = json.dumps({"actions":actions})
+          print(data)
+          res = requests.post('http://'+self.url+':9200/_aliases',data,headers=headers)
+          print(res.status_code)
+
+          print("current",argv[4],"alias removed from indices: ",",".join(set(old_idx_list)).strip('"'))
+
         elif argv[2]=="riveralias":
 
           res = requests.get('http://'+self.url+':9200/_aliases',headers=headers)
