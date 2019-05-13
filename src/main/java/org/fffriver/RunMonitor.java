@@ -168,7 +168,7 @@ public class RunMonitor extends AbstractRunRiverThread {
         logger.info("create/update CommonMapping");
         client.admin().indices().preparePutMapping()
             .setIndices(runindex_write)
-            //.setType("doc")
+            .setType("doc")
             .setSource(commonMapping)
             .execute().actionGet();
     }
