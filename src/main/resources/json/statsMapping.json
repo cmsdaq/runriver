@@ -1,5 +1,4 @@
 {
-  "doc": {
     "properties": {
       "rivername": {
         "type": "string",
@@ -36,5 +35,4 @@
         "type": "long"
       }
     }
-  }
 }
