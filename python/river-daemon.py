@@ -514,7 +514,7 @@ def runDaemon():
     time.sleep(10)
 
   #put mapping
-  success,st,res = query(gconn,"PUT","/river/_mapping/_doc",json.dumps(riverInstMapping),retry = True)
+  success,st,res = query(gconn,"PUT","/river/_mapping",json.dumps(riverInstMapping),retry = True)
   syslog.syslog("attempts to push instance doc mapping:"+str(st)+" "+str(res))
 
   #recovery if river status is running on this node:

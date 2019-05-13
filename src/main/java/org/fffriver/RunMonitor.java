@@ -180,7 +180,7 @@ public class RunMonitor extends AbstractRunRiverThread {
         logger.info("statIndex exists: "+exists.toString());
         if (!exists){
             logger.info("createStatIndex"); 
-            client.admin().indices().prepareCreate(index).addMapping("properties",statsMapping["properties"]) //TODO: this will not work in elasticsearch7
+            client.admin().indices().prepareCreate(index).addMapping("properties",statsMapping.get("properties")) //TODO: this will not work in elasticsearch7
                 .execute().actionGet();
             client.admin().indices().prepareAliases().addAlias(index,index+"_read")
                 .execute().actionGet();;
