@@ -88,7 +88,7 @@ public class RunMonitor extends AbstractRunRiverThread {
         logger.info("Spawning River instance for run run "+ runNumber );
 
         String index = "river";
-        String type = "instance";
+        String type = "_doc";
         String river_id = "river_"+subsystem+'_'+runNumber;
 
         //check if document is already found
@@ -133,7 +133,7 @@ public class RunMonitor extends AbstractRunRiverThread {
     public boolean runExists(String runNumber){
         // Check if a document exists
         String index = "river";
-        String type = "instance";
+        String type = "_doc";
         String river_id = "river_"+subsystem+'_'+runNumber;
         //setRefresh is not strictly necessary because op type = create is used (only one can create document)
         //GetResponse response = client.prepareGet(index,type,river_id).setRefresh(true).execute().actionGet();
@@ -162,12 +162,13 @@ public class RunMonitor extends AbstractRunRiverThread {
     public void createCommonMapping(Client client, String runindex){
         client.admin().cluster().prepareHealth().setWaitForYellowStatus().execute().actionGet();
         GetMappingsResponse response = client.admin().indices().prepareGetMappings(runindex_write)
-            .setTypes("doc").execute().actionGet();
+            //.setTypes("doc")
+            .execute().actionGet();
         //if (!response.mappings().isEmpty()){ logger.info("Stream Mapping already exists"); return; }
         logger.info("create/update CommonMapping");
         client.admin().indices().preparePutMapping()
             .setIndices(runindex_write)
-            .setType("doc")
+            //.setType("doc")
             .setSource(commonMapping)
             .execute().actionGet();
     }
@@ -179,7 +180,7 @@ public class RunMonitor extends AbstractRunRiverThread {
         logger.info("statIndex exists: "+exists.toString());
         if (!exists){
             logger.info("createStatIndex"); 
-            client.admin().indices().prepareCreate(index).addMapping("stats",statsMapping)
+            client.admin().indices().prepareCreate(index).addMapping("stats",statsMapping) //TODO: this will not work in elasticsearch7
                 .execute().actionGet();
             client.admin().indices().prepareAliases().addAlias(index,index+"_read")
                 .execute().actionGet();;

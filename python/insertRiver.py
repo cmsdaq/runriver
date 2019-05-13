@@ -78,7 +78,7 @@ def insertRiver(args):
         "node" : { "status" : "created" }
     }
   elif rivertype == 'delete':
-    creq = requests.delete('http://localhost:9200/river/instance/'+name,headers=headers)
+    creq = requests.delete('http://localhost:9200/river/_doc/'+name,headers=headers)
     cstatus = creq.status_code
     cdata = creq.content
     print(cdata,'\n')
@@ -90,7 +90,7 @@ def insertRiver(args):
 
   print(json.dumps(q),'\n')
 
-  creq = requests.put('http://localhost:9200/river/instance/'+name+'?op_type=create',json.dumps(q),headers=headers)
+  creq = requests.put('http://localhost:9200/river/_doc/'+name+'?op_type=create',json.dumps(q),headers=headers)
   cstatus = creq.status_code
   cdata = creq.content
   print(cdata,'\n')

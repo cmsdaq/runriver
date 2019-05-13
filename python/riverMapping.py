@@ -56,7 +56,7 @@ riverInstMapping = {
 				},
 				"ping_time_fmt":{ #human readable ping timestamp
 					"type":"date",
-					"format": "YYYY-mm-dd HH:mm:ss"
+					"format": "YYYY-mm-dd HH:MM:SS"
 				}
 			}
 		},

@@ -56,7 +56,7 @@ class elasticUpdater:
           self.updateIndexMappingMaybe(argv[5],mappings.central_hltdlogs_mapping)
         elif argv[2]=="copy":
           #copy single index mapping to another
-          res = requests.get('http://'+self.url+':9200/'+argv[3]+'/_mapping',headers=headers)
+          res = requests.get('http://'+self.url+':9200/'+argv[3]+'/_mapping',headers=headers) #NOTE: in es7 will drop type name, modification is needed
           if res.status_code==200:
             res_j = json.loads(res.content)
             for idx in res_j:
@@ -154,7 +154,7 @@ class elasticUpdater:
 #                if 'format' not in doc[key]["properties"][d]:
 #                  doc[key]["properties"][d]['format']="epoch_millis||dateOptionalTime"
 
-            res = requests.post('http://'+self.url+':9200/'+index_name+'/_mapping/'+key,json.dumps(doc),headers=headers)
+            res = requests.post('http://'+self.url+':9200/'+index_name+'/_mapping/'+key+'?include_type_name=true',json.dumps(doc),headers=headers)
             if res.status_code==200:
               print(index_name,key)
             else:

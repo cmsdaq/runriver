@@ -20,6 +20,10 @@ es_cdaq_run2_list = ['ncsrv-c2e42-09-02', 'ncsrv-c2e42-11-02', 'ncsrv-c2e42-13-0
 es_cdaq_list = ['ncsrv-c2e42-21-02', 'ncsrv-c2e42-23-02']
 es_local_list =['ncsrv-c2e42-13-03', 'ncsrv-c2e42-23-03']
 
+es_vm_cdaq_list = ['es-vm-cdaq-01.cern.ch']
+es_vm_local_list =['es-vm-local-01.cern.ch']
+
+
 myhost = os.uname()[1]
 
 def getmachinetype():
@@ -283,8 +287,13 @@ if __name__ == "__main__":
             #escfg.reg('index.translog.flush_threshold_size','4g') #default:512 mb, only es-local,must be template
             #7.0 settings
             #escfg.reg('node.name',myhost)
-            escfg.reg('discovery.seed_hosts',json.dumps(es_local_list))
-            escfg.reg('cluster.initial_master_nodes',json.dumps(es_local_list))
+            if env=='vm':
+              escfg.reg('discovery.seed_hosts',json.dumps(es_vm_local_list))
+              escfg.reg('cluster.initial_master_nodes',json.dumps(es_vm_local_list))
+            else:
+              escfg.reg('discovery.seed_hosts',json.dumps(es_local_list))
+              escfg.reg('cluster.initial_master_nodes',json.dumps(es_local_list))
+
             escfg.reg('cluster.max_shards_per_node','100000')
             escfg.reg('search.max_buckets','1000000')
             escfg.commit()
@@ -322,8 +331,13 @@ if __name__ == "__main__":
             escfg.reg('cluster.routing.allocation.node_initial_primaries_recoveries', '5') #default:4
             #7.0 settings
             #escfg.reg('node.name',myhost)
-            escfg.reg('discovery.seed_hosts',json.dumps(es_cdaq_list))
-            escfg.reg('cluster.initial_master_nodes',json.dumps(es_cdaq_list))
+            if env=='vm':
+              escfg.reg('discovery.seed_hosts',json.dumps(es_vm_cdaq_list))
+              escfg.reg('cluster.initial_master_nodes',json.dumps(es_vm_cdaq_list))
+            else:
+              escfg.reg('discovery.seed_hosts',json.dumps(es_cdaq_list))
+              escfg.reg('cluster.initial_master_nodes',json.dumps(es_cdaq_list))
+
             escfg.reg('cluster.max_shards_per_node','10000')
             escfg.reg('search.max_buckets','1000000')
             escfg.commit()
