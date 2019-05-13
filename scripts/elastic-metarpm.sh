@@ -34,7 +34,8 @@ ls
 #pluginname1="license"
 
 jarversion=`$SCRIPTDIR/getpom.py $SCRIPTDIR/../pom.xml`
-riverfile="river-runriver-$jarversion-jar-with-dependencies.jar"
+#riverfile="river-runriver-$jarversion-jar-with-dependencies.jar"
+riverfile="river-runriver-$jarversion.jar"
 
 if [ ! -f $SCRIPTDIR/../target/$riverfile ]; then
  echo "missing river file $SCRIPTDIR/../target/$riverfile"
