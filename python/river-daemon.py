@@ -234,7 +234,7 @@ class river_thread(threading.Thread):
       ret_success=True
       doc = json.loads(res)
       doc_seqn=doc['_seq_no']
-      doc_pterm==doc['_primary_term']
+      doc_pterm=doc['_primary_term']
       if 'node' in doc['_source'] and 'name' in doc['_source']['node']:
         if doc['_source']['node']['name'] != os.uname()[1]:
           host_changed=True
