@@ -544,34 +544,50 @@ def runDaemon():
 
     cnt+=1
 
-    checkRivers()
-    checkOtherRivers()
+    try:
+      checkRivers()
+    except Exception as ex:
+      syslog.syslog("checkRivers exception:" + str(ex))
+      raise ex
+    try:
+      checkOtherRivers()
+    except Exception as ex:
+      syslog.syslog("checkOtherRivers exception:" + str(ex))
+      raise ex
 
     #join threads that have finished (needed?)
-    for rt in river_threads[:]:
-      if rt.stopped:
-        try:
-          rt.join()
-        except Exception as ex:
+    try:
+      for rt in river_threads[:]:
+        if rt.stopped:
+          try:
+            rt.join()
+          except Exception as ex:
 
-          syslog.syslog("error joining river thread (runDaemon loop_ :" +str(type(ex).__name__)+" msg:"+str(ex))
-          pass
-        river_threads.remove(rt)
+            syslog.syslog("error joining river thread (runDaemon loop_ :" +str(type(ex).__name__)+" msg:"+str(ex))
+            pass
+          river_threads.remove(rt)
 
-    time.sleep(sleep_int)
-    if global_quit:break
+      time.sleep(sleep_int)
+      if global_quit:break
 
+    except Exception as ex:
+      syslog.syslog("handling river threads exception:" + str(ex))
+      raise ex
     #find instances that need to be started
-    success,st,res = query(gconn,"GET","/river/_doc/_search?size=1000", '{"query":{"bool":{"should":[{"term":{"node.status":"restart"}},{"term":{"node.status":"restarting"}},{"term":{"node.status":"crashed"}},{"term":{"node.status":"created"}}] }}}')
-    #TODO: add detection of stale objects (search for > amount of time since last ping
-    if success and st==200:
-      jsres = json.loads(res)
-      for hit in jsres['hits']['hits']:
-        #(try) to instantiate using doc sequence and term
-        runRiver(hit)
-      pass
-    else:
-      syslog.syslog("ERROR running search query status:"+str(st)+" "+str(res))
+    try:
+      success,st,res = query(gconn,"GET","/river/_doc/_search?size=1000", '{"query":{"bool":{"should":[{"term":{"node.status":"restart"}},{"term":{"node.status":"restarting"}},{"term":{"node.status":"crashed"}},{"term":{"node.status":"created"}}] }}}')
+      #TODO: add detection of stale objects (search for > amount of time since last ping
+      if success and st==200:
+        jsres = json.loads(res)
+        for hit in jsres['hits']['hits']:
+          #(try) to instantiate using doc sequence and term
+          runRiver(hit)
+        pass
+      else:
+        syslog.syslog("ERROR running search query status:"+str(st)+" "+str(res))
+    except Exception as ex:
+      syslog.syslog("exception finding new instances to start+"+str(ex))
+      raise ex
 
 class LogCleaner(threading.Thread):
 
