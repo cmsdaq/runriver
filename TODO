@@ -1,7 +1,5 @@
-- move to REST API (internal one is getting deprecated)
+- move to REST Java API (internal one is getting deprecated)
 - store per-BU micro-completion. Possibly package more information about missing FUs
 - deduplication (also consider timeout adjustement in anelastic)? maybe inject id for fu-out documents?
 - analysis of eols, prc-in and fu-out information to detect FU which is problematic
-- use xml etree to get runriver jar and elasticsearch version from pom.xml
-
-- setup river as alias (if migration ever needed)
+- setup river as alias (if migration ever needed) (?)

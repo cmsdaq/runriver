@@ -1,4 +1,5 @@
 #!/bin/env python
+from __future__ import print_function
 
 import sys
 import os
@@ -16,9 +17,6 @@ riverInstSettings = {
     "index" : {
             "codec" : "best_compression",
             "number_of_shards" : "1",
-            "mapper" : {
-                    "dynamic" : "false"
-            },
             "number_of_replicas" : "1", #1 replica for 2-host setup. Later will increase to 2
     }
 }
@@ -27,8 +25,8 @@ now = datetime.datetime.now()
 newdate = str(now.year)+str(now.month).zfill(2)+str(now.day).zfill(2)
 
 print("creating index: river_"+newdate)
-ret = requests.put("http://localhost:9200/river_"+newdate,json.dumps({"mappings":{"instance":riverInstMapping},"settings":riverInstSettings}),headers={'Content-Type':'application/json'})
-print ret.content
+ret = requests.put("http://localhost:9200/river_"+newdate,json.dumps({"mappings":riverInstMapping,"settings":riverInstSettings}),headers={'Content-Type':'application/json'})
+print(ret.content)
 
 from updatemappings import elasticUpdater
 
@@ -47,4 +45,4 @@ if eslocal!="es-vm-local-01":
 insertRiver(["","script", "mon_cpustats", "nodejs", "/cmsnfses-web/es-web/prod/daemons/lastcpu.js", "append_db_mon", "cdaq"])
 insertRiver(["","script", "index_del", "python", "/cmsnfses-web/es-web/prod/daemons/eslocal_index_cleaner.py", "admin", "all"])
 
-print "injected river documents..."
+print("injected river documents...")

@@ -20,6 +20,10 @@ es_cdaq_run2_list = ['ncsrv-c2e42-09-02', 'ncsrv-c2e42-11-02', 'ncsrv-c2e42-13-0
 es_cdaq_list = ['ncsrv-c2e42-21-02', 'ncsrv-c2e42-23-02']
 es_local_list =['ncsrv-c2e42-13-03', 'ncsrv-c2e42-23-03']
 
+es_vm_cdaq_list = ['es-vm-cdaq-01.cern.ch']
+es_vm_local_list =['es-vm-local-01.cern.ch']
+
+
 myhost = os.uname()[1]
 
 def getmachinetype():
@@ -260,11 +264,7 @@ if __name__ == "__main__":
             escfg.reg('network.publish_host',es_publish_host)
             escfg.reg('network.bind_host','_local_,'+es_publish_host)
             escfg.reg('cluster.name','es-local')
-            escfg.reg('discovery.zen.ping.unicast.hosts',json.dumps(es_local_list))
-            if env=='vm':
-                escfg.reg('discovery.zen.minimum_master_nodes','1')
-            else:
-                escfg.reg('discovery.zen.minimum_master_nodes','2')
+            #escfg.reg('discovery.zen.ping.unicast.hosts',json.dumps(es_local_list))
             escfg.reg('node.master','true')
             escfg.reg('node.data','true')
             escfg.reg('path.logs','/var/log/elasticsearch')
@@ -273,7 +273,7 @@ if __name__ == "__main__":
             escfg.reg('http.cors.enabled','true')
             escfg.reg('http.cors.allow-origin','"*"')
             escfg.reg('bootstrap.system_call_filter','false')
-            escfg.reg('transport.tcp.compress','true')
+            escfg.reg('transport.compress','true')
             escfg.reg('script.max_compilations_rate', '10000/1m')
             escfg.reg('cluster.routing.allocation.disk.watermark.low','92%')
             escfg.reg('cluster.routing.allocation.disk.watermark.high','95%')
@@ -281,11 +281,21 @@ if __name__ == "__main__":
             #other optimizations:
             #if env!='vm':
             escfg.reg("indices.recovery.max_bytes_per_sec","100mb") #default:40mb
-            escfg.reg('thread_pool.index.queue_size','1000') #default:200
-            escfg.reg('thread_pool.bulk.queue_size','3000') #default:50
+            escfg.reg('thread_pool.write.queue_size','3000') #default:50(?)
             escfg.reg('cluster.routing.allocation.node_concurrent_recoveries','5') #default:2
             escfg.reg('cluster.routing.allocation.node_initial_primaries_recoveries', '5') #default:4
             #escfg.reg('index.translog.flush_threshold_size','4g') #default:512 mb, only es-local,must be template
+            #7.0 settings
+            #escfg.reg('node.name',myhost)
+            if env=='vm':
+              escfg.reg('discovery.seed_hosts',json.dumps(es_vm_local_list))
+              escfg.reg('cluster.initial_master_nodes',json.dumps(es_vm_local_list))
+            else:
+              escfg.reg('discovery.seed_hosts',json.dumps(es_local_list))
+              escfg.reg('cluster.initial_master_nodes',json.dumps(es_local_list))
+
+            escfg.reg('cluster.max_shards_per_node','100000')
+            escfg.reg('search.max_buckets','1000000')
             escfg.commit()
  
             #modify logging.yml --> TODO: adjust /etc/elasticsearch/log4j2.properties
@@ -298,11 +308,7 @@ if __name__ == "__main__":
             escfg.reg('network.publish_host',es_publish_host)
             escfg.reg('network.bind_host','_local_,'+es_publish_host)
             escfg.reg('cluster.name','es-cdaq')
-            escfg.reg('discovery.zen.ping.unicast.hosts',json.dumps(es_cdaq_list))
-            if env=='vm':
-                escfg.reg('discovery.zen.minimum_master_nodes','1')
-            else:
-                escfg.reg('discovery.zen.minimum_master_nodes','2')
+            #escfg.reg('discovery.zen.ping.unicast.hosts',json.dumps(es_cdaq_list))
             escfg.reg('node.master','true')
             escfg.reg('node.data','true')
             escfg.reg('path.logs','/var/log/elasticsearch')
@@ -311,7 +317,7 @@ if __name__ == "__main__":
             escfg.reg('http.cors.enabled','true')
             escfg.reg('http.cors.allow-origin','"*"')
             escfg.reg('bootstrap.system_call_filter','false')
-            escfg.reg('transport.tcp.compress','true')
+            escfg.reg('transport.compress','true')
             escfg.reg('action.auto_create_index','.watches,.triggered_watches,.watcher-history-*,.marvel-*')
             escfg.reg('script.max_compilations_rate', '10000/1m')
             escfg.reg("action.destructive_requires_name", 'true')
@@ -320,9 +326,19 @@ if __name__ == "__main__":
 
             #if env!='vm':
             escfg.reg("indices.recovery.max_bytes_per_sec","100mb") #default:40mb
-            escfg.reg('thread_pool.index.queue_size','1000') #default:200
-            escfg.reg('thread_pool.bulk.queue_size','3000') #default:50
+            escfg.reg('thread_pool.write.queue_size','3000') #default:50 (?)
             escfg.reg('cluster.routing.allocation.node_concurrent_recoveries','5') #default:2
             escfg.reg('cluster.routing.allocation.node_initial_primaries_recoveries', '5') #default:4
+            #7.0 settings
+            #escfg.reg('node.name',myhost)
+            if env=='vm':
+              escfg.reg('discovery.seed_hosts',json.dumps(es_vm_cdaq_list))
+              escfg.reg('cluster.initial_master_nodes',json.dumps(es_vm_cdaq_list))
+            else:
+              escfg.reg('discovery.seed_hosts',json.dumps(es_cdaq_list))
+              escfg.reg('cluster.initial_master_nodes',json.dumps(es_cdaq_list))
+
+            escfg.reg('cluster.max_shards_per_node','10000')
+            escfg.reg('search.max_buckets','1000000')
             escfg.commit()
 

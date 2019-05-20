@@ -204,7 +204,7 @@ public class AbstractRunRiverThread extends Thread  {
         //upda document in river_id in river index
         UpdateRequest updateRequest = new UpdateRequest();
         updateRequest.index(river_esindex);
-        updateRequest.type("instance");
+        updateRequest.type("_doc");
         updateRequest.id(riverName);
         updateRequest.doc(
                       jsonBuilder()

@@ -81,7 +81,7 @@ public class Main {
     //get document id from river index
     GetResponse response;
     try {
-      response = client.prepareGet(river_esindex,"instance",river_id).get();
+      response = client.prepareGet(river_esindex,"_doc",river_id).get();
     }
     catch (Exception e) {
       logger.error("Main river exception (GET): ", e);
