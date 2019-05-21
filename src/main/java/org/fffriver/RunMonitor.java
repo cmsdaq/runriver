@@ -4,8 +4,9 @@ package org.fffriver;
 //JAVA
 import java.io.IOException;
 import java.net.UnknownHostException;
-import java.util.*;
-
+//import java.util.*;
+import java.util.Map;
+import java.util.HashMap;
 
 //ELASTICSEARCH
 import org.elasticsearch.client.RestHighLevelClient;
@@ -21,39 +22,27 @@ import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest.AliasA
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.client.indices.CreateIndexRequest;
 import org.elasticsearch.client.indices.GetIndexRequest;
-//import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
+import org.elasticsearch.client.indices.PutMappingRequest;
+import org.elasticsearch.client.indices.GetMappingsRequest;
+import org.elasticsearch.client.indices.GetMappingsResponse;
+import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequestBuilder;
 
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
-
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequestBuilder;
-import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
-import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsRequest;
-import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsResponse;
-//import org.elasticsearch.index.engine.DocumentAlreadyExistsException;
-import org.elasticsearch.index.engine.VersionConflictEngineException;
-//jsonBuilder
-import org.elasticsearch.common.xcontent.support.XContentMapValues;
-import static org.elasticsearch.common.xcontent.XContentFactory.*;
-import org.elasticsearch.common.xcontent.XContentType;
-
-import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.search.aggregations.AggregationBuilders;
 import org.elasticsearch.search.sort.SortBuilders;
 import org.elasticsearch.search.sort.SortOrder;
+import org.elasticsearch.index.query.QueryBuilders;
 
-//org.json
-import net.sf.json.JSONObject;
-import net.sf.json.JSONSerializer;
-import org.apache.commons.io.IOUtils;
+import org.elasticsearch.common.xcontent.XContentType;
+import static org.elasticsearch.common.xcontent.XContentFactory.*;
+
+import org.elasticsearch.index.engine.VersionConflictEngineException;
 
 public class RunMonitor extends AbstractRunRiverThread {
         
     String commonMapping;
     String statsMapping;
-    //JSONObject runQuery;
 
     public RunMonitor(String riverName, Map<String, Object> rSettings, RestHighLevelClient client) {
         super(riverName,rSettings,client);
@@ -111,7 +100,7 @@ public class RunMonitor extends AbstractRunRiverThread {
         String river_id = "river_"+subsystem+'_'+runNumber;
 
         try {
-          IndexRequest indexReq = new IndexRequest(index,river_id)
+          IndexRequest indexReq = new IndexRequest(index,"_doc",river_id)
             .opType("create")
             .source(jsonBuilder()
                     .startObject()
@@ -151,7 +140,6 @@ public class RunMonitor extends AbstractRunRiverThread {
 
     public void getQueries() {
         try {
-                //runQuery = getJson("runRanger");
                 commonMapping = getJsonAsString("commonMapping"); 
                 statsMapping = getJsonAsString("statsMapping"); 
             } catch (Exception e) {
@@ -168,7 +156,7 @@ public class RunMonitor extends AbstractRunRiverThread {
 
     public void createCommonMapping(RestHighLevelClient client, String runindex) throws IOException {
         ClusterHealthRequest healthReq = new ClusterHealthRequest().waitForYellowStatus();
-        client.cluster().health(healthReq, RequestOptions.DEFAULT);//does it wait?
+        client.cluster().health(healthReq, RequestOptions.DEFAULT);
 
         GetMappingsRequest getRequest = new GetMappingsRequest().indices(runindex_write);
         client.indices().getMapping(getRequest, RequestOptions.DEFAULT);
@@ -183,7 +171,7 @@ public class RunMonitor extends AbstractRunRiverThread {
         if(!statsEnabled){return;}
 
         ClusterHealthRequest healthReq = new ClusterHealthRequest().waitForYellowStatus();
-        client.cluster().health(healthReq, RequestOptions.DEFAULT);//does it wait?
+        client.cluster().health(healthReq, RequestOptions.DEFAULT);
 
         Boolean exists = client.indices().exists(new GetIndexRequest(index),RequestOptions.DEFAULT);
         logger.info("statIndex exists: "+exists.toString());

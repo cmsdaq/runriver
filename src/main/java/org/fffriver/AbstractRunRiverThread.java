@@ -5,9 +5,10 @@ import java.io.IOException;
 import java.lang.InterruptedException;
 import java.util.concurrent.ExecutionException;
 import java.net.UnknownHostException;
-import java.io.File;
+//import java.io.File;
 import java.util.Map;
-import java.util.*;
+import java.util.TimeZone;
+import java.util.Date;
 import java.text.SimpleDateFormat;
 
 import java.io.InputStream;
@@ -16,19 +17,18 @@ import java.io.InputStream;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.xcontent.support.XContentMapValues;
-import org.elasticsearch.common.settings.Settings;
-//import org.elasticsearch.common.logging.ESLogger;
+
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.action.search.SearchRequest;
+
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
-import org.elasticsearch.common.xcontent.XContentFactory.*;
-import org.elasticsearch.action.update.*;
-import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.common.xcontent.XContentBuilder;
+
+import org.elasticsearch.action.update.UpdateRequest;
+import org.elasticsearch.action.update.UpdateResponse;
+
+import org.elasticsearch.common.xcontent.support.XContentMapValues;
 import static org.elasticsearch.common.xcontent.XContentFactory.*;
 import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy;
 

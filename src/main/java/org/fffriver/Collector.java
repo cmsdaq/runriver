@@ -6,8 +6,6 @@ import java.util.Map;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.HashMap;
-//import java.net.InetAddress;
-//import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.lang.Math;
 import org.apache.http.HttpHost;
@@ -18,7 +16,6 @@ import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.Requests;
 import org.elasticsearch.common.settings.Settings;
-//import org.elasticsearch.action.indices.CloseIndexRequest;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
@@ -29,34 +26,27 @@ import org.elasticsearch.action.admin.indices.close.CloseIndexRequest;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.common.inject.Inject;
-//import org.elasticsearch.index.get.GetField;
 
 
 import org.elasticsearch.index.query.QueryBuilders;
-//import org.elasticsearch.index.query.TermQueryBuilders;
 import org.elasticsearch.join.query.JoinQueryBuilders;
-//import org.elasticsearch.join.query.ParentIdQueryBuilder;
 import static org.elasticsearch.common.xcontent.XContentFactory.*;
 
 //Remote query stuff
 import org.elasticsearch.search.aggregations.BucketOrder;
 import org.elasticsearch.search.aggregations.bucket.terms.Terms;
-//import org.elasticsearch.search.aggregations.bucket.histogram.Histogram;
 
 //import java.net.InetSocketAddress;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.search.aggregations.metrics.Sum;
 import org.elasticsearch.search.aggregations.metrics.Max;
 import org.elasticsearch.search.aggregations.Aggregation;
-//import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentParser;
 import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy;
 
 import org.elasticsearch.search.builder.SearchSourceBuilder;
-//import org.elasticsearch.common.ParseFieldMatcher;
-//import org.elasticsearch.index.query.QueryParseContext;
 import org.elasticsearch.search.aggregations.AggregationBuilders;
 import org.elasticsearch.search.sort.SortBuilders;
 import org.elasticsearch.search.sort.SortOrder;
@@ -113,7 +103,6 @@ public class Collector extends AbstractRunRiverThread {
             runStrPrefix = "run" + runNumber + "_ls";
 
         setRemoteClient();
-        getQueries();
 
     }
     @Override
@@ -140,20 +129,13 @@ public class Collector extends AbstractRunRiverThread {
     public void collectStreams() throws Exception {
         logger.info("collectStreams");
         Boolean dataChanged;
-        //long highestLumisection=-1;
         long lowestLumisection=-1;
         
         int size=0;
         if(firstTime){
-            //streamQuery.getJSONObject("aggs").getJSONObject("streams")
-            //    .getJSONObject("aggs").getJSONObject("ls").getJSONObject("terms")
-            //    .put("size",1000000);
             firstTime = false;
             size=1000000;
         }else{
-            //streamQuery.getJSONObject("aggs").getJSONObject("streams")
-            //    .getJSONObject("aggs").getJSONObject("ls").getJSONObject("terms")
-            //    .put("size",30);
             size=30;
         }
         //logger.info("streamquery: "+streamQuery.toString());
@@ -213,7 +195,6 @@ public class Collector extends AbstractRunRiverThread {
                 //update last LS found in the query
                 Long lsvalLong = (Long)(ls.getKey());
                 long lsval = lsvalLong.longValue();
-                //if (lsval>highestLumisection) highestLumisection=lsval;
                 if (lsval<lowestLumisection || lowestLumisection<0) lowestLumisection=lsval;
 
                 Sum inSum = ls.getAggregations().get("in");
@@ -297,7 +278,7 @@ public class Collector extends AbstractRunRiverThread {
                         continue;
                     }
                     logger.info("eolsQuery returned " + String.valueOf(sResponseEoLS.getHits().getTotalHits().value) + " hits for LS "+ ls);
-                    //else logger.info(String.valueOf(sResponseEoLS.getHits().getTotalHits().value));
+                    //logger.info(String.valueOf(sResponseEoLS.getHits().getTotalHits().value));
                     Sum eolEvents = sResponseEoLS.getAggregations().get("NEvents");
                     Sum eolLostEvents = sResponseEoLS.getAggregations().get("NLostEvents");
                     Max eolTotalEvents = sResponseEoLS.getAggregations().get("TotalEvents");
@@ -391,7 +372,7 @@ public class Collector extends AbstractRunRiverThread {
                   }
                   if (retDate >  Double.NEGATIVE_INFINITY) {
 
-                    IndexRequest indexReq = new IndexRequest(runindex_write,id)
+                    IndexRequest indexReq = new IndexRequest(runindex_write,"_doc",id)
                       .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                       .routing(runNumber)
                       .source(jsonBuilder()
@@ -416,7 +397,7 @@ public class Collector extends AbstractRunRiverThread {
                     //if no date, create indexing date explicitely
                     long start_time_millis = System.currentTimeMillis();
 
-                    IndexRequest indexReq = new IndexRequest(runindex_write,id)
+                    IndexRequest indexReq = new IndexRequest(runindex_write,"_doc",id)
                       .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                       .routing(runNumber)
                       .source(jsonBuilder()
@@ -642,7 +623,6 @@ public class Collector extends AbstractRunRiverThread {
         client.index(indexReqXbSum,RequestOptions.DEFAULT);
  
         //class summary
-
         Terms cpuclasses = sResponse.getAggregations().get("mclass");
         try {
           for (Terms.Bucket cpuclass : cpuclasses.getBuckets()) {
@@ -790,16 +770,6 @@ public class Collector extends AbstractRunRiverThread {
         );
     }
     */
-
-    public void getQueries(){
-        try{
-            //eolsQuery = getJson("eolsQuery");
-            //statesQuery = getJson("statesQuery");
-            //boxinfoQuery = getJson("boxinfoQuery");
-        } catch (Exception e) {
-           logger.error("Collector getQueries Exception: ", e);
-        }
-    }
 
     public void execRunClose() throws IOException {
         if (!closeIndices) {
