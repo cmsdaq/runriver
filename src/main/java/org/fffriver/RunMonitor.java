@@ -8,21 +8,36 @@ import java.util.*;
 
 
 //ELASTICSEARCH
-import org.elasticsearch.client.Client;
+import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.client.RequestOptions;
+import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
+import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
+import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
+import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions;
+import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
+import org.elasticsearch.client.indices.CreateIndexRequest;
+import org.elasticsearch.client.indices.GetIndexRequest;
+//import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
+
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
+import org.elasticsearch.search.builder.SearchSourceBuilder;
+
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequestBuilder;
-//import org.elasticsearch.action.admin.indices.mapping.put.PutMappingResponse;
+import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
+import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsRequest;
 import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsResponse;
 //import org.elasticsearch.index.engine.DocumentAlreadyExistsException;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 //jsonBuilder
 import org.elasticsearch.common.xcontent.support.XContentMapValues;
 import static org.elasticsearch.common.xcontent.XContentFactory.*;
+import org.elasticsearch.common.xcontent.XContentType;
 
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.aggregations.AggregationBuilders;
@@ -36,43 +51,48 @@ import org.apache.commons.io.IOUtils;
 
 public class RunMonitor extends AbstractRunRiverThread {
         
-    JSONObject commonMapping;
-    JSONObject statsMapping;
+    String commonMapping;
+    String statsMapping;
     //JSONObject runQuery;
 
-    public RunMonitor(String riverName, Map<String, Object> rSettings, Client client) {
+    public RunMonitor(String riverName, Map<String, Object> rSettings, RestHighLevelClient client) {
         super(riverName,rSettings,client);
     }
 
     @Override
-    public void beforeLoop() throws UnknownHostException {
+    public void beforeLoop() throws UnknownHostException, IOException {
         logger.info("RunMonitor Started v1.4.4");
         getQueries();
         prepareServer(client,runindex_write);
         this.interval = polling_interval;
         
     }
-    public void afterLoop() throws Exception {
+    public void afterLoop() throws Exception, IOException {
         logger.info("RunMonitor Stopped.");
     }
 
     @Override
-    public void mainLoop() throws Exception {     
-        runPolling();
-    }
+    public void mainLoop() throws Exception, IOException {     
 
-    public void runPolling() throws Exception {
         logger.info("runPolling on index: "+runindex_read);
-        SearchResponse response = client.prepareSearch(runindex_read).setTypes("doc")
-                                        .setSize(100)
-                                        .addSort(SortBuilders.fieldSort("startTime").order(SortOrder.DESC))
-                                        .setQuery(QueryBuilders.boolQuery()
-                                                               .must(QueryBuilders.termQuery("doc_type","run"))
-                                                               .should(QueryBuilders.boolQuery().mustNot(QueryBuilders.existsQuery("endTime")))
-                                                               .should(QueryBuilders.rangeQuery("activeBUs").from(1))
-                                                               .minimumShouldMatch("1"))
-                                        .execute().actionGet();
-        
+
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder()
+         .query(QueryBuilders.boolQuery()
+                                  .must(QueryBuilders.termQuery("doc_type","run"))
+                                  .should(QueryBuilders.boolQuery().mustNot(QueryBuilders.existsQuery("endTime")))
+                                  .should(QueryBuilders.rangeQuery("activeBUs").from(1))
+                                  .minimumShouldMatch("1"))
+         .sort(SortBuilders.fieldSort("startTime").order(SortOrder.DESC))
+         .size(100);
+
+        SearchRequest searchRequest = new SearchRequest()
+          .indices(runindex_read)
+          .source(searchSourceBuilder);
+          //.size(100);
+
+        SearchResponse response = client.search(searchRequest,RequestOptions.DEFAULT);
+
+
         collectStats(riverName,"runRanger",runindex_read,response);
 
         if (response.getHits().getTotalHits().value == 0 ) { return; }
@@ -88,20 +108,12 @@ public class RunMonitor extends AbstractRunRiverThread {
         logger.info("Spawning River instance for run run "+ runNumber );
 
         String index = "river";
-        String type = "_doc";
         String river_id = "river_"+subsystem+'_'+runNumber;
 
-        //check if document is already found
-
-        // FOR DYNAMIC MAPPING ISSUE
-        //String map = "{\"dynamic\" : true}}";
-        //PutMappingRequestBuilder pmrb = client.admin().indices()
-        //                .preparePutMapping(index)
-        //                .setType(type)//.setSource(map);
-        //PutMappingResponse mresponse = pmrb.execute().actionGet();   
         try {
-          IndexResponse response = client.prepareIndex(index, type, river_id)
-          .setSource(jsonBuilder()
+          IndexRequest indexReq = new IndexRequest(index,river_id)
+            .opType("create")
+            .source(jsonBuilder()
                     .startObject()
                         .field("instance_name",river_id)
                         .field("subsystem",subsystem)
@@ -118,10 +130,8 @@ public class RunMonitor extends AbstractRunRiverThread {
                         .startObject("node").field("status","created").endObject()
                     .endObject()
                         //.field("role", "collector")
-                  )
-          .setCreate(true)
-          .execute()
-          .actionGet();
+                  );
+          client.index(indexReq,RequestOptions.DEFAULT);
         }
         //catch (DocumentAlreadyExistsException ex) {
         catch (VersionConflictEngineException ex) {
@@ -130,62 +140,68 @@ public class RunMonitor extends AbstractRunRiverThread {
 
     }
 
-    public boolean runExists(String runNumber){
+    public boolean runExists(String runNumber) throws IOException{
         // Check if a document exists
         String index = "river";
-        String type = "_doc";
         String river_id = "river_"+subsystem+'_'+runNumber;
         //setRefresh is not strictly necessary because op type = create is used (only one can create document)
-        //GetResponse response = client.prepareGet(index,type,river_id).setRefresh(true).execute().actionGet();
-        GetResponse response = client.prepareGet(index,type,river_id).execute().actionGet();
-        //GetResponse response = client.prepareGet(index,type,,river_id).get();
+        GetResponse response = client.get( new GetRequest(index,river_id), RequestOptions.DEFAULT);
         return response.isExists();
     }
 
     public void getQueries() {
         try {
                 //runQuery = getJson("runRanger");
-                commonMapping = getJson("commonMapping"); 
-                statsMapping = getJson("statsMapping"); 
+                commonMapping = getJsonAsString("commonMapping"); 
+                statsMapping = getJsonAsString("statsMapping"); 
             } catch (Exception e) {
                 logger.error("RunMonitor getQueries Exception: ", e);
             }
         
     }
 
-    public void prepareServer(Client client, String runindex) {
+    public void prepareServer(RestHighLevelClient client, String runindex) throws IOException {
         //runindexCheck(client,runindex);
         createCommonMapping(client,runindex);
         createStatIndex(client,"runriver_stats"); 
     }
 
-    public void createCommonMapping(Client client, String runindex){
-        client.admin().cluster().prepareHealth().setWaitForYellowStatus().execute().actionGet();
-        GetMappingsResponse response = client.admin().indices().prepareGetMappings(runindex_write)
-            //.setTypes("doc")
-            .execute().actionGet();
-        //if (!response.mappings().isEmpty()){ logger.info("Stream Mapping already exists"); return; }
+    public void createCommonMapping(RestHighLevelClient client, String runindex) throws IOException {
+        ClusterHealthRequest healthReq = new ClusterHealthRequest().waitForYellowStatus();
+        client.cluster().health(healthReq, RequestOptions.DEFAULT);//does it wait?
+
+        GetMappingsRequest getRequest = new GetMappingsRequest().indices(runindex_write);
+        client.indices().getMapping(getRequest, RequestOptions.DEFAULT);
+
         logger.info("create/update CommonMapping");
-        client.admin().indices().preparePutMapping()
-            .setIndices(runindex_write)
-            .setType("doc")
-            .setSource(commonMapping)
-            .execute().actionGet();
+        PutMappingRequest injRequest = new PutMappingRequest(runindex_write)
+          .source(commonMapping,XContentType.JSON);
+        client.indices().putMapping(injRequest,RequestOptions.DEFAULT);
     }
 
-    public void createStatIndex(Client client, String index){
+    public void createStatIndex(RestHighLevelClient client, String index) throws IOException {
         if(!statsEnabled){return;}
-        client.admin().cluster().prepareHealth().setWaitForYellowStatus().execute().actionGet();
-        Boolean exists = client.admin().indices().prepareExists(index).execute().actionGet().isExists();
+
+        ClusterHealthRequest healthReq = new ClusterHealthRequest().waitForYellowStatus();
+        client.cluster().health(healthReq, RequestOptions.DEFAULT);//does it wait?
+
+        Boolean exists = client.indices().exists(new GetIndexRequest(index),RequestOptions.DEFAULT);
         logger.info("statIndex exists: "+exists.toString());
+
         if (!exists){
             logger.info("createStatIndex"); 
-            client.admin().indices().prepareCreate(index).addMapping("properties",statsMapping.get("properties")) //TODO: this will not work in elasticsearch7
-                .execute().actionGet();
-            client.admin().indices().prepareAliases().addAlias(index,index+"_read")
-                .execute().actionGet();;
-            client.admin().indices().prepareAliases().addAlias(index,index+"_write")
-                .execute().actionGet();;
+            CreateIndexRequest createRequest = new CreateIndexRequest(index).mapping(statsMapping,XContentType.JSON);
+            client.indices().create(createRequest,  RequestOptions.DEFAULT);
+
+            logger.info("adding aliases");
+            AliasActions aliasAction1 =
+              new AliasActions(AliasActions.Type.ADD)
+                .index(index).alias(index+"_read");
+            AliasActions aliasAction2 =
+              new AliasActions(AliasActions.Type.ADD)
+                .index(index).alias(index+"_read");
+            IndicesAliasesRequest aliasRequest = new IndicesAliasesRequest().addAliasAction(aliasAction1).addAliasAction(aliasAction2);
+            client.indices().updateAliases(aliasRequest, RequestOptions.DEFAULT);
         }
     }
 }

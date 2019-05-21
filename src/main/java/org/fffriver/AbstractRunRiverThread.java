@@ -13,14 +13,17 @@ import java.text.SimpleDateFormat;
 import java.io.InputStream;
 
 //ELASTICSEARCH
-import org.elasticsearch.client.Client;
+import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.xcontent.support.XContentMapValues;
 import org.elasticsearch.common.settings.Settings;
 //import org.elasticsearch.common.logging.ESLogger;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.common.xcontent.XContentFactory.*;
 import org.elasticsearch.action.update.*;
@@ -28,14 +31,6 @@ import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import static org.elasticsearch.common.xcontent.XContentFactory.*;
 import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy;
-
-//Remote query stuff
-//import org.elasticsearch.client.transport.TransportClient;
-//import org.elasticsearch.common.transport.InetSocketTransportAddress;
-//import org.elasticsearch.common.xcontent.ToXContent;
-//import org.elasticsearch.common.xcontent.XContentFactory;
-
-
 
 //org.json
 import net.sf.json.JSONObject;
@@ -53,7 +48,7 @@ public class AbstractRunRiverThread extends Thread  {
     protected final Logger logger;
     protected final String riverName;//todo:name
     protected final Map<String, Object> settings;
-    protected final Client client;
+    protected final RestHighLevelClient client;
 
     //Runrivercomponent
     public String es_local_host;
@@ -80,7 +75,7 @@ public class AbstractRunRiverThread extends Thread  {
     
 
     @Inject
-    public AbstractRunRiverThread(String riverName,  Map<String, Object> rSettings, Client client) {
+    public AbstractRunRiverThread(String riverName,  Map<String, Object> rSettings, RestHighLevelClient client) {
         super("RunRiver thread");
 
         //River Settings
@@ -165,17 +160,17 @@ public class AbstractRunRiverThread extends Thread  {
  
     }
 
-    public void injectMapping() throws UnknownHostException {
+    public void injectMapping() throws UnknownHostException, IOException {
         beforeLoop();
     }
 
-    public void mainLoop() throws Exception {
+    public void mainLoop() throws Exception, IOException {
         return;
     }
-    public void beforeLoop() throws UnknownHostException {
+    public void beforeLoop() throws UnknownHostException, IOException {
         return;
     }
-    public void afterLoop() throws Exception {
+    public void afterLoop() throws Exception, IOException {
         return;
     }
 
@@ -195,6 +190,14 @@ public class AbstractRunRiverThread extends Thread  {
         return json;
     }
 
+    public String getJsonAsString(String queryName) throws Exception {
+        String filename = queryName + ".json" ;
+        InputStream is = this.getClass().getResourceAsStream( "/json/" + filename );
+        String jsonTxt = IOUtils.toString( is );
+        return jsonTxt;
+    }
+
+
     public void updateRiverDoc() throws IOException,InterruptedException,ExecutionException {
 
         long start_time_millis = System.currentTimeMillis();
@@ -202,10 +205,7 @@ public class AbstractRunRiverThread extends Thread  {
         String sdf_string = sdf.format(start_time); 
 
         //upda document in river_id in river index
-        UpdateRequest updateRequest = new UpdateRequest();
-        updateRequest.index(river_esindex);
-        updateRequest.type("_doc");
-        updateRequest.id(riverName);
+        UpdateRequest updateRequest = new UpdateRequest(river_esindex,riverName);
         updateRequest.doc(
                       jsonBuilder()
                       .startObject()
@@ -214,17 +214,16 @@ public class AbstractRunRiverThread extends Thread  {
                       .field("ping_timestamp",start_time_millis)
                       .field("ping_time_fmt",sdf_string).endObject().endObject());
 
-        client.update(updateRequest).get();
+        client.update(updateRequest,RequestOptions.DEFAULT);
   } 
 
     public Boolean collectStats(String rivername, String queryname, String index, SearchResponse sResponse) {
         if(!statsEnabled){return true;}
         
         try {
-            //IndexResponse iResponse = client.prepareIndex("runriver_stats_write", "stats").setRefresh(true)
-            //IndexResponse iResponse = client.prepareIndex("runriver_stats_write", "stats").setRefreshPolicy(RefreshPolicy.parse("IMMEDIATE"));
-            IndexResponse iResponse = client.prepareIndex("runriver_stats_write", "stats").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                .setSource(jsonBuilder()
+            IndexRequest indexRequest = new IndexRequest("runriver_stats_write")
+              .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+              .source(jsonBuilder()
                     .startObject()
                     .field("rivername", rivername)
                     .field("index", index)
@@ -235,9 +234,8 @@ public class AbstractRunRiverThread extends Thread  {
                     .field("shards_successful", sResponse.getSuccessfulShards())
                     .field("shards_failed", sResponse.getFailedShards())
                     .field("hits_total", sResponse.getHits().getTotalHits())
-                    .endObject())
-                .execute()
-                .actionGet();   
+                    .endObject());
+            client.index(indexRequest,RequestOptions.DEFAULT);
             return true;
         } catch (Exception e) {
             logger.error("elasticizeStat exception: ", e);

@@ -4,15 +4,18 @@ package org.fffriver;
 import java.io.IOException;
 import java.util.Map;
 import java.util.HashMap;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
+//import java.net.InetAddress;
+//import java.net.InetSocketAddress;
+import org.apache.http.HttpHost;
 
 //ELASTICSEARCH
-import org.elasticsearch.client.Client;
-//import org.elasticsearch.client.transport.TransportClient;
-import org.elasticsearch.transport.client.PreBuiltTransportClient;
-//import org.elasticsearch.common.transport.InetSocketTransportAddress;
-import org.elasticsearch.common.transport.TransportAddress;
+//import org.elasticsearch.client.Client;
+
+import org.elasticsearch.client.RestClient;
+import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.client.RequestOptions;
+
+import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.xcontent.support.XContentMapValues;
@@ -28,7 +31,7 @@ public class Main {
     //DNS cache timeout (60 seconds)
     java.security.Security.setProperty("networkaddress.cache.ttl" , "60");
 
-    Client client;
+    RestHighLevelClient client;
     RunMonitor rm;
     Collector cd;
     String role;
@@ -47,15 +50,18 @@ public class Main {
     else if (river_runnumber == 0) role = "monitor";
     else role = "collector";
 
-    //start transport client
+    //start REST client
     try {
       //ES 2.X API:
 
-      Settings settings = Settings.builder().put("cluster.name", river_escluster).build();
-      client =  new PreBuiltTransportClient(settings).addTransportAddress((new TransportAddress(InetAddress.getByName(river_eshost), 9300)));
+      //Settings settings = Settings.builder().put("cluster.name", river_escluster).build();
+      client =  new RestHighLevelClient(
+        RestClient.builder(
+          new HttpHost("localhost",9200,"http"))
+      );
     }
     catch (Exception e) {
-      logger.error("TransportClient exception: ", e);
+      logger.error("RESTClient exception: ", e);
       System.exit(2);
       return;
     }
@@ -81,7 +87,8 @@ public class Main {
     //get document id from river index
     GetResponse response;
     try {
-      response = client.prepareGet(river_esindex,"_doc",river_id).get();
+      GetRequest getRequest = new GetRequest(river_esindex,river_id);
+      response = client.get(getRequest, RequestOptions.DEFAULT);
     }
     catch (Exception e) {
       logger.error("Main river exception (GET): ", e);
@@ -113,7 +120,7 @@ public class Main {
         cd = new Collector(river_id,settings,client);
         cd.run();
       }
-    client.close();
+      client.close();
     }
     catch (Exception e) {
       logger.error("Main river exception: ", e);
