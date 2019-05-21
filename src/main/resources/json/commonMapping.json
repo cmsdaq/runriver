@@ -1,6 +1,6 @@
 {
     "properties": {
-      "runRelation":  {"type":"join","relations":{"run":["eols","stream-hist","state-hist","state-hist-summary","microstatelegend","inputstatelegend","pathlegend","stream_label"]}},
+      "runRelation":  {"type":"join","relations":{"run":["eols","stream-hist","stream-hist-appliance","state-hist","state-hist-summary","microstatelegend","inputstatelegend","pathlegend","stream_label"]}},
       "doc_type":{"type":"keyword"},
       "runNumber":{"type":"long"},
 

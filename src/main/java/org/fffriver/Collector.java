@@ -2,10 +2,12 @@ package org.fffriver;
 
 //JAVA
 import java.io.IOException;
+import java.util.Set;
 import java.util.Map;
 import java.util.List;
-import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.HashMap;
+import java.util.ArrayList;
 import java.net.UnknownHostException;
 import java.lang.Math;
 import org.apache.http.HttpHost;
@@ -64,16 +66,31 @@ import org.apache.commons.io.IOUtils;
 
 public class Collector extends AbstractRunRiverThread {
 
-    Map<String, Long> known_streams = new HashMap<String, Long>();
-    Map<String, Map<String, Double>> fuinlshist = new HashMap<String, Map<String, Double>>();
-    Map<String, Map<String, Double>> fuoutlshist = new HashMap<String, Map<String, Double>>();
-    Map<String, Map<String, Double>> fuerrlshist = new HashMap<String, Map<String, Double>>();
-    Map<String, Map<String, Double>> fufilesizehist = new HashMap<String, Map<String, Double>>();
-    Map<String, Map<String, Double>> futimestamplshist = new HashMap<String, Map<String, Double>>();
-    Map<String, Map<String, String>> fumergetypelshist = new HashMap<String, Map<String, String>>();
-    Map<String, Double> eolEventsList = new HashMap<String, Double>();
-    Map<String, Double> eolLostEventsList = new HashMap<String, Double>();
-    Map<String, Double> eolTotalEventsList = new HashMap<String, Double>();
+    public class CollectorSet {
+
+    public CollectorSet() {}
+    public CollectorSet(String name) {
+      appliance=name;
+    }
+
+    public String appliance;
+    public Map<String, Long> known_streams = new HashMap<String, Long>();
+    public Map<String, Map<String, Double>> fuinlshist = new HashMap<String, Map<String, Double>>();
+    public Map<String, Map<String, Double>> fuoutlshist = new HashMap<String, Map<String, Double>>();
+    public Map<String, Map<String, Double>> fuerrlshist = new HashMap<String, Map<String, Double>>();
+    public Map<String, Map<String, Double>> fufilesizehist = new HashMap<String, Map<String, Double>>();
+    public Map<String, Map<String, Double>> futimestamplshist = new HashMap<String, Map<String, Double>>();
+    public Map<String, Map<String, String>> fumergetypelshist = new HashMap<String, Map<String, String>>();
+    public Map<String, Double> eolEventsList = new HashMap<String, Double>();
+    public Map<String, Double> eolLostEventsList = new HashMap<String, Double>();
+    public Map<String, Double> eolTotalEventsList = new HashMap<String, Double>();
+    public long lowestLS = -1;
+    }
+
+
+
+    CollectorSet fullSet;
+    Map<String, CollectorSet> buSets;
 
     Map<Integer, Map<String,Double>> incompleteLumis = new HashMap<Integer, Map<String,Double>>();
 
@@ -126,64 +143,53 @@ public class Collector extends AbstractRunRiverThread {
         checkBoxInfo();
     }
 
-    public void collectStreams() throws Exception {
-        logger.info("collectStreams");
-        Boolean dataChanged;
-        long lowestLumisection=-1;
-        
-        int size=0;
-        if(firstTime){
-            firstTime = false;
-            size=1000000;
-        }else{
-            size=30;
-        }
-        //logger.info("streamquery: "+streamQuery.toString());
+    private SearchRequest makeStreamsRequest(int size, boolean perbu) {
 
         SearchSourceBuilder sBuilder = new SearchSourceBuilder()
           .query(QueryBuilders.termQuery("doc_type","fu-out"))
+          .size(0)
           .aggregation(
             AggregationBuilders.terms("streams").field("stream").size(200)
-              .subAggregation(AggregationBuilders.terms("ls").field("ls").size(size).order(BucketOrder.key(false)))
-              .subAggregation(AggregationBuilders.sum("in").field("data.in"))
-              .subAggregation(AggregationBuilders.sum("out").field("data.out"))
-              .subAggregation(AggregationBuilders.sum("error").field("data.errorEvents"))
-              .subAggregation(AggregationBuilders.sum("filesize").field("data.fileSize"))
-              .subAggregation(AggregationBuilders.max("fm_date").field("fm_date"))
-              .subAggregation(AggregationBuilders.terms("mergeType").field("data.MergeType").size(2).order(BucketOrder.key(false)))
-          )
-          .sort(SortBuilders.fieldSort("ls").order(SortOrder.DESC))
-          .size(0);
+              .subAggregation(AggregationBuilders.terms("ls").field("ls").size(size).order(BucketOrder.key(false))
+                .subAggregation(AggregationBuilders.sum("in").field("data.in"))
+                .subAggregation(AggregationBuilders.sum("out").field("data.out"))
+                .subAggregation(AggregationBuilders.sum("error").field("data.errorEvents"))
+                .subAggregation(AggregationBuilders.sum("filesize").field("data.fileSize"))
+                .subAggregation(AggregationBuilders.max("fm_date").field("fm_date"))
+                .subAggregation(AggregationBuilders.terms("mergeType").field("data.MergeType").size(2).order(BucketOrder.key(false)))
+          ));
+          if (perbu) sBuilder.aggregation(
+            AggregationBuilders.terms("appliances").field("appliance").size(200)
+             .subAggregation(AggregationBuilders.terms("streams").field("stream").size(200)
+              .subAggregation(AggregationBuilders.terms("ls").field("ls").size(size).order(BucketOrder.key(false))
+                .subAggregation(AggregationBuilders.sum("in").field("data.in"))
+                .subAggregation(AggregationBuilders.sum("out").field("data.out"))
+                .subAggregation(AggregationBuilders.sum("error").field("data.errorEvents"))
+                .subAggregation(AggregationBuilders.sum("filesize").field("data.fileSize"))
+                .subAggregation(AggregationBuilders.max("fm_date").field("fm_date"))
+                .subAggregation(AggregationBuilders.terms("mergeType").field("data.MergeType").size(2).order(BucketOrder.key(false)))
+          )));
+          //.sort(SortBuilders.fieldSort("ls").order(SortOrder.DESC))//not used
 
-        SearchRequest sRequest = new SearchRequest().indices(eslocalIndex).source(sBuilder);
+        return new SearchRequest().indices(eslocalIndex).source(sBuilder);
 
-        //run query
-        SearchResponse sResponse = remoteClient.search(sRequest,RequestOptions.DEFAULT);
+    }
 
-        collectStats(riverName,"streamQuery",eslocalIndex,sResponse);
-        //logger.info(String.valueOf(sResponse.getHits().getTotalHits()));
-        if(sResponse.getHits().getTotalHits().value == 0L){ 
-            logger.info("streamQuery returns 0 hits");
-            return;
-        }
+    private void fillStreamsSet(CollectorSet set, Terms streams) {
 
-        if(sResponse.getAggregations().asList().isEmpty()){return;}
-        
-        Terms streams = sResponse.getAggregations().get("streams");
-        
         if(streams.getBuckets().isEmpty()){return;}
         for (Terms.Bucket stream : streams.getBuckets()){
             String streamName = stream.getKeyAsString();
 
-            known_streams.put(streamName,stream.getDocCount());
+            set.known_streams.put(streamName,stream.getDocCount());
        
-            if (fumergetypelshist.get(streamName)==null) {
-              fuinlshist.put(streamName, new HashMap<String, Double>());
-              fuoutlshist.put(streamName, new HashMap<String, Double>());
-              fuerrlshist.put(streamName, new HashMap<String, Double>());
-              fufilesizehist.put(streamName, new HashMap<String, Double>());
-              futimestamplshist.put(streamName, new HashMap<String, Double>());
-              fumergetypelshist.put(streamName, new HashMap<String, String>());
+            if (set.fumergetypelshist.get(streamName)==null) {
+              set.fuinlshist.put(streamName, new HashMap<String, Double>());
+              set.fuoutlshist.put(streamName, new HashMap<String, Double>());
+              set.fuerrlshist.put(streamName, new HashMap<String, Double>());
+              set.fufilesizehist.put(streamName, new HashMap<String, Double>());
+              set.futimestamplshist.put(streamName, new HashMap<String, Double>());
+              set.fumergetypelshist.put(streamName, new HashMap<String, String>());
             }
 
             Terms lss = stream.getAggregations().get("ls");
@@ -195,7 +201,7 @@ public class Collector extends AbstractRunRiverThread {
                 //update last LS found in the query
                 Long lsvalLong = (Long)(ls.getKey());
                 long lsval = lsvalLong.longValue();
-                if (lsval<lowestLumisection || lowestLumisection<0) lowestLumisection=lsval;
+                if (lsval<set.lowestLS || set.lowestLS<0) set.lowestLS=lsval;
 
                 Sum inSum = ls.getAggregations().get("in");
                 Sum outSum = ls.getAggregations().get("out");
@@ -209,40 +215,97 @@ public class Collector extends AbstractRunRiverThread {
                  mergeType = mTypeBucket.getKeyAsString();
                  break;
                 }
-                fuinlshist.get(streamName).put(lsName,inSum.getValue());
-                fuoutlshist.get(streamName).put(lsName,outSum.getValue());
-                fuerrlshist.get(streamName).put(lsName,errSum.getValue());
-                fufilesizehist.get(streamName).put(lsName,filesizeSum.getValue());
-                futimestamplshist.get(streamName).put(lsName,fm_date.getValue());
-                fumergetypelshist.get(streamName).put(lsName,mergeType);
-  
+                set.fuinlshist.get(streamName).put(lsName,inSum.getValue());
+                set.fuoutlshist.get(streamName).put(lsName,outSum.getValue());
+                set.fuerrlshist.get(streamName).put(lsName,errSum.getValue());
+                set.fufilesizehist.get(streamName).put(lsName,filesizeSum.getValue());
+                set.futimestamplshist.get(streamName).put(lsName,fm_date.getValue());
+                set.fumergetypelshist.get(streamName).put(lsName,mergeType);
             } 
         }
+    }
 
-        for (String stream : known_streams.keySet()){
-            List<String> removeList = new ArrayList<String>();
+    public void collectStreams() throws Exception {
+        logger.info("collectStreams");
+        boolean perbu = false;
+        
+        int size=0;
+        if(firstTime){
+            firstTime = false;
+            size=1000000;
+        }else{
+            size=30;
+        }
+        //logger.info("streamquery: "+streamQuery.toString());
+        SearchResponse sResponse = remoteClient.search(makeStreamsRequest(size,perbu),RequestOptions.DEFAULT);
 
-            for (String ls : fuoutlshist.get(stream).keySet()){
-       
+        collectStats(riverName,"streamQuery",eslocalIndex,sResponse);
+
+        //logger.info(String.valueOf(sResponse.getHits().getTotalHits()));
+        if(sResponse.getHits().getTotalHits().value == 0L){ 
+            logger.info("streamQuery returns 0 hits");
+            return;
+        }
+
+        if(sResponse.getAggregations().asList().isEmpty()){return;}
+        
+        Terms streams = sResponse.getAggregations().get("streams");
+        fillStreamsSet(fullSet,streams);
+
+        int applianceBuckets=0;
+        if (perbu) {
+          Terms appliances = sResponse.getAggregations().get("appliances");
+          for (Terms.Bucket appliance : appliances.getBuckets()){
+            applianceBuckets++;
+            String buName = appliance.getKeyAsString();
+
+            if (buSets.get(buName)==null) 
+              buSets.put(buName,new CollectorSet(buName));
+
+            Terms ab = appliance.getAggregations().get("streams");
+            fillStreamsSet(
+            buSets.get(buName),
+            ab);
+            //appliance.getAggregations().get("streams"));
+          }
+        }
+
+ 
+        //create full list of lumisections to check (no need to use SortedMap<int,String>)
+        Map<String,Integer> lsMap = new HashMap<String,Integer>();
+        Set<String> lsQueried = new HashSet<String>();
+
+        for (String stream : fullSet.known_streams.keySet()){
+            for (String ls : fullSet.fuoutlshist.get(stream).keySet())
+              lsMap.put(ls,Integer.parseInt(ls));
+        }
+        //verify with EoLS information
+        //sorted needed?
+        List<String> removeListAnyStream = new ArrayList<String>();
+        for (String ls : lsMap.keySet()) {
+                Integer ls_num = lsMap.get(ls);
+
                 //EoLS aggregation for this LS
                 Double eventsVal=0.0;
                 Double lostEventsVal=0.0;
                 Double totalEventsVal=0.0;
                 Boolean run_eols_query = true;
-                if (eolEventsList.get(ls) != null && eolLostEventsList.get(ls)!=null && eolTotalEventsList.get(ls)!=null) {
+                if (fullSet.eolEventsList.get(ls) != null) {
 
-                  eventsVal = eolEventsList.get(ls);
-                  lostEventsVal = eolLostEventsList.get(ls);
-                  totalEventsVal = eolTotalEventsList.get(ls);
+                  eventsVal = fullSet.eolEventsList.get(ls);
+                  lostEventsVal = fullSet.eolLostEventsList.get(ls);
+                  totalEventsVal = fullSet.eolTotalEventsList.get(ls);
 
                   //require match, otherwise BU json files might not be written yet
-                  if (Math.round(totalEventsVal-eventsVal-lostEventsVal)==0) run_eols_query=false;
+                  if (Math.round(totalEventsVal-eventsVal-lostEventsVal)==0.0) run_eols_query=false;
                 }
-                Integer ls_num = Integer.parseInt(ls); 
+                if (run_eols_query) lsQueried.add(ls);
+
+                //Integer ls_num = Integer.parseInt(ls); 
                 //drop lumis more than 70 LS behind oldest one in the query range (unless EvB information is inconsistent)
-                if (ls_num+70<lowestLumisection && run_eols_query==false) {
+                if (ls_num+70<fullSet.lowestLS && run_eols_query==false) {
                   //this is old lumisection, dropping from object maps (even if incomplete)
-                  removeList.add(ls);
+                  removeListAnyStream.add(ls); //??????!
                   continue;
                 }
 
@@ -256,23 +319,23 @@ public class Collector extends AbstractRunRiverThread {
                       idStr = runStrPrefix + ls;
  
                     //logger.info("DEBUG: idStr:"+idStr); 
+                    int eolsSize =0;
+                    if (perbu) eolsSize = 200;
 
                     SearchSourceBuilder sBuilderEoLS = new SearchSourceBuilder()
                       .query(QueryBuilders.boolQuery()
                         .must(JoinQueryBuilders.parentId("eols",runNumber))
                         .must(QueryBuilders.termQuery("ls",ls))
                       )
-                      .size(0)
+                      .size(eolsSize)
                       .aggregation(AggregationBuilders.sum("NEvents").field("NEvents"))
                       .aggregation(AggregationBuilders.sum("NLostEvents").field("NLostEvents"))
-                      .aggregation(AggregationBuilders.sum("NLostEvents").field("NLostEvents"));
+                      .aggregation(AggregationBuilders.max("TotalEvents").field("TotalEvents"));
 
                     SearchRequest sRequestEoLS = new SearchRequest().indices(runindex_write).routing(runNumber).source(sBuilderEoLS);
  
                     SearchResponse sResponseEoLS = client.search(sRequestEoLS,RequestOptions.DEFAULT);
  
-
-
                     if(sResponseEoLS.getHits().getTotalHits().value == 0L){ 
                         logger.info("eolsQuery returns 0 hits for LS " + ls + ", skipping collection without EoLS docs");
                         continue;
@@ -285,23 +348,74 @@ public class Collector extends AbstractRunRiverThread {
                     eventsVal = eolEvents.getValue();    
                     lostEventsVal = eolLostEvents.getValue();
                     totalEventsVal = eolTotalEvents.getValue();
-                    eolEventsList.put(ls,eventsVal); 
-                    eolLostEventsList.put(ls,lostEventsVal); 
-                    eolTotalEventsList.put(ls,totalEventsVal); 
+                    fullSet.eolEventsList.put(ls,eventsVal); 
+                    fullSet.eolLostEventsList.put(ls,lostEventsVal); 
+                    fullSet.eolTotalEventsList.put(ls,totalEventsVal); 
                     if (Math.round(totalEventsVal-eventsVal-lostEventsVal)==0) {
-                        run_eols_query=false;
                         logger.info("eolsQuery match for LS "+ ls + " with total of "+totalEventsVal.toString()+" events");
                     }
+                    if (eolsSize>0) {
+                      //parse all documents
+                      for (SearchHit hit: sResponseEoLS.getHits().getHits()) {
+                        //convert to string for now as we don'w know type of the inner object
+                        eventsVal = Double.parseDouble(hit.getSourceAsMap().get("NEvents").toString());
+                        lostEventsVal = Double.parseDouble(hit.getSourceAsMap().get("NLostEvents").toString());
+                        totalEventsVal = Double.parseDouble(hit.getSourceAsMap().get("NTotalEvents").toString());
+                        String appliance =  hit.getSourceAsMap().get("appliance").toString();
+                        if  (buSets.get(appliance)==null)
+                          buSets.put(appliance, new CollectorSet(appliance));
+                        CollectorSet buSet = buSets.get(appliance);
+                        buSet.eolEventsList.put(ls,eventsVal); 
+                        buSet.eolLostEventsList.put(ls,lostEventsVal); 
+                        buSet.eolTotalEventsList.put(ls,totalEventsVal); 
+                      }
+                    }
                 }
-                //continue with stream aggregation
+        }
+        injectStreams(fullSet,lsMap,lsQueried,removeListAnyStream,true); 
+
+        if (perbu) {
+          int injectedBuckets=0;
+          Terms appliances = sResponse.getAggregations().get("appliances");
+          for (Terms.Bucket appliance : appliances.getBuckets()){
+            String buName = appliance.getKeyAsString();
+            //refreshing on first and last injected document
+            boolean callRefresh = false;
+            if (applianceBuckets==injectedBuckets+1) callRefresh = true;
+            injectStreams(buSets.get(buName),lsMap,lsQueried,removeListAnyStream,callRefresh); 
+            injectedBuckets++;
+          }
+        }
+    }
+
+    //TODO: also we could buffer and bulk inject all of this, as well as get data using search (scales to N_streams x N_BUs) instead of getting by id
+
+    private void injectStreams(CollectorSet set, Map<String,Integer> lsMap, Set<String> lsQueried, List<String> removeListAnyStream, boolean callRefresh) throws IOException {
+        //continue with stream aggregation
+        String doc_type = "stream-hist";
+        if (!set.appliance.isEmpty()) doc_type = "stream-hist-appliance";
+
+        for (String stream : set.known_streams.keySet()){
+            List<String> removeList = new ArrayList<String>();
+
+            for (String ls : set.fuoutlshist.get(stream).keySet()){
+
+                if (set.eolEventsList.get(ls)==null) continue;
+                Integer ls_num = lsMap.get(ls);
+
+                Double eventsVal = set.eolEventsList.get(ls);
+                Double lostEventsVal = set.eolLostEventsList.get(ls);
+                Double totalEventsVal = set.eolTotalEventsList.get(ls);
 
                 String id = String.format("%06d", Integer.parseInt(runNumber))+"_"+stream+"_"+ls;
 
+                if (!set.appliance.isEmpty()) id=id+"_"+set.appliance;
+
                 //Check if data is changed (to avoid to update timestamp if not necessary)
-                GetRequest greq = new GetRequest(runindex_write,id).routing(runNumber).refresh(true);
+                GetRequest greq = new GetRequest(runindex_write,id).routing(runNumber).refresh(callRefresh);
                 GetResponse sresponse = client.get(greq,RequestOptions.DEFAULT);
 
-                dataChanged = true;
+                boolean dataChanged = true;
                 if (sresponse.isExists()){ 
                     Double in = Double.parseDouble(sresponse.getSource().get("in").toString());
                     Double out = Double.parseDouble(sresponse.getSource().get("out").toString());
@@ -315,11 +429,11 @@ public class Collector extends AbstractRunRiverThread {
                       lastCompletion = Double.parseDouble(sresponse.getSource().get("completion").toString());
                     }
                     //logger.info("old" + in.toString() + " " + out.toString() + " " + error.toString() + " compl "+lastCompletion.toString());
-                    //logger.info("new" + fuinlshist.get(stream).get(ls).toString() + " " + fuoutlshist.get(stream).get(ls).toString() + " " + fuerrlshist.get(stream).get(ls).toString() );
+                    //logger.info("new" + set.fuinlshist.get(stream).get(ls).toString() + " " + set.fuoutlshist.get(stream).get(ls).toString() + " " + set.fuerrlshist.get(stream).get(ls).toString() );
                     if (lastCompletion==1.0
-                        && in.compareTo(fuinlshist.get(stream).get(ls))==0 
-                        && out.compareTo(fuoutlshist.get(stream).get(ls))==0
-                        && error.compareTo(fuerrlshist.get(stream).get(ls))==0){
+                        && in.compareTo(set.fuinlshist.get(stream).get(ls))==0
+                        && out.compareTo(set.fuoutlshist.get(stream).get(ls))==0
+                        && error.compareTo(set.fuerrlshist.get(stream).get(ls))==0){
                         dataChanged = false;
                     } else { logger.info(id+" with completion " + lastCompletion.toString() + " already exists and will be updated."); }
 
@@ -328,7 +442,7 @@ public class Collector extends AbstractRunRiverThread {
 
                 Double newCompletion = 1.;
                 //calculate completion as (Nprocessed / Nbuilt) * (Nbuilt+Nlost)/Ntriggered
-                Double output_count = fuinlshist.get(stream).get(ls) + fuerrlshist.get(stream).get(ls);
+                Double output_count = set.fuinlshist.get(stream).get(ls) + set.fuerrlshist.get(stream).get(ls);
                 //logger.info("output_count:" + output_count.toString() + " eventsVal:"+eventsVal.toString());
                 
                 if (eventsVal>0 && output_count!=eventsVal)
@@ -350,10 +464,10 @@ public class Collector extends AbstractRunRiverThread {
                 
                 //Update Data
                 if (dataChanged){
-                  logger.info("stream-hist update for ls,stream: "+ls+","+stream+" in:"+fuinlshist.get(stream).get(ls).toString()
-                              +" out:"+fuoutlshist.get(stream).get(ls).toString()+" err:"+fuerrlshist.get(stream).get(ls).toString() + " completion " + newCompletion.toString());
+                  logger.info(doc_type+" update for ls,stream: "+ls+","+stream+" in:"+set.fuinlshist.get(stream).get(ls).toString()
+                              +" out:"+set.fuoutlshist.get(stream).get(ls).toString()+" err:"+set.fuerrlshist.get(stream).get(ls).toString() + " completion " + newCompletion.toString());
                   logger.info("Totals numbers - eventsVal:"+eventsVal.toString() + " lostEventsVal:" + lostEventsVal.toString() + " totalEventsVal:" + totalEventsVal.toString());
-                  Double retDate = futimestamplshist.get(stream).get(ls);
+                  Double retDate = set.futimestamplshist.get(stream).get(ls);
                   Map<String,Double> strcompletion = incompleteLumis.get(ls_num);
                   if (newCompletion<1.) {
                       if (strcompletion!=null)
@@ -373,24 +487,25 @@ public class Collector extends AbstractRunRiverThread {
                   if (retDate >  Double.NEGATIVE_INFINITY) {
 
                     IndexRequest indexReq = new IndexRequest(runindex_write,"_doc",id)
-                      .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                       .routing(runNumber)
                       .source(jsonBuilder()
                         .startObject()
-                        .startObject("runRelation").field("name","stream-hist").field("parent",Integer.parseInt(runNumber)).endObject()
-                        .field("doc_type","stream-hist")
+                        .startObject("runRelation").field("name",doc_type).field("parent",Integer.parseInt(runNumber)).endObject()
+                        .field("doc_type",doc_type)
                         .field("runNumber",runNumber)
                         .field("stream", stream)
                         .field("ls", ls_num)
-                        .field("in", fuinlshist.get(stream).get(ls))
-                        .field("out", fuoutlshist.get(stream).get(ls))
-                        .field("err", fuerrlshist.get(stream).get(ls))
-                        .field("filesize", fufilesizehist.get(stream).get(ls))
-                        .field("mergeType", fumergetypelshist.get(stream).get(ls))
+                        .field("in", set.fuinlshist.get(stream).get(ls))
+                        .field("out", set.fuoutlshist.get(stream).get(ls))
+                        .field("err", set.fuerrlshist.get(stream).get(ls))
+                        .field("filesize", set.fufilesizehist.get(stream).get(ls))
+                        .field("mergeType", set.fumergetypelshist.get(stream).get(ls))
                         .field("fm_date", retDate.longValue()) //convert when injecting into futimestamplshist?
                         .field("date",  System.currentTimeMillis())
                         .field("completion", newCompletion)
                         .endObject());
+                    if (callRefresh)
+                      indexReq.setRefreshPolicy(RefreshPolicy.IMMEDIATE);
                     IndexResponse iResponse = client.index(indexReq,RequestOptions.DEFAULT);
                   }
                   else {
@@ -398,42 +513,53 @@ public class Collector extends AbstractRunRiverThread {
                     long start_time_millis = System.currentTimeMillis();
 
                     IndexRequest indexReq = new IndexRequest(runindex_write,"_doc",id)
-                      .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                       .routing(runNumber)
                       .source(jsonBuilder()
                         .startObject()
-                        .startObject("runRelation").field("name","stream-hist").field("parent",Integer.parseInt(runNumber)).endObject()
-                        .field("doc_type","stream-hist")
+                        .startObject("runRelation").field("name",doc_type).field("parent",Integer.parseInt(runNumber)).endObject()
+                        .field("doc_type",doc_type)
                         .field("runNumber",runNumber)
                         .field("stream", stream)
                         .field("ls", Integer.parseInt(ls))
-                        .field("in", fuinlshist.get(stream).get(ls))
-                        .field("out", fuoutlshist.get(stream).get(ls))
-                        .field("err", fuerrlshist.get(stream).get(ls))
-                        .field("filesize", fufilesizehist.get(stream).get(ls))
-                        .field("mergeType", fumergetypelshist.get(stream).get(ls))
+                        .field("in", set.fuinlshist.get(stream).get(ls))
+                        .field("out", set.fuoutlshist.get(stream).get(ls))
+                        .field("err", set.fuerrlshist.get(stream).get(ls))
+                        .field("filesize", set.fufilesizehist.get(stream).get(ls))
+                        .field("mergeType", set.fumergetypelshist.get(stream).get(ls))
                         .field("date",start_time_millis)
                         .field("fm_date",start_time_millis)
                         .field("completion", newCompletion)
                         .endObject());
+                    if (callRefresh)
+                      indexReq.setRefreshPolicy(RefreshPolicy.IMMEDIATE);
                     IndexResponse iResponse = client.index(indexReq,RequestOptions.DEFAULT);
-
                   }
                 }
                 //drop complete lumis older than query range (keep checking if EvB information is inconsistent)
-                if (newCompletion==1 && ls_num<lowestLumisection && run_eols_query==false) {
+                if (newCompletion==1 && ls_num<set.lowestLS && !lsQueried.contains(ls)) {
                   //complete,dropping from maps
                   removeList.add(ls);
                 }
             }
+
+            for (String ls : removeListAnyStream) {
+              logger.info("removing old stream" + stream + " Map entries for LS "+ ls);
+              set.fuinlshist.get(stream).remove(ls);
+              set.fuoutlshist.get(stream).remove(ls);
+              set.fuerrlshist.get(stream).remove(ls);
+              set.fufilesizehist.get(stream).remove(ls);
+              set.futimestamplshist.get(stream).remove(ls);
+              set.fumergetypelshist.get(stream).remove(ls);
+            }
+
             for (String ls : removeList) {
               logger.info("removing stream" + stream + " Map entries for LS "+ ls);
-              fuinlshist.get(stream).remove(ls);
-              fuoutlshist.get(stream).remove(ls);
-              fuerrlshist.get(stream).remove(ls);
-              fufilesizehist.get(stream).remove(ls);
-              futimestamplshist.get(stream).remove(ls);
-              fumergetypelshist.get(stream).remove(ls);
+              set.fuinlshist.get(stream).remove(ls);
+              set.fuoutlshist.get(stream).remove(ls);
+              set.fuerrlshist.get(stream).remove(ls);
+              set.fufilesizehist.get(stream).remove(ls);
+              set.futimestamplshist.get(stream).remove(ls);
+              set.fumergetypelshist.get(stream).remove(ls);
             }
         }
     }
