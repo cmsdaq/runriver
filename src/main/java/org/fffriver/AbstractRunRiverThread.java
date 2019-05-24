@@ -65,6 +65,7 @@ public class AbstractRunRiverThread extends Thread  {
     public String subsystem;
     public String river_esindex;
     public String es_central_cluster;
+    public Boolean perbu;
 
     public SimpleDateFormat sdf;
 
@@ -102,6 +103,7 @@ public class AbstractRunRiverThread extends Thread  {
         closeIndices = Boolean.valueOf(XContentMapValues.nodeStringValue(rSettings.get("close_indices"), "true"));
         river_esindex = XContentMapValues.nodeStringValue(rSettings.get("river_esindex"), "river");
         es_central_cluster= XContentMapValues.nodeStringValue(rSettings.get("es_central_cluster"), "es-cdaq");
+        perbu =  Boolean.valueOf(XContentMapValues.nodeStringValue(rSettings.get("streaminfo_per_bu"), "true"));
 
         interval = polling_interval;
         

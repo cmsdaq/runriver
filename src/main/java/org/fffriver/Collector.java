@@ -227,8 +227,8 @@ public class Collector extends AbstractRunRiverThread {
     }
 
     public void collectStreams() throws Exception {
-        //logger.info("collectStreams");
-        boolean perbu = true;
+        logger.info("collectStreams");
+        //boolean perbu = true;//member
         
         int size=0;
         if(firstTime){

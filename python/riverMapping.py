@@ -68,6 +68,9 @@ riverInstMapping = {
 		},
                 "close_indices" : {
                         "type" : "boolean"
+                },
+                "streaminfo_per_bu" : {
+                        "type" : "boolean"
                 }
 	}
 }

@@ -116,6 +116,7 @@ public class RunMonitor extends AbstractRunRiverThread {
                         .field("enable_stats", statsEnabled)
                         .field("close_indices", closeIndices)
                         .field("es_central_cluster", es_central_cluster)
+                        .field("streaminfo_per_bu",perbu)
                         .startObject("node").field("status","created").endObject()
                     .endObject()
                         //.field("role", "collector")
