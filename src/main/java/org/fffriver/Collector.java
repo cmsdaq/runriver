@@ -73,7 +73,7 @@ public class Collector extends AbstractRunRiverThread {
       appliance=name;
     }
 
-    public String appliance;
+    public String appliance = new String();
     public Map<String, Long> known_streams = new HashMap<String, Long>();
     public Map<String, Map<String, Double>> fuinlshist = new HashMap<String, Map<String, Double>>();
     public Map<String, Map<String, Double>> fuoutlshist = new HashMap<String, Map<String, Double>>();
@@ -89,8 +89,8 @@ public class Collector extends AbstractRunRiverThread {
 
 
 
-    CollectorSet fullSet;
-    Map<String, CollectorSet> buSets;
+    CollectorSet fullSet = new CollectorSet();
+    Map<String, CollectorSet> buSets=  new HashMap<String,CollectorSet>();
 
     Map<Integer, Map<String,Double>> incompleteLumis = new HashMap<Integer, Map<String,Double>>();
 
@@ -180,6 +180,7 @@ public class Collector extends AbstractRunRiverThread {
         if(streams.getBuckets().isEmpty()){return;}
         for (Terms.Bucket stream : streams.getBuckets()){
             String streamName = stream.getKeyAsString();
+            //logger.info("str:"+streamName+" "+stream.getDocCount);
 
             set.known_streams.put(streamName,stream.getDocCount());
        
@@ -226,8 +227,8 @@ public class Collector extends AbstractRunRiverThread {
     }
 
     public void collectStreams() throws Exception {
-        logger.info("collectStreams");
-        boolean perbu = false;
+        //logger.info("collectStreams");
+        boolean perbu = true;
         
         int size=0;
         if(firstTime){
@@ -236,12 +237,10 @@ public class Collector extends AbstractRunRiverThread {
         }else{
             size=30;
         }
-        //logger.info("streamquery: "+streamQuery.toString());
         SearchResponse sResponse = remoteClient.search(makeStreamsRequest(size,perbu),RequestOptions.DEFAULT);
 
         collectStats(riverName,"streamQuery",eslocalIndex,sResponse);
 
-        //logger.info(String.valueOf(sResponse.getHits().getTotalHits()));
         if(sResponse.getHits().getTotalHits().value == 0L){ 
             logger.info("streamQuery returns 0 hits");
             return;
@@ -259,6 +258,10 @@ public class Collector extends AbstractRunRiverThread {
             applianceBuckets++;
             String buName = appliance.getKeyAsString();
 
+            try {
+              buName = buName.substring(0,buName.indexOf("."));
+            } catch (Exception exp) {}
+ 
             if (buSets.get(buName)==null) 
               buSets.put(buName,new CollectorSet(buName));
 
@@ -360,8 +363,11 @@ public class Collector extends AbstractRunRiverThread {
                         //convert to string for now as we don'w know type of the inner object
                         eventsVal = Double.parseDouble(hit.getSourceAsMap().get("NEvents").toString());
                         lostEventsVal = Double.parseDouble(hit.getSourceAsMap().get("NLostEvents").toString());
-                        totalEventsVal = Double.parseDouble(hit.getSourceAsMap().get("NTotalEvents").toString());
+                        totalEventsVal = Double.parseDouble(hit.getSourceAsMap().get("TotalEvents").toString());
                         String appliance =  hit.getSourceAsMap().get("appliance").toString();
+                        try {
+                          appliance = appliance.substring(0,appliance.indexOf("."));
+                        } catch (Exception exp) {}
                         if  (buSets.get(appliance)==null)
                           buSets.put(appliance, new CollectorSet(appliance));
                         CollectorSet buSet = buSets.get(appliance);
@@ -379,6 +385,11 @@ public class Collector extends AbstractRunRiverThread {
           Terms appliances = sResponse.getAggregations().get("appliances");
           for (Terms.Bucket appliance : appliances.getBuckets()){
             String buName = appliance.getKeyAsString();
+
+            try {
+              buName = buName.substring(0,buName.indexOf("."));
+            } catch (Exception exp) {}
+ 
             //refreshing on first and last injected document
             boolean callRefresh = false;
             if (applianceBuckets==injectedBuckets+1) callRefresh = true;
@@ -399,7 +410,6 @@ public class Collector extends AbstractRunRiverThread {
             List<String> removeList = new ArrayList<String>();
 
             for (String ls : set.fuoutlshist.get(stream).keySet()){
-
                 if (set.eolEventsList.get(ls)==null) continue;
                 Integer ls_num = lsMap.get(ls);
 
@@ -463,10 +473,12 @@ public class Collector extends AbstractRunRiverThread {
                 if (newCompletion>0.9999999999 && newCompletion<1.0000000001) newCompletion=1.;
                 
                 //Update Data
-                if (dataChanged){
-                  logger.info(doc_type+" update for ls,stream: "+ls+","+stream+" in:"+set.fuinlshist.get(stream).get(ls).toString()
-                              +" out:"+set.fuoutlshist.get(stream).get(ls).toString()+" err:"+set.fuerrlshist.get(stream).get(ls).toString() + " completion " + newCompletion.toString());
-                  logger.info("Totals numbers - eventsVal:"+eventsVal.toString() + " lostEventsVal:" + lostEventsVal.toString() + " totalEventsVal:" + totalEventsVal.toString());
+                if (dataChanged){ //don't log for each appliance
+                  if (set.appliance.isEmpty()) {
+                    logger.info(doc_type+" update for ls,stream: "+ls+","+stream+" in:"+set.fuinlshist.get(stream).get(ls).toString()
+                                +" out:"+set.fuoutlshist.get(stream).get(ls).toString()+" err:"+set.fuerrlshist.get(stream).get(ls).toString() + " completion " + newCompletion.toString());
+                    logger.info("Totals numbers - eventsVal:"+eventsVal.toString() + " lostEventsVal:" + lostEventsVal.toString() + " totalEventsVal:" + totalEventsVal.toString());
+                  }
                   Double retDate = set.futimestamplshist.get(stream).get(ls);
                   Map<String,Double> strcompletion = incompleteLumis.get(ls_num);
                   if (newCompletion<1.) {
@@ -543,7 +555,8 @@ public class Collector extends AbstractRunRiverThread {
             }
 
             for (String ls : removeListAnyStream) {
-              logger.info("removing old stream" + stream + " Map entries for LS "+ ls);
+              if (set.appliance.isEmpty())
+                logger.info("removing old stream" + stream + " Map entries for LS "+ ls);
               set.fuinlshist.get(stream).remove(ls);
               set.fuoutlshist.get(stream).remove(ls);
               set.fuerrlshist.get(stream).remove(ls);
@@ -553,7 +566,8 @@ public class Collector extends AbstractRunRiverThread {
             }
 
             for (String ls : removeList) {
-              logger.info("removing stream" + stream + " Map entries for LS "+ ls);
+              if (set.appliance.isEmpty())
+                logger.info("removing stream" + stream + " Map entries for LS "+ ls);
               set.fuinlshist.get(stream).remove(ls);
               set.fuoutlshist.get(stream).remove(ls);
               set.fuerrlshist.get(stream).remove(ls);
