@@ -496,11 +496,9 @@ public class Collector extends AbstractRunRiverThread {
                         if (strcompletion.isEmpty()) incompleteLumis.remove(ls_num);
                       }
                   }
-                  if (retDate >  Double.NEGATIVE_INFINITY) {
+                  long start_time_millis = System.currentTimeMillis();
 
-                    IndexRequest indexReq = new IndexRequest(runindex_write,"_doc",id)
-                      .routing(runNumber)
-                      .source(jsonBuilder()
+                  XContentBuilder tmpBuild = XContentFactory.jsonBuilder()
                         .startObject()
                         .startObject("runRelation").field("name",doc_type).field("parent",Integer.parseInt(runNumber)).endObject()
                         .field("doc_type",doc_type)
@@ -512,41 +510,31 @@ public class Collector extends AbstractRunRiverThread {
                         .field("err", set.fuerrlshist.get(stream).get(ls))
                         .field("filesize", set.fufilesizehist.get(stream).get(ls))
                         .field("mergeType", set.fumergetypelshist.get(stream).get(ls))
-                        .field("fm_date", retDate.longValue()) //convert when injecting into futimestamplshist?
-                        .field("date",  System.currentTimeMillis())
                         .field("completion", newCompletion)
-                        .endObject());
-                    if (callRefresh)
-                      indexReq.setRefreshPolicy(RefreshPolicy.IMMEDIATE);
-                    IndexResponse iResponse = client.index(indexReq,RequestOptions.DEFAULT);
-                  }
-                  else {
-                    //if no date, create indexing date explicitely
-                    long start_time_millis = System.currentTimeMillis();
+                        .field("date",  start_time_millis);
+ 
+                  if (!set.appliance.isEmpty())
+                      tmpBuild.field("host",set.appliance);
 
-                    IndexRequest indexReq = new IndexRequest(runindex_write,"_doc",id)
-                      .routing(runNumber)
-                      .source(jsonBuilder()
-                        .startObject()
-                        .startObject("runRelation").field("name",doc_type).field("parent",Integer.parseInt(runNumber)).endObject()
-                        .field("doc_type",doc_type)
-                        .field("runNumber",runNumber)
-                        .field("stream", stream)
-                        .field("ls", Integer.parseInt(ls))
-                        .field("in", set.fuinlshist.get(stream).get(ls))
-                        .field("out", set.fuoutlshist.get(stream).get(ls))
-                        .field("err", set.fuerrlshist.get(stream).get(ls))
-                        .field("filesize", set.fufilesizehist.get(stream).get(ls))
-                        .field("mergeType", set.fumergetypelshist.get(stream).get(ls))
-                        .field("date",start_time_millis)
-                        .field("fm_date",start_time_millis)
-                        .field("completion", newCompletion)
-                        .endObject());
-                    if (callRefresh)
-                      indexReq.setRefreshPolicy(RefreshPolicy.IMMEDIATE);
-                    IndexResponse iResponse = client.index(indexReq,RequestOptions.DEFAULT);
-                  }
+                  //set timestamp. Use file timestamp if available, else set system time
+                  if (retDate >  Double.NEGATIVE_INFINITY)
+                    tmpBuild.field("fm_date", retDate.longValue()); //convert when injecting into futimestamplshist?
+                  else
+                    tmpBuild.field("fm_date",start_time_millis);
+
+                  tmpBuild.endObject();
+
+                  //TODO: add tmpBuild to bulk injection request!
+
+                  IndexRequest indexReq = new IndexRequest(runindex_write,"_doc",id)
+                    .routing(runNumber)
+                    .source(tmpBuild);
+
+                  if (callRefresh)
+                    indexReq.setRefreshPolicy(RefreshPolicy.IMMEDIATE);
+                  IndexResponse iResponse = client.index(indexReq,RequestOptions.DEFAULT);
                 }
+                
                 //drop complete lumis older than query range (keep checking if EvB information is inconsistent)
                 if (newCompletion==1 && ls_num<set.lowestLS && !lsQueried.contains(ls)) {
                   //complete,dropping from maps
