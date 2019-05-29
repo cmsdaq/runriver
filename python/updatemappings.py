@@ -56,7 +56,7 @@ class elasticUpdater:
           self.updateIndexMappingMaybe(argv[5],mappings.central_hltdlogs_mapping)
         elif argv[2]=="copy":
           #copy single index mapping to another
-          res = requests.get('http://'+self.url+':9200/'+argv[3]+'/_mapping?include_type_name=true',headers=headers) #NOTE: in es7 will drop type name (but this is just copy)
+          res = requests.get('http://'+self.url+':9200/'+argv[3]+'/_mapping',headers=headers) #NOTE: in es7 will drop type name (but this is just copy)
           if res.status_code==200:
             res_j = json.loads(res.content)
             for idx in res_j:
@@ -179,10 +179,9 @@ class elasticUpdater:
         #update in case of new documents added to mapping definition
         res = requests.post('http://'+self.url+':9200/'+index_name+'/_mapping/',json.dumps(mapping),headers=headers)
         if res.status_code==200:
-            print(index_name,key)
+            print(index_name)
         else:
-            print("FAILED")
-            print(index_name,key,res.status_code,res.content)
+            print("FAILED",index_name,res.status_code,res.content)
 
 if __name__ == "__main__":
 
