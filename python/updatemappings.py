@@ -70,51 +70,51 @@ class elasticUpdater:
           aliases = json.loads(res.content)
           old_idx_list = []
           actions = []
+          sub =  argv[3]
+          isuf = "_"+sub+"_"+argv[4]
           for idx in aliases:
             #print idx
             for alias in aliases[idx]["aliases"]:
-              if alias in ['runindex_'+argv[3],'runindex_'+argv[3]+'_read','runindex_'+argv[3]+'_write',
-                           'boxinfo_'+argv[3],'boxinfo_'+argv[3]+'_read','boxinfo_'+argv[3]+'_write',
-                           'hltdlogs_'+argv[3],'hltdlogs_'+argv[3]+'_read','hltdlogs_'+argv[3]+'_write',
-                           'merging_'+argv[3],'merging_'+argv[3]+'_write']:
+              if alias in ['runindex_'+sub,'runindex_'+sub+'_read','runindex_'+sub+'_write',
+                           'boxinfo_'+sub,'boxinfo_'+sub+'_read','boxinfo_'+sub+'_write',
+                           'reshistory_'+sub,'reshistory_'+sub+'_read','reshistory_'+sub+'_write',
+                           'hltdlogs_'+sub,'hltdlogs_'+sub+'_read','hltdlogs_'+sub+'_write',
+                           'merging_'+sub,'merging_'+sub+'_read','merging_'+sub+'_write']:
                 actions.append({"remove":{"index":idx,"alias":alias}})
                 old_idx_list.append(idx)
 
-          actions.append({"add":{"alias":"runindex_"+argv[3],"index":argv[4]}})
-          actions.append({"add":{"alias":"runindex_"+argv[3]+"_read","index":argv[4]}})
-          actions.append({"add":{"alias":"runindex_"+argv[3]+"_write","index":argv[4]}})
+          for itype in ["runindex","boxinfo","reshistory","hltdlogs","merging"]:
+            actions.append({"add":{"alias":itype+"_"+sub,         "index":itype+isuf}})
+            actions.append({"add":{"alias":itype+"_"+sub+"_read", "index":itype+isuf}}) #not relevant
+            actions.append({"add":{"alias":itype+"_"+sub+"_write","index":itype+isuf}})
 
-          actions.append({"add":{"alias":"boxinfo_"+argv[3],"index":argv[5]}})
-          actions.append({"add":{"alias":"boxinfo_"+argv[3]+"_read","index":argv[5]}})
-          actions.append({"add":{"alias":"boxinfo_"+argv[3]+"_write","index":argv[5]}})
-
-          actions.append({"add":{"alias":"hltdlogs_"+argv[3],"index":argv[6]}})
-          actions.append({"add":{"alias":"hltdlogs_"+argv[3]+"_read","index":argv[6]}})
-          actions.append({"add":{"alias":"hltdlogs_"+argv[3]+"_write","index":argv[6]}})
-
-          actions.append({"add":{"alias":"merging_"+argv[3],"index":argv[7]}})
-          actions.append({"add":{"alias":"runindex_"+argv[3]+"_read","index":argv[7]}}) #!
-          actions.append({"add":{"alias":"merging_"+argv[3]+"_write","index":argv[7]}})
+          #set common aliases (will be removed at some point)
+          actions.append({"add":{"alias":"runindex_"+sub+"_read","index":"merging"+isuf}})
+          actions.append({"add":{"alias":"boxinfo_"+sub+"_read","index":"reshistory"+isuf}})
 
           #adding all-year index if required
-          if len(argv)>8 and argv[8].isdigit():
-              year_suffix = argv[3]+argv[8]
-              actions.append({"add":{"alias":"runindex_"+year_suffix+"_read","index":argv[4]}})
-              actions.append({"add":{"alias":"boxinfo_" +year_suffix+"_read","index":argv[5]}})
-              actions.append({"add":{"alias":"hltdlogs_"+year_suffix+"_read","index":argv[6]}})
-              actions.append({"add":{"alias":"runindex_"+year_suffix+"_read","index":argv[7]}}) #!
+          if len(argv)>5 and argv[5].isdigit():
+            year_sub = sub+argv[5]
+
+            for itype in ["runindex","boxinfo","reshistory","hltdlogs","merging"]:
+              actions.append({"add":{"alias":itype+"_"+year_sub+"_read","index":itype+isuf}})
+
+            #these are still under other index:
+            actions.append({"add":{"alias":"runindex_"+year_sub+"_read","index":"merging"+isuf}})
+            actions.append({"add":{"alias":"boxinfo_"+year_sub+"_read","index":"reshistory"+isuf}})
 
           data = json.dumps({"actions":actions})
           print(data)
           res = requests.post('http://'+self.url+':9200/_aliases',data,headers=headers)
           print(res.status_code)
 
-          print("current",argv[3],"alias removed from indices: ",",".join(set(old_idx_list)).strip('"'))
+          print("current",sub,"alias removed from indices: ",",".join(set(old_idx_list)).strip('"'))
           
           pass
 
         elif argv[2]=="alias":
-         if not argv[3]=="merging": #exclude this special case
+         sub =  argv[3]
+         if not sub=="merging": #exclude this special case
           res = requests.get('http://'+self.url+':9200/_aliases',headers=headers)
           aliases = json.loads(res.content)
           old_idx_list = []
@@ -122,18 +122,18 @@ class elasticUpdater:
           for idx in aliases:
             #print idx
             for alias in aliases[idx]["aliases"]:
-              if alias in [argv[3]+'_'+argv[4],argv[3]+'_'+argv[4]+'_read',argv[3]+'_'+argv[4]+'_write']:
+              if alias in [sub+'_'+argv[4],sub+'_'+argv[4]+'_read',sub+'_'+argv[4]+'_write']:
                 actions.append({"remove":{"index":idx,"alias":alias}})
                 old_idx_list.append(idx)
 
-          actions.append({"add":{"alias":argv[3]+'_'+argv[4],"index":argv[5]}})
-          actions.append({"add":{"alias":argv[3]+'_'+argv[4]+"_read","index":argv[5]}})
-          actions.append({"add":{"alias":argv[3]+'_'+argv[4]+"_write","index":argv[5]}})
+          actions.append({"add":{"alias":sub+'_'+argv[4],"index":argv[5]}})
+          actions.append({"add":{"alias":sub+'_'+argv[4]+"_read","index":argv[5]}})
+          actions.append({"add":{"alias":sub+'_'+argv[4]+"_write","index":argv[5]}})
 
           #adding all-year index if required
           if len(argv)>6 and argv[6].isdigit():
               year_suffix = argv[4]+argv[6]
-              actions.append({"add":{"alias":argv[3]+'_'+year_suffix+"_read","index":argv[5]}})
+              actions.append({"add":{"alias":sub+'_'+year_suffix+"_read","index":argv[5]}})
 
           data = json.dumps({"actions":actions})
           print(data)
@@ -155,14 +155,14 @@ class elasticUpdater:
                 actions.append({"remove":{"index":idx,"alias":alias}})
                 old_idx_list.append(idx)
 
-          actions.append({"add":{"alias":"river","index":argv[3]}})
+          actions.append({"add":{"alias":"river","index":sub}})
 
           data = json.dumps({"actions":actions})
           print(data)
           res = requests.post('http://'+self.url+':9200/_aliases',data,headers=headers)
           print(res.status_code,res.content)
 
-          print("current",argv[3],"alias removed from indices: ",",".join(set(old_idx_list)).strip('"'))
+          print("current",sub,"alias removed from indices: ",",".join(set(old_idx_list)).strip('"'))
           
           pass
  
