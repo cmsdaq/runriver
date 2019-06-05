@@ -1,5 +1,9 @@
 #!/bin/bash
 
+#modify this if you are using custom version of river.jar or updatemappings.py script
+$UPDSCRIPTPREFIX=/opt/fff
+$RIVERJARPREFIX=/opt/fff
+
 if [ -z "$1" ]; then
  echo "please specify one of subsystems: cdaq, minidaq, dv, d3v, VM"
  exit 1
@@ -72,22 +76,18 @@ curl -H "Content-Type:application/json" -XPUT localhost:9200/hltdlogs_${subsyste
 #----------------------------------
 echo
 echo "#executing inject mapping:"
-/usr/bin/java -jar river.jar mapping ${subsystem} localhost es-cdaq runindex_${subsystem}_${newdate} 0
-/opt/fff/updatemappings.py localhost auto runindex_${subsystem}_${newdate} boxinfo_${subsystem}_${newdate} hltdlogs_${subsystem}_${newdate}
-/opt/fff/updatemappings.py localhost copy runindex_${subsystem}_${newdate} merging_${subsystem}_${newdate}
-/opt/fff/updatemappings.py localhost copy boxinfo_${subsystem}_${newdate} reshistory_${subsystem}_${newdate}
-
-
-
-
+/usr/bin/java -jar ${RIVERJARPREFIX}/river.jar mapping ${subsystem} localhost es-cdaq runindex_${subsystem}_${newdate} 0
+${UPDSCRIPTPREFIX}/updatemappings.py localhost auto runindex_${subsystem}_${newdate} boxinfo_${subsystem}_${newdate} hltdlogs_${subsystem}_${newdate}
+${UPDSCRIPTPREFIX}/updatemappings.py localhost copy runindex_${subsystem}_${newdate} merging_${subsystem}_${newdate}
+${UPDSCRIPTPREFIX}/updatemappings.py localhost copy boxinfo_${subsystem}_${newdate} reshistory_${subsystem}_${newdate}
 
 echo
 echo "#add set up aliases:"
-echo /opt/fff/updatemappings.py localhost aliases ${subsystem} ${newdate} $year
+echo ${UPDSCRIPTPREFIX}/updatemappings.py localhost aliases ${subsystem} ${newdate} $year
 echo ""
 echo '#for particular index (except for "merging_*" and "reshistory_*"):'
-echo '#'/opt/fff/updatemappings.py localhost alias runindex ${subsystem} runindex_${subsystem}_${newdate} $year
-echo '#'/opt/fff/updatemappings.py localhost alias boxinfo ${subsystem} boxinfo_${subsystem}_${newdate} $year
-echo '#'/opt/fff/updatemappings.py localhost alias hltdlogs ${subsystem} hltdlogs${subsystem}_${newdate} $year
+echo '#'${UPDSCRIPTPREFIX}/updatemappings.py localhost alias runindex ${subsystem} runindex_${subsystem}_${newdate} $yer
+echo '#'${UPDSCRIPTPREFIX}/updatemappings.py localhost alias boxinfo ${subsystem} boxinfo_${subsystem}_${newdate} $year
+echo '#'${UPDSCRIPTPREFIX}/updatemappings.py localhost alias hltdlogs ${subsystem} hltdlogs${subsystem}_${newdate} $year
 
 #TODO: add year alias mapping (like runindex_minidaq2017_read)

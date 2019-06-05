@@ -110,6 +110,9 @@ Provides:/opt/fff/demote.py
 Provides:/opt/fff/log4j2.properties
 Provides:/opt/fff/init.d/riverd
 Provides:/opt/fff/$riverfile
+Provides:/opt/fff/tools
+Provides:/opt/fff/tools,mapper
+Provides:/opt/fff/tools/mapper/*
 Provides:/etc/rsyslog.d/48-river.conf
 Provides:/etc/logrotate.d/river
 Provides:/usr/lib/systemd/system/fff.service
@@ -133,6 +136,8 @@ mkdir -p \$RPM_BUILD_ROOT
 %__install -d "%{buildroot}/opt/fff/backup"
 %__install -d "%{buildroot}/opt/fff/esplugins"
 %__install -d "%{buildroot}/opt/fff/init.d"
+%__install -d "%{buildroot}/opt/fff/tools"
+%__install -d "%{buildroot}/opt/fff/tools/mapper"
 %__install -d "%{buildroot}/usr/lib/systemd/system"
 %__install -d "%{buildroot}/etc/rsyslog.d"
 %__install -d "%{buildroot}/etc/logrotate.d"
@@ -159,6 +164,8 @@ echo python2 /opt/fff/essetupmachine.py >> %{buildroot}/opt/fff/configurefff.sh
 cp $BASEDIR/target/$riverfile %{buildroot}/opt/fff/$riverfile
 cp $BASEDIR/esplugins/install.sh %{buildroot}/opt/fff/esplugins/install.sh
 cp $BASEDIR/esplugins/uninstall.sh %{buildroot}/opt/fff/esplugins/uninstall.sh
+
+cp -R $BASEDIR/scripts/tools/mapper/{*.py,*.sh,*.md} %{buildroot}/opt/fff/tools/mapper/
 
 %files
 %defattr(-, root, root, -)
@@ -195,6 +202,11 @@ cp $BASEDIR/esplugins/uninstall.sh %{buildroot}/opt/fff/esplugins/uninstall.sh
 %attr( 755 ,root, root) /opt/fff/$riverfile
 %attr( 644 ,root, root) /etc/rsyslog.d/48-river.conf
 %attr( 644 ,root, root) /etc/logrotate.d/river
+%attr( 755 ,root, root) /opt/fff/tools/mapper/*.py
+%attr( 755 ,root, root) /opt/fff/tools/mapper/*.sh
+%attr( 644 ,root, root) /opt/fff/tools/mapper/*.pyc
+%attr( 644 ,root, root) /opt/fff/tools/mapper/*.pyo
+%attr( 644 ,root, root) /opt/fff/tools/mapper/*.md
 %attr( 755 ,root, root) /usr/lib64/$python_dir/site-packages/prctl.py
 %attr( 755 ,root, root) /usr/lib64/$python_dir/site-packages/prctl.pyo
 %attr( 755 ,root, root) /usr/lib64/$python_dir/site-packages/prctl.pyc
