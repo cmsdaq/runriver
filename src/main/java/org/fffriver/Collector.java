@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.Set;
 import java.util.Map;
 import java.util.List;
+import javafx.util.Pair;
 import java.util.HashSet;
 import java.util.HashMap;
 import java.util.ArrayList;
@@ -20,8 +21,14 @@ import org.elasticsearch.client.Requests;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
+import org.elasticsearch.action.get.MultiGetRequest;
+import org.elasticsearch.action.get.MultiGetResponse;
+import org.elasticsearch.action.get.MultiGetItemResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
+import org.elasticsearch.action.bulk.BulkRequest;
+import org.elasticsearch.action.bulk.BulkResponse;
+import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.admin.indices.close.CloseIndexRequest;
@@ -406,6 +413,10 @@ public class Collector extends AbstractRunRiverThread {
         String doc_type = "stream-hist";
         if (!set.appliance.isEmpty()) doc_type = "stream-hist-appliance";
 
+        //use multiget!
+        List<Pair<String,String>> requestList = new ArrayList<Pair<String,String>>();
+        MultiGetRequest greq = new MultiGetRequest();
+
         for (String stream : set.known_streams.keySet()){
             List<String> removeList = new ArrayList<String>();
 
@@ -422,8 +433,49 @@ public class Collector extends AbstractRunRiverThread {
                 if (!set.appliance.isEmpty()) id=id+"_"+set.appliance;
 
                 //Check if data is changed (to avoid to update timestamp if not necessary)
-                GetRequest greq = new GetRequest(runindex_write,id).routing(runNumber).refresh(callRefresh);
-                GetResponse sresponse = client.get(greq,RequestOptions.DEFAULT);
+                requestList.add(new Pair<String,String>(stream,ls));
+                greq.add(new MultiGetRequest.Item(runindex_write,id).routing(runNumber));
+            }
+        }
+        greq.refresh(callRefresh);
+        MultiGetResponse smresponse = client.mget(greq,RequestOptions.DEFAULT);
+
+        List<Pair<String,String>> removeList = new ArrayList<Pair<String,String>>();
+
+
+        BulkRequest bulkRequest = new BulkRequest();
+        boolean do_bulk=false;
+
+        for (int i=0;i<smresponse.getResponses().length;i++) {
+                Pair<String,String> p = requestList.get(i);
+                String stream = p.getKey();
+                String ls = p.getValue();
+
+                MultiGetItemResponse mgi = smresponse.getResponses()[i];
+                if (mgi.getFailure()!=null) {
+                  logger.error("skipping response with failure for stream " + stream + " LS " + ls + " exception:", mgi.getFailure().getFailure());
+                  continue;
+                }
+                GetResponse sresponse = mgi.getResponse();
+                if (sresponse == null) {
+                  logger.error("skipping response with null response (should not be reached)");
+                  continue;
+                }
+
+                if (set.eolEventsList.get(ls)==null) continue;
+                Integer ls_num = lsMap.get(ls);
+
+                Double eventsVal = set.eolEventsList.get(ls);
+                Double lostEventsVal = set.eolLostEventsList.get(ls);
+                Double totalEventsVal = set.eolTotalEventsList.get(ls);
+
+                String id = String.format("%06d", Integer.parseInt(runNumber))+"_"+stream+"_"+ls;
+
+                if (!set.appliance.isEmpty()) id=id+"_"+set.appliance;
+
+                //Check if data is changed (to avoid to update timestamp if not necessary)
+//                GetRequest greq = new GetRequest(runindex_write,id).routing(runNumber).refresh(callRefresh);
+//                GetResponse sresponse = client.get(greq,RequestOptions.DEFAULT);
 
                 boolean dataChanged = true;
                 if (sresponse.isExists()){ 
@@ -529,19 +581,36 @@ public class Collector extends AbstractRunRiverThread {
                   IndexRequest indexReq = new IndexRequest(runindex_write,"_doc",id)
                     .routing(runNumber)
                     .source(tmpBuild);
+                  bulkRequest.add(indexReq);
+                  do_bulk=true;
 
-                  if (callRefresh)
-                    indexReq.setRefreshPolicy(RefreshPolicy.IMMEDIATE);
-                  IndexResponse iResponse = client.index(indexReq,RequestOptions.DEFAULT);
+                  //if (callRefresh)
+                  //  indexReq.setRefreshPolicy(RefreshPolicy.IMMEDIATE);
+                  //IndexResponse iResponse = client.index(indexReq,RequestOptions.DEFAULT);
                 }
                 
                 //drop complete lumis older than query range (keep checking if EvB information is inconsistent)
                 if (newCompletion==1 && ls_num<set.lowestLS && !lsQueried.contains(ls)) {
                   //complete,dropping from maps
-                  removeList.add(ls);
+                  removeList.add(new Pair<String,String>(stream,ls));
                 }
-            }
+        }
+        if (do_bulk) {
+            if (callRefresh)
+              bulkRequest.setRefreshPolicy(RefreshPolicy.IMMEDIATE);
 
+            BulkResponse iResponse = client.bulk(bulkRequest,RequestOptions.DEFAULT);
+
+            if (iResponse.hasFailures()) {
+              for (BulkItemResponse bulkItemResponse : iResponse) {
+
+                 BulkItemResponse.Failure failure = bulkItemResponse.getFailure();
+                 logger.error("bulk index failure:",failure);
+              }
+            }
+        }
+
+        for (String stream : set.known_streams.keySet()){
             for (String ls : removeListAnyStream) {
               if (set.appliance.isEmpty())
                 logger.info("removing old stream" + stream + " Map entries for LS "+ ls);
@@ -552,8 +621,11 @@ public class Collector extends AbstractRunRiverThread {
               set.futimestamplshist.get(stream).remove(ls);
               set.fumergetypelshist.get(stream).remove(ls);
             }
+        }
 
-            for (String ls : removeList) {
+        for (Pair<String,String> streamls : removeList) {
+              String stream = streamls.getKey();
+              String ls = streamls.getValue();
               if (set.appliance.isEmpty())
                 logger.info("removing stream" + stream + " Map entries for LS "+ ls);
               set.fuinlshist.get(stream).remove(ls);
@@ -562,7 +634,6 @@ public class Collector extends AbstractRunRiverThread {
               set.fufilesizehist.get(stream).remove(ls);
               set.futimestamplshist.get(stream).remove(ls);
               set.fumergetypelshist.get(stream).remove(ls);
-            }
         }
     }
         
@@ -635,6 +706,8 @@ public class Collector extends AbstractRunRiverThread {
         Double fm_date = fm_date_mx.getValue();
 
         if(sResponse.getAggregations().asList().isEmpty()){return;}
+
+        BulkRequest bulkRequest = new BulkRequest();
 
         XContentBuilder xb = XContentFactory.jsonBuilder().startObject(); 
         XContentBuilder xbSummary = XContentFactory.jsonBuilder().startObject(); 
@@ -736,7 +809,8 @@ public class Collector extends AbstractRunRiverThread {
           .routing(runNumber)
           .source(xb);
  
-        client.index(indexReqXb,RequestOptions.DEFAULT);
+        //client.index(indexReqXb,RequestOptions.DEFAULT);
+        bulkRequest.add(indexReqXb);
 
         xbSummary.field("fm_date",fm_date.longValue());
         xbSummary.field("date",start_time_millis);
@@ -748,7 +822,9 @@ public class Collector extends AbstractRunRiverThread {
         IndexRequest indexReqXbSum = new IndexRequest(runindex_write)
           .routing(runNumber)
           .source(xbSummary);
-        client.index(indexReqXbSum,RequestOptions.DEFAULT);
+
+        bulkRequest.add(indexReqXbSum);
+        //client.index(indexReqXbSum,RequestOptions.DEFAULT);
  
         //class summary
         Terms cpuclasses = sResponse.getAggregations().get("mclass");
@@ -829,8 +905,22 @@ public class Collector extends AbstractRunRiverThread {
             IndexRequest indexReqXbClassSum = new IndexRequest(runindex_write)
               .routing(runNumber)
               .source(xbClassSummary);
-            client.index(indexReqXbClassSum,RequestOptions.DEFAULT);
+
+            bulkRequest.add(indexReqXbClassSum);
+            //client.index(indexReqXbClassSum,RequestOptions.DEFAULT);
           }
+
+          //bulk inject all docs
+          BulkResponse iResponse = client.bulk(bulkRequest,RequestOptions.DEFAULT);
+
+          if (iResponse.hasFailures()) {
+            for (BulkItemResponse bulkItemResponse : iResponse) {
+
+               BulkItemResponse.Failure failure = bulkItemResponse.getFailure();
+               logger.error("states bulk index failure:",failure);
+            }
+          }
+
         } catch (Exception e) {
            logger.error("Error getting process microstate info: ", e);
         }
