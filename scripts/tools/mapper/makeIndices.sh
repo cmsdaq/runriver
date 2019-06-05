@@ -37,6 +37,14 @@ if [ -z $subsystem ]; then
  exit 1
 fi
 
+if [ -z $2 ]; then
+ echo "using NO ingest processor for new indices"
+ ingest=""
+else
+ echo "using ingest processor with timestamp injection"
+ ingest=',"default_pipeline":"dateinjector"'
+fi
+
 echo "option is $subsystem"
 
 subsystem="cdaq"
@@ -61,15 +69,15 @@ curl -H "Content-Type:application/json" -XPUT localhost:9200/_ingest/pipeline/da
 #make indices
 echo "make ${subsystem}_${newdate}"
 
-curl -H "Content-Type:application/json" -XPUT localhost:9200/runindex_${subsystem}_${newdate}?pretty -d'{"settings":{"index":{"number_of_shards" : "'$shards'","number_of_replicas" : "'$repl'","codec" : "best_compression","default_pipeline":"dateinjector"}, "translog" : {"durability" : "async","flush_threshold_size":"4g"},"analysis" : {"analyzer" : {"default" : {"type" : "keyword"}}}}}' #-u fffadmin:$2
+curl -H "Content-Type:application/json" -XPUT localhost:9200/runindex_${subsystem}_${newdate}?pretty    -d'{"settings":{"index":{"number_of_shards" : "'$shards'",   "number_of_replicas" : "'$repl'","codec" : "best_compression"'${ingest}'}, "translog" : {"durability" : "async","flush_threshold_size":"4g"},"analysis" : {"analyzer" : {"default" : {"type" : "keyword"}}}}}' #-u fffadmin:$2
 
-curl -H "Content-Type:application/json" -XPUT localhost:9200/merging_${subsystem}_${newdate}?pretty  -d'{"settings":{"index":{"number_of_shards" : "'$shards'","number_of_replicas" : "'$repl'","codec" : "best_compression","default_pipeline":"dateinjector"}, "translog" : {"durability" : "async","flush_threshold_size":"4g"},"analysis" : {"analyzer" : {"default" : {"type" : "keyword"}}}}}' #-u fffadmin:$2
+curl -H "Content-Type:application/json" -XPUT localhost:9200/merging_${subsystem}_${newdate}?pretty     -d'{"settings":{"index":{"number_of_shards" : "'$shards'",   "number_of_replicas" : "'$repl'","codec" : "best_compression"'${ingest}'}, "translog" : {"durability" : "async","flush_threshold_size":"4g"},"analysis" : {"analyzer" : {"default" : {"type" : "keyword"}}}}}' #-u fffadmin:$2
 
-curl -H "Content-Type:application/json" -XPUT localhost:9200/boxinfo_${subsystem}_${newdate}?pretty  -d'{"settings":{"index":{"number_of_shards" : "'$shardsbox'","number_of_replicas" : "'$repl'","codec" : "best_compression"}, "translog" : {"durability" : "async","flush_threshold_size":"4g"},"analysis" : {"analyzer" : {"default" : {"type" : "keyword"}}}}}' #-u fffadmin:$2
+curl -H "Content-Type:application/json" -XPUT localhost:9200/boxinfo_${subsystem}_${newdate}?pretty     -d'{"settings":{"index":{"number_of_shards" : "'$shardsbox'","number_of_replicas" : "'$repl'","codec" : "best_compression"},            "translog" : {"durability" : "async","flush_threshold_size":"4g"},"analysis" : {"analyzer" : {"default" : {"type" : "keyword"}}}}}' #-u fffadmin:$2
 
-curl -H "Content-Type:application/json" -XPUT localhost:9200/reshistory_${subsystem}_${newdate}?pretty  -d'{"settings":{"index":{"number_of_shards" : "'$shards'","number_of_replicas" : "'$repl'","codec" : "best_compression","default_pipeline":"dateinjector"}, "translog" : {"durability" : "async","flush_threshold_size":"4g"},"analysis" : {"analyzer" : {"default" : {"type" : "keyword"}}}}}' #-u fffadmin:$2
+curl -H "Content-Type:application/json" -XPUT localhost:9200/reshistory_${subsystem}_${newdate}?pretty  -d'{"settings":{"index":{"number_of_shards" : "'$shards'",   "number_of_replicas" : "'$repl'","codec" : "best_compression"'${ingest}'}, "translog" : {"durability" : "async","flush_threshold_size":"4g"},"analysis" : {"analyzer" : {"default" : {"type" : "keyword"}}}}}' #-u fffadmin:$2
 
-curl -H "Content-Type:application/json" -XPUT localhost:9200/hltdlogs_${subsystem}_${newdate}?pretty -d'{"settings":{"index":{"number_of_shards" : "'$shardslog'","number_of_replicas" : "'$repl'","codec" : "best_compression","default_pipeline":"dateinjector"}, "translog" : {"durability" : "async","flush_threshold_size":"4g"},"analysis":{"analyzer":{"prefix-test-analyzer":{"type":"custom","tokenizer":"prefix-test-tokenizer"}},"tokenizer":{"prefix-test-tokenizer":{"type": "path_hierarchy","delimiter":" "}}}}}' #-u fffadmin:$2
+curl -H "Content-Type:application/json" -XPUT localhost:9200/hltdlogs_${subsystem}_${newdate}?pretty    -d'{"settings":{"index":{"number_of_shards" : "'$shardslog'","number_of_replicas" : "'$repl'","codec" : "best_compression"'${ingest}'}, "translog" : {"durability" : "async","flush_threshold_size":"4g"},"analysis":{"analyzer":{"prefix-test-analyzer":{"type":"custom","tokenizer":"prefix-test-tokenizer"}},"tokenizer":{"prefix-test-tokenizer":{"type": "path_hierarchy","delimiter":" "}}}}}' #-u fffadmin:$2
 
 #configure ingest
 
