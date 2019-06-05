@@ -52,7 +52,8 @@ year=${newdate:0:4}   ## or put explicit year if newdate doesn't start with year
 #------------------------------
 #set ingest processor with set field and overwrite with timestamp. Use unix time format.
 echo "#setting ingest processor to apply injection timestamp:"
-curl -H "Content-Type:application/json" -XPUT localhost:9200/_ingest/pipeline/dateinjector?pretty  -d'{"description":"inject timestamp", "processors":[{"set":{"field":"injdate","value":""},"date":{"field":"injdate","formats":["UNIX"],"timezone":"UTC","target_field":"injdate"}}]}'
+curl -H "Content-Type:application/json" -XPOST localhost:9200/_scripts/timestampscript  -d'{"script":{"lang":"painless","source":"ctx.injdate = new Date().getTime()"}}'
+curl -H "Content-Type:application/json" -XPUT localhost:9200/_ingest/pipeline/dateinjector?pretty  -d'{"description":"inject timestamp", "processors":[{"script":{"id":"timestampscript"}}]}'
 
 #TODO: in LS2 number f replicas for runindex_cdaq is 1. With more servers this can be again 2. Also applies to "river" indices
 
