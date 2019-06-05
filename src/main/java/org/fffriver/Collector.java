@@ -422,11 +422,6 @@ public class Collector extends AbstractRunRiverThread {
 
             for (String ls : set.fuoutlshist.get(stream).keySet()){
                 if (set.eolEventsList.get(ls)==null) continue;
-                Integer ls_num = lsMap.get(ls);
-
-                Double eventsVal = set.eolEventsList.get(ls);
-                Double lostEventsVal = set.eolLostEventsList.get(ls);
-                Double totalEventsVal = set.eolTotalEventsList.get(ls);
 
                 String id = String.format("%06d", Integer.parseInt(runNumber))+"_"+stream+"_"+ls;
 
@@ -461,8 +456,8 @@ public class Collector extends AbstractRunRiverThread {
                   logger.error("skipping response with null response (should not be reached)");
                   continue;
                 }
-
                 if (set.eolEventsList.get(ls)==null) continue;
+
                 Integer ls_num = lsMap.get(ls);
 
                 Double eventsVal = set.eolEventsList.get(ls);
@@ -474,9 +469,6 @@ public class Collector extends AbstractRunRiverThread {
                 if (!set.appliance.isEmpty()) id=id+"_"+set.appliance;
 
                 //Check if data is changed (to avoid to update timestamp if not necessary)
-//                GetRequest greq = new GetRequest(runindex_write,id).routing(runNumber).refresh(callRefresh);
-//                GetResponse sresponse = client.get(greq,RequestOptions.DEFAULT);
-
                 boolean dataChanged = true;
                 if (sresponse.isExists()){ 
                     Double in = Double.parseDouble(sresponse.getSource().get("in").toString());
@@ -576,17 +568,11 @@ public class Collector extends AbstractRunRiverThread {
 
                   tmpBuild.endObject();
 
-                  //TODO: add tmpBuild to bulk injection request!
-
                   IndexRequest indexReq = new IndexRequest(runindex_write,"_doc",id)
                     .routing(runNumber)
                     .source(tmpBuild);
                   bulkRequest.add(indexReq);
                   do_bulk=true;
-
-                  //if (callRefresh)
-                  //  indexReq.setRefreshPolicy(RefreshPolicy.IMMEDIATE);
-                  //IndexResponse iResponse = client.index(indexReq,RequestOptions.DEFAULT);
                 }
                 
                 //drop complete lumis older than query range (keep checking if EvB information is inconsistent)
@@ -809,7 +795,6 @@ public class Collector extends AbstractRunRiverThread {
           .routing(runNumber)
           .source(xb);
  
-        //client.index(indexReqXb,RequestOptions.DEFAULT);
         bulkRequest.add(indexReqXb);
 
         xbSummary.field("fm_date",fm_date.longValue());
@@ -824,7 +809,6 @@ public class Collector extends AbstractRunRiverThread {
           .source(xbSummary);
 
         bulkRequest.add(indexReqXbSum);
-        //client.index(indexReqXbSum,RequestOptions.DEFAULT);
  
         //class summary
         Terms cpuclasses = sResponse.getAggregations().get("mclass");
@@ -907,7 +891,6 @@ public class Collector extends AbstractRunRiverThread {
               .source(xbClassSummary);
 
             bulkRequest.add(indexReqXbClassSum);
-            //client.index(indexReqXbClassSum,RequestOptions.DEFAULT);
           }
 
           //bulk inject all docs
