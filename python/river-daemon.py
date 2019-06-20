@@ -421,7 +421,7 @@ def runRiver(doc):
     elif st == 409:
       syslog.syslog(str(doc_id)+" update failed. doc was already grabbed.")
     else:
-      syslog.syslog("ERROR:Failed to update document; status:"+str(st)+" "+res )
+      syslog.syslog("ERROR:Failed to update document; status:"+str(st)+" error:"+str(res))
   elif doc['_source']['node']['status'] in ['restart']:
     #manual restart was issued, check if this instance is running here and tell the thread to finish and set status to restarting
     for instance in river_threads:
