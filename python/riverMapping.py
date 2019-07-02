@@ -71,6 +71,9 @@ riverInstMapping = {
                 },
                 "streaminfo_per_bu" : {
                         "type" : "boolean"
+                },
+                "maxRunRivers" : {
+                        "type" : "integer"
                 }
 	}
 }

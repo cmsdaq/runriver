@@ -40,7 +40,7 @@ socket.setdefaulttimeout(5)
 global_quit = False
 
 #thread vector
-river_threads = []
+river_threads_map = {}
 
 host='localhost'
 sleep_int=5
@@ -401,9 +401,11 @@ def runRiver(doc):
     time.sleep(.1)
     #verify if this river is already active and clean it if not
     try:
-      for instance in river_threads:
-        if instance.riverid == doc_id:
-          instance.setTerminate()
+      for rsys in river_threads_map:
+        river_threads = river_threads_map[rsys]
+        for instance in river_threads[:]:
+          if instance.riverid == doc_id:
+            instance.setTerminate()
     except Exception as ex:
       syslog.syslog("problem checking rivers:"+str(ex))
     time.sleep(.05)
@@ -414,7 +416,7 @@ def runRiver(doc):
       #success,proceed with fork
       syslog.syslog("successfully updated "+str(doc_id)+" document. will start the instance")
       new_instance = river_thread(doc_id,src['subsystem'],host,cluster,"river",runNumber,process_type,path)
-      river_threads.append(new_instance)
+      river_threads_map.setdefault(src['subsystem'],[]).append(new_instance)
       new_instance.execute()
       syslog.syslog("started river thread")
       ###fork river with url, index, type, doc id, some params to identify
@@ -424,10 +426,12 @@ def runRiver(doc):
       syslog.syslog("ERROR:Failed to update document; status:"+str(st)+" error:"+str(res))
   elif doc['_source']['node']['status'] in ['restart']:
     #manual restart was issued, check if this instance is running here and tell the thread to finish and set status to restarting
-    for instance in river_threads:
-      if instance.riverid == doc_id:
-        instance.setRestart()
-        return
+    for rsys in river_threads_map:
+      river_threads = river_threads_map[rsys]
+      for instance in river_threads[:]:
+        if instance.riverid == doc_id:
+          instance.setRestart()
+          return
     #if handler was not found, try to set restarting flag to allow someone to pick it up
     success,st,res = query(gconn,"POST","/river/_doc/"+str(doc_id)+'/_update'+qattribs,json.dumps({'doc':gen_node_doc('restarting')}))
     if not (success and st == 200) and st!=409:
@@ -446,9 +450,13 @@ def checkRivers():
 
       if doc_st=='running' or doc_st=='starting': #other states are handled
         found_rt = None
-        for rt in river_threads:
-          if rt.riverid == doc_id:
-            found_rt = rt
+        for rsys in river_threads_map:
+          river_threads = river_threads_map[rsys]
+          for rt in river_threads[:]:
+            if rt.riverid == doc_id:
+              found_rt = rt
+              break
+          if found_rt is not None:
             break
         if not found_rt: #river not handled by thread obj, take over
           syslog.syslog("no mother thread found for river id "+ doc_id + " in state " + doc_st)
@@ -557,15 +565,17 @@ def runDaemon():
 
     #join threads that have finished (needed?)
     try:
-      for rt in river_threads[:]:
-        if rt.stopped:
-          try:
-            rt.join()
-          except Exception as ex:
+      for rsys in river_threads_map:
+        river_threads = river_threads_map[rsys]
+        for rt in river_threads[:]:
+          if rt.stopped:
+            try:
+              rt.join()
+            except Exception as ex:
 
-            syslog.syslog("error joining river thread (runDaemon loop_ :" +str(type(ex).__name__)+" msg:"+str(ex))
-            pass
-          river_threads.remove(rt)
+              syslog.syslog("error joining river thread (runDaemon loop_ :" +str(type(ex).__name__)+" msg:"+str(ex))
+              pass
+            river_threads_map[rsys].remove(rt)
 
       time.sleep(sleep_int)
       if global_quit:break
@@ -669,13 +679,15 @@ class RiverDaemon():
 
     syslog.syslog("exited runDaemon...")
     #kill everything
-    for rt in river_threads[:]:
-      try:
-        rt.force_stop()
-        rt.join()
-      except Exception as ex:
-        syslog.syslog("error stopping/joining river thread during shutdown:" +str(type(ex).__name__)+" msg:"+str(ex))
-        syslog.syslog(str(ex))
+    for rsys in river_threads_map:
+      river_threads = river_threads_map[rsys]
+      for rt in river_threads[:]:
+        try:
+          rt.force_stop()
+          rt.join()
+        except Exception as ex:
+          syslog.syslog("error stopping/joining river thread during shutdown:" +str(type(ex).__name__)+" msg:"+str(ex))
+          syslog.syslog(str(ex))
 
     syslog.syslog("quitting (1)")
     self.logCleaner.stop()
