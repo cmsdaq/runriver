@@ -45,6 +45,17 @@ river_threads_map = {}
 host='localhost'
 sleep_int=5
 
+#cdaq: also includes CPU usage DB injector script
+subsys_quota = {"cdaq":10,"dv":3,"d3v":3,"minidaq":10}
+quota_default = 3
+subsys_heap = {"cdaq":"500m","dv":"100m","d3v":"100m","minidaq":"100m"}
+heap_default = "100m"
+
+#quota for VM with reduced memory
+if socket.gethostname().startswith('es-vm-cdaq'):
+  subsys_heap["cdaq"]="100m"
+  subsys_quota["cdaq"]=5
+
 #test
 #jar_path  = "/opt/fff/river-runriver-1.4.0-jar-with-dependencies.jar"
 jar_path  = "/opt/fff/river.jar"
@@ -172,11 +183,15 @@ class river_thread(threading.Thread):
       if self.path: jpath = self.path
       else:
         jpath = jar_path_dv if self.subsys=='dv' else jar_path
-      print("running",["/usr/bin/java -Xms1g -Xmx1g", jar_logparam, "-jar",jpath]+self.proc_args)
+      try:
+       jHeap =  subsys_heap[self.subsys]
+      except:
+       jHeap = heap_default
+      print("running",["/usr/bin/java -Xms" + jHeap + " -Xmx" + jHeap, jar_logparam, "-jar",jpath]+self.proc_args)
       self.fdo = os.open('/var/log/river/'+self.riverid+'.log',os.O_WRONLY | os.O_CREAT | os.O_APPEND)
       #tentatively change log file ownership to what the process will be
       chown_file('elasticsearch',self.fdo)
-      self.proc = subprocess.Popen(["/usr/bin/java", "-Xms1g", "-Xmx1g", jar_logparam, "-jar",jpath]+self.proc_args,preexec_fn=preexec_function_elasticsearch,close_fds=True,shell=False,stdout=self.fdo,stderr=self.fdo)
+      self.proc = subprocess.Popen(["/usr/bin/java", "-Xms" + jHeap, "-Xmx"+ jHeap, jar_logparam, "-jar",jpath]+self.proc_args,preexec_fn=preexec_function_elasticsearch,close_fds=True,shell=False,stdout=self.fdo,stderr=self.fdo)
       self.start() #start thread to pick up the process
       return True #if success, else False
     elif self.process_type=='nodejs':
@@ -399,6 +414,8 @@ def runRiver(doc):
   if doc['_source']['node']['status'] in ['created','crashed','restarting']:
 
     time.sleep(.1)
+    found_copy=False
+    ssys = src['subsystem']
     #verify if this river is already active and clean it if not
     try:
       for rsys in river_threads_map:
@@ -406,9 +423,56 @@ def runRiver(doc):
         for instance in river_threads[:]:
           if instance.riverid == doc_id:
             instance.setTerminate()
+            try:
+              instance.join()
+            except Exception as ex:
+              syslog.syslog("error joining river thread (runRiver(1) :" +str(type(ex).__name__)+" msg:"+str(ex))
+            found_copy=True
+
     except Exception as ex:
       syslog.syslog("problem checking rivers:"+str(ex))
     time.sleep(.05)
+
+    #check local quota and clean up if necessary
+    if not found_copy and runNumber!=0:
+      try:
+        for rsys in river_threads_map:
+          if rsys!=ssys:continue
+          river_threads = river_threads_map[rsys][:]
+          try:lim = subsys_quota[ssys]
+          except: lim = quota_default
+          if len(river_threads)>=lim:
+            lim_checked = 0
+            min_run = -1
+            run_list = []
+            for instance in river_threads:
+              if instance.rn!=0:
+                lim_checked+=1
+                run_list.append(instance.rn)
+                if min_run==-1 or min_run>instance.rn:
+                  min_run=instance.rn
+            if lim_checked>=lim:
+              if runNumber<min_run:
+                #this run is the oldest and over quota locally
+                #success,st,res = query(gconn,"POST","/river/_doc/"+str(doc_id)+'/_update'+qattribs,json.dumps({'doc':gen_node_doc('noquota')}))
+                return
+              else:
+                run_list.sort()
+                for i in range(0,lim_checked+1-lim):
+                  for instance in river_threads:
+                    if run_list[i]==instance.rn:
+                      #do not change state, keep trying (this or other node which could have quota)
+                      #success,st,res = query(gconn,"POST","/river/_doc/"+str(instance.riverid)+'/_update'+qattribs,json.dumps({'doc':gen_node_doc('noquota')}))
+                      instance.setTerminate()
+                      try:
+                        instance.join()
+                      except Exception as ex:
+                        syslog.syslog("error joining river thread (runRiver(2) :" +str(type(ex).__name__)+" msg:"+str(ex))
+                      river_threads_map[rsys].remove(instance)
+      except Exception as ex:
+        syslog.syslog("problem clearing rivers over quota:"+str(ex))
+      time.sleep(.05)
+
 
     #update doc before starting the process
     success,st,res = query(gconn,"POST","/river/_doc/"+str(doc_id)+'/_update'+qattribs,json.dumps({'doc':gen_node_doc('starting')}))
