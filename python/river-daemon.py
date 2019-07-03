@@ -411,7 +411,7 @@ def runRiver(doc):
   if not success: return
 
   #check again the state from latest query
-  if doc['_source']['node']['status'] in ['created','crashed','restarting']:
+  if doc['_source']['node']['status'] in ['created','crashed','restarting','noquota']:
 
     time.sleep(.1)
     found_copy=False
@@ -453,8 +453,10 @@ def runRiver(doc):
                   min_run=instance.rn
             if lim_checked>=lim:
               if runNumber<min_run:
-                #this run is the oldest and over quota locally
-                #success,st,res = query(gconn,"POST","/river/_doc/"+str(doc_id)+'/_update'+qattribs,json.dumps({'doc':gen_node_doc('noquota')}))
+                #set crashed state before returning
+                if doc['_source']['node']['status']!="noquota":
+                  syslog.syslog("Instance "+doc_id + " can not run with no remaining slots available for subsystem on this machine. Setting noquota state in river doc")
+                  success,st,res = query(gconn,"POST","/river/_doc/"+str(doc_id)+'/_update'+qattribs,json.dumps({'doc':gen_node_doc('noquota')}))
                 return
               else:
                 run_list.sort()
@@ -463,6 +465,7 @@ def runRiver(doc):
                     if run_list[i]==instance.rn:
                       #do not change state, keep trying (this or other node which could have quota)
                       #success,st,res = query(gconn,"POST","/river/_doc/"+str(instance.riverid)+'/_update'+qattribs,json.dumps({'doc':gen_node_doc('noquota')}))
+                      syslog.syslog("killing older over-quota instance "+instance.riverid)
                       instance.setTerminate()
                       try:
                         instance.join()
@@ -649,7 +652,8 @@ def runDaemon():
       raise ex
     #find instances that need to be started
     try:
-      success,st,res = query(gconn,"GET","/river/_doc/_search?size=1000", '{"query":{"bool":{"should":[{"term":{"node.status":"restart"}},{"term":{"node.status":"restarting"}},{"term":{"node.status":"crashed"}},{"term":{"node.status":"created"}}] }}}')
+      #success,st,res = query(gconn,"GET","/river/_doc/_search?size=1000", '{"query":{"bool":{"should":[{"term":{"node.status":"restart"}},{"term":{"node.status":"restarting"}},{"term":{"node.status":"crashed"}},{"term":{"node.status":"created"}}] }}}')
+      success,st,res = query(gconn,"GET","/river/_doc/_search?size=1000", '{"query":{"terms":{"node.status":["restart","restarting","crashed","created","noquota"]}}}')
       #TODO: add detection of stale objects (search for > amount of time since last ping
       if success and st==200:
         jsres = json.loads(res)
