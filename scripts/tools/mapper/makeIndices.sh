@@ -1,8 +1,8 @@
 #!/bin/bash
 
 #modify this if you are using custom version of river.jar or updatemappings.py script
-$UPDSCRIPTPREFIX=/opt/fff
-$RIVERJARPREFIX=/opt/fff
+UPDSCRIPTPREFIX="/opt/fff"
+RIVERJARPREFIX="/opt/fff"
 
 if [ -z "$1" ]; then
  echo "please specify one of subsystems: cdaq, minidaq, dv, d3v, VM"
@@ -47,7 +47,7 @@ fi
 
 echo "option is $subsystem"
 
-subsystem="cdaq"
+#subsystem="cdaq"
 #3newdate="20181127"
 newdate="`./getdate.py`"
 
