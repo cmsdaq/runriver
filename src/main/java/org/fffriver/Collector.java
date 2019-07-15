@@ -35,7 +35,8 @@ import org.elasticsearch.action.admin.indices.close.CloseIndexRequest;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.common.inject.Inject;
-
+import org.elasticsearch.rest.RestStatus;
+import org.elasticsearch.ElasticsearchException;
 
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.join.query.JoinQueryBuilders;
@@ -984,26 +985,34 @@ public class Collector extends AbstractRunRiverThread {
 	//close index using JAVA REST API
         //
         CloseIndexRequest closeRequest = new CloseIndexRequest("run"+runNumber.toString()+"_"+subsystem);
-        if (remoteClient.indices().close(closeRequest, RequestOptions.DEFAULT).isAcknowledged())
-          logger.info("executed index close for run "+runNumber.toString());
-        else {
-          logger.error("index close for run "+runNumber.toString() + " failed ");
-          logger.info("reconnect before retrying index close ");
-          //was reconnecting with transport client, but now there is no state on client side
-          //remoteClient.close();
-          try {
-            Thread.sleep(2000);
-          }
-          catch (InterruptedException iex) {}
-          //resetRemoteClient();
-
-          logger.info("closing index for run "+runNumber.toString() 
-                      + " (index " + "run" + runNumber.toString()
-                      + "_" + subsystem +" on " + es_local_host + " - " + es_local_cluster + ")");
-          if (client.indices().close(closeRequest, RequestOptions.DEFAULT).isAcknowledged())
+        try {
+          if (remoteClient.indices().close(closeRequest, RequestOptions.DEFAULT).isAcknowledged())
             logger.info("executed index close for run "+runNumber.toString());
-          else
+          else {
             logger.error("index close for run "+runNumber.toString() + " failed ");
+            logger.info("reconnect before retrying index close ");
+            //was reconnecting with transport client, but now there is no state on client side
+            //remoteClient.close();
+            try {
+              Thread.sleep(2000);
+            }
+            catch (InterruptedException iex) {}
+            //resetRemoteClient();
+
+            logger.info("closing index for run "+runNumber.toString() 
+                        + " (index " + "run" + runNumber.toString()
+                        + "_" + subsystem +" on " + es_local_host + " - " + es_local_cluster + ")");
+            if (client.indices().close(closeRequest, RequestOptions.DEFAULT).isAcknowledged())
+              logger.info("executed index close for run "+runNumber.toString());
+            else
+              logger.error("index close for run "+runNumber.toString() + " failed ");
+           }
+        } catch (ElasticsearchException esx) {
+          if (esx.status() == RestStatus.NOT_FOUND) {
+            logger.info("index does not exist, closing skipped");
+            return;
+          }
+          throw esx;
         }
         return;
     }
