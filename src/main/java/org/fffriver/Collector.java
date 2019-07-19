@@ -417,6 +417,7 @@ public class Collector extends AbstractRunRiverThread {
         //use multiget!
         List<Pair<String,String>> requestList = new ArrayList<Pair<String,String>>();
         MultiGetRequest greq = new MultiGetRequest();
+        int docs_=0;
 
         for (String stream : set.known_streams.keySet()){
             List<String> removeList = new ArrayList<String>();
@@ -431,18 +432,19 @@ public class Collector extends AbstractRunRiverThread {
                 //Check if data is changed (to avoid to update timestamp if not necessary)
                 requestList.add(new Pair<String,String>(stream,ls));
                 greq.add(new MultiGetRequest.Item(runindex_write,id).routing(runNumber));
+                docs_++;
             }
         }
-        greq.refresh(callRefresh);
-        MultiGetResponse smresponse = client.mget(greq,RequestOptions.DEFAULT);
-
         List<Pair<String,String>> removeList = new ArrayList<Pair<String,String>>();
 
+        if (docs_>0) {
+          greq.refresh(callRefresh);
+          MultiGetResponse smresponse = client.mget(greq,RequestOptions.DEFAULT);
 
-        BulkRequest bulkRequest = new BulkRequest();
-        boolean do_bulk=false;
+          BulkRequest bulkRequest = new BulkRequest();
+          boolean do_bulk=false;
 
-        for (int i=0;i<smresponse.getResponses().length;i++) {
+          for (int i=0;i<smresponse.getResponses().length;i++) {
                 Pair<String,String> p = requestList.get(i);
                 String stream = p.getKey();
                 String ls = p.getValue();
@@ -470,8 +472,11 @@ public class Collector extends AbstractRunRiverThread {
                 if (!set.appliance.isEmpty()) id=id+"_"+set.appliance;
 
                 //Check if data is changed (to avoid to update timestamp if not necessary)
+                Double lastCompletion = 0.;
                 boolean dataChanged = true;
+                boolean isUpdate= false;
                 if (sresponse.isExists()){ 
+                    isUpdate=true;
                     Double in = Double.parseDouble(sresponse.getSource().get("in").toString());
                     Double out = Double.parseDouble(sresponse.getSource().get("out").toString());
                     //new field, allow to be missing if log entry updated by the new plugin version
@@ -479,7 +484,6 @@ public class Collector extends AbstractRunRiverThread {
                     if (sresponse.getSource().get("err").toString()!=null) {
                       error = Double.parseDouble(sresponse.getSource().get("err").toString());
                     }
-                    Double lastCompletion = 0.;
                     if (sresponse.getSource().get("completion")!=null) {
                       lastCompletion = Double.parseDouble(sresponse.getSource().get("completion").toString());
                     }
@@ -490,9 +494,10 @@ public class Collector extends AbstractRunRiverThread {
                         && out.compareTo(set.fuoutlshist.get(stream).get(ls))==0
                         && error.compareTo(set.fuerrlshist.get(stream).get(ls))==0){
                         dataChanged = false;
-                    } else { logger.info(id+" with completion " + lastCompletion.toString() + " already exists and will be updated."); }
-
-
+                    } else {
+                        if (set.appliance.isEmpty())
+                            logger.info(id+" with completion " + lastCompletion.toString() + " already exists and will be checked for update.");
+                    }
                 }
 
                 Double newCompletion = 1.;
@@ -503,7 +508,8 @@ public class Collector extends AbstractRunRiverThread {
                 if (eventsVal>0 && output_count!=eventsVal)
                     newCompletion = output_count/eventsVal;
 
-                if (eventsVal +  lostEventsVal != totalEventsVal) {
+                //only calculate completion wrt. Total in case of summed values, not per BU
+                if (set.appliance.isEmpty() && (eventsVal +  lostEventsVal != totalEventsVal)) {
                   if (totalEventsVal>0) {
                     Double evb_count = eventsVal +  lostEventsVal;
                     //logger.info("evb_count:" + evb_count.toString() + " totalEventsVal:"+totalEventsVal.toString());
@@ -523,6 +529,11 @@ public class Collector extends AbstractRunRiverThread {
                     logger.info(doc_type+" update for ls,stream: "+ls+","+stream+" in:"+set.fuinlshist.get(stream).get(ls).toString()
                                 +" out:"+set.fuoutlshist.get(stream).get(ls).toString()+" err:"+set.fuerrlshist.get(stream).get(ls).toString() + " completion " + newCompletion.toString());
                     logger.info("Totals numbers - eventsVal:"+eventsVal.toString() + " lostEventsVal:" + lostEventsVal.toString() + " totalEventsVal:" + totalEventsVal.toString());
+                  }
+                  else {
+                    if (isUpdate && lastCompletion < newCompletion - 0.00001) {
+                      logger.info(id+" with completion " + lastCompletion.toString() + " already exists and will be updated with new completion: " + newCompletion.toString());
+                    }
                   }
                   Double retDate = set.futimestamplshist.get(stream).get(ls);
                   Map<String,Double> strcompletion = incompleteLumis.get(ls_num);
@@ -581,8 +592,8 @@ public class Collector extends AbstractRunRiverThread {
                   //complete,dropping from maps
                   removeList.add(new Pair<String,String>(stream,ls));
                 }
-        }
-        if (do_bulk) {
+          }
+          if (do_bulk) {
             if (callRefresh)
               bulkRequest.setRefreshPolicy(RefreshPolicy.IMMEDIATE);
 
@@ -595,6 +606,7 @@ public class Collector extends AbstractRunRiverThread {
                  logger.error("bulk index failure:",failure);
               }
             }
+          }
         }
 
         for (String stream : set.known_streams.keySet()){
@@ -922,7 +934,12 @@ public class Collector extends AbstractRunRiverThread {
         if (EoR){return;}
         GetRequest getRequest = new GetRequest(runindex_write,runNumber).refresh(true);
         GetResponse response = client.get(getRequest, RequestOptions.DEFAULT);
-        if (!response.isExists()){return;}
+        if (!response.isExists()){
+            //no run document. Set EoR.
+            logger.error("Run document not found. Assuming end of run condition.");
+            EoR = true;
+            return;
+        }
         if (response.getSource().get("endTime") != null) { 
             Integer activeBUs = (Integer)response.getSource().get("activeBUs");
             if (activeBUs==null) { logger.info("EoR received!"); EoR = true; }

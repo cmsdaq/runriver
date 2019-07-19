@@ -104,6 +104,7 @@ public class AbstractRunRiverThread extends Thread  {
         river_esindex = XContentMapValues.nodeStringValue(rSettings.get("river_esindex"), "river");
         es_central_cluster= XContentMapValues.nodeStringValue(rSettings.get("es_central_cluster"), "es-cdaq");
         perbu =  Boolean.valueOf(XContentMapValues.nodeStringValue(rSettings.get("streaminfo_per_bu"), "true"));
+        //perbu =  Boolean.valueOf(XContentMapValues.nodeStringValue(rSettings.get("streaminfo_per_bu"), "false"));
 
         interval = polling_interval;
         
