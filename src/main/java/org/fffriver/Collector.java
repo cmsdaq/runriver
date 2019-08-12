@@ -531,9 +531,9 @@ public class Collector extends AbstractRunRiverThread {
                     logger.info("Totals numbers - eventsVal:"+eventsVal.toString() + " lostEventsVal:" + lostEventsVal.toString() + " totalEventsVal:" + totalEventsVal.toString());
                   }
                   else {
-                    if (isUpdate && lastCompletion < newCompletion - 0.00001) {
-                      logger.info(id+" with completion " + lastCompletion.toString() + " already exists and will be updated with new completion: " + newCompletion.toString());
-                    }
+                    //if (isUpdate && lastCompletion < newCompletion - 0.00001) {
+                    //  logger.info(id+" with completion " + lastCompletion.toString() + " already exists and will be updated with new completion: " + newCompletion.toString());
+                    //}
                   }
                   Double retDate = set.futimestamplshist.get(stream).get(ls);
                   Map<String,Double> strcompletion = incompleteLumis.get(ls_num);
