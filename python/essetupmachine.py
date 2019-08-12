@@ -316,6 +316,13 @@ if __name__ == "__main__":
             escfg.reg('path.data','/elasticsearch/lib/elasticsearch/es-cdaq')
             escfg.reg('http.cors.enabled','true')
             escfg.reg('http.cors.allow-origin','"*"')
+            #escfg.reg('xpack.security.enabled', 'true') #not for now until everything is in place
+            escfg.reg('xpack.security.transport.ssl.enabled', 'true')
+            #default?:
+            #escfg.reg('xpack.security.transport.ssl.verification_mode', 'certificate')
+            #escfg.reg('xpack.security.transport.ssl.keystore.path', 'certs/elastic-certificates.p12')
+            #escfg.reg('xpack.security.transport.ssl.truststore.path', 'certs/elastic-certificates.p12')
+            #TODO: user/role + anon mapping
             escfg.reg('bootstrap.system_call_filter','false')
             escfg.reg('transport.compress','true')
             escfg.reg('action.auto_create_index','.watches,.triggered_watches,.watcher-history-*,.marvel-*')
