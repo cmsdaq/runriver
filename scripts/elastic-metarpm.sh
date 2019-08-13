@@ -115,6 +115,7 @@ Provides:/opt/fff/tools,mapper
 Provides:/opt/fff/tools/mapper/*
 Provides:/etc/rsyslog.d/48-river.conf
 Provides:/etc/logrotate.d/river
+Provides:/etc/elasticsearch/roles.yml.f3
 Provides:/etc/elasticsearch/certs/elastic-certificates.p12
 Provides:/usr/lib/systemd/system/fff.service
 Provides:/usr/lib/systemd/system/riverd.service
@@ -143,6 +144,7 @@ mkdir -p \$RPM_BUILD_ROOT
 %__install -d "%{buildroot}/etc/rsyslog.d"
 %__install -d "%{buildroot}/etc/logrotate.d"
 %__install -d "%{buildroot}/var/log/river"
+%__install -d "%{buildroot}/etc/elasticsearch"
 %__install -d "%{buildroot}/etc/elasticsearch/certs"
 
 cp $SCRATCHDIR/usr/lib64/$python_dir/site-packages/prctl.py %{buildroot}/usr/lib64/$python_dir/site-packages/
@@ -154,6 +156,7 @@ cp $SCRATCHDIR/usr/lib64/$python_dir/site-packages/python_prctl-1.5.0-py${python
 cp $BASEDIR/etc/rsyslog.d/48-river.conf %{buildroot}/etc/rsyslog.d/48-river.conf
 cp $BASEDIR/etc/logrotate.d/river %{buildroot}/etc/logrotate.d/river
 cp $BASEDIR/python/log4j2.properties %{buildroot}/opt/fff/log4j2.properties
+cp $BASEDIR}/etc/elasticsearch/roles.yml.f3 %{buildroot}/etc/elasticsearch/roles.yml.f3
 cp $BASEDIR}/etc/elasticsearch/certs/elastic-certificates.p12 %{buildroot}/etc/elasticsearch/certs/elastic-certificates.p12
 
 cp $BASEDIR/python/*.py %{buildroot}/opt/fff/
@@ -205,6 +208,7 @@ cp -R $BASEDIR/scripts/tools/mapper/{*.py,*.sh,*.md} %{buildroot}/opt/fff/tools/
 %attr( 755 ,root, root) /opt/fff/$riverfile
 %attr( 644 ,root, root) /etc/rsyslog.d/48-river.conf
 %attr( 644 ,root, root) /etc/logrotate.d/river
+%attr( 664 ,root, root) /etc/elasticsearch/roles.yml.f3
 %attr( 400 ,root, root) /etc/elasticsearch/certs/elastic-certificates.p12
 %attr( 755 ,root, root) /opt/fff/tools/mapper/*.py
 %attr( 755 ,root, root) /opt/fff/tools/mapper/*.sh
@@ -232,6 +236,7 @@ python2 /opt/fff/essetupmachine.py
 #update permissions in case new rpm changed uid/guid
 chown -R elasticsearch:elasticsearch /var/log/elasticsearch
 chown -R elasticsearch:elasticsearch /elasticsearch/lib/elasticsearch
+chown elasticsearch:elasticsearch /etc/elasticsearch/roles.yml.f3
 chown elasticsearch:elasticsearch /etc/elasticsearch/certs/elastic-certificates.p12
 chmod a+r -R /etc/elasticsearch
 chmod a+r -R /var/log/elasticsearch
