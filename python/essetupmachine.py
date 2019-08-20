@@ -1,4 +1,4 @@
-#!/bin/env python
+#!/bin/env python3.4
 from __future__ import print_function
 import os,sys,socket
 import shutil
@@ -112,10 +112,10 @@ def checkModifiedConfig(lines):
 
 
 class FileManager:
-    def __init__(self,file,sep,edited,os1='',os2='',recreate=False):
-        self.name = file
+    def __init__(self,fileName,sep,edited,os1='',os2='',recreate=False):
+        self.name = fileName
         if recreate==False:
-            f = open(file,'r')
+            f = open(fileName,'r')
             self.lines = f.readlines()
             f.close()
         else:
@@ -186,10 +186,10 @@ class FileManager:
         f.close()
 
 
-def restoreFileMaybe(file):
+def restoreFileMaybe(fileName):
     try:
         try:
-            f = open(file,'r')
+            f = open(fileName,'r')
             lines = f.readlines()
             f.close()
             shouldCopy = checkModifiedConfig(lines)
@@ -198,13 +198,13 @@ def restoreFileMaybe(file):
             shouldCopy = True
 
         if shouldCopy:
-            print("restoring ",file)
-            backuppath = os.path.join(backup_dir,os.path.basename(file))
+            print("restoring ",fileName)
+            backuppath = os.path.join(backup_dir,os.path.basename(fileName))
             f = open(backuppath)
             blines = f.readlines()
             f.close()
             if  checkModifiedConfig(blines) == False and len(blines)>0:
-                shutil.move(backuppath,file)
+                shutil.move(backuppath,fileName)
     except Exception as ex:
         print("restoring problem: " , ex)
         pass
@@ -318,12 +318,12 @@ if __name__ == "__main__":
             escfg.reg('http.cors.allow-origin','"*"')
             #AUTH
             escfg.reg('xpack.security.enabled', 'false') #not for now until everything is in place
-            escfg.reg('xpack.security.transport.ssl.enabled', 'true')
+            escfg.reg('xpack.security.transport.ssl.enabled', 'false')
             #default?:
             #escfg.reg('xpack.security.transport.ssl.verification_mode', 'certificate')
             #escfg.reg('xpack.security.transport.ssl.keystore.path', 'certs/elastic-certificates.p12')
             #escfg.reg('xpack.security.transport.ssl.truststore.path', 'certs/elastic-certificates.p12')
-            escfg.reg('xpack.security.authc', "{anonymous:{roles:'read_anon',authz_exception:true}}"
+            escfg.reg('xpack.security.authc', "{anonymous:{roles:read_anon,authz_exception:true}}")
 
             escfg.reg('bootstrap.system_call_filter','false')
             escfg.reg('transport.compress','true')

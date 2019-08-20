@@ -165,7 +165,7 @@ cp $BASEDIR/init.d/fff-config %{buildroot}/opt/fff/init.d/fff-config
 cp $BASEDIR/init.d/*.service %{buildroot}/usr/lib/systemd/system/
 
 echo "#!/bin/bash" > %{buildroot}/opt/fff/configurefff.sh
-echo python2 /opt/fff/essetupmachine.py >> %{buildroot}/opt/fff/configurefff.sh
+echo python3.4 /opt/fff/essetupmachine.py >> %{buildroot}/opt/fff/configurefff.sh
 
 cp $BASEDIR/target/$riverfile %{buildroot}/opt/fff/$riverfile
 cp $BASEDIR/esplugins/install.sh %{buildroot}/opt/fff/esplugins/install.sh
@@ -230,8 +230,8 @@ ln -s -f $riverfile /opt/fff/river.jar
 %triggerin -- elasticsearch
 #echo "triggered on elasticsearch update or install as well as this rpm update"
 
-python2 /opt/fff/essetupmachine.py restore
-python2 /opt/fff/essetupmachine.py
+python3.4 /opt/fff/essetupmachine.py restore
+python3.4 /opt/fff/essetupmachine.py
 
 #update permissions in case new rpm changed uid/guid
 chown -R elasticsearch:elasticsearch /var/log/elasticsearch
