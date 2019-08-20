@@ -115,6 +115,8 @@ Provides:/opt/fff/tools,mapper
 Provides:/opt/fff/tools/mapper/*
 Provides:/etc/rsyslog.d/48-river.conf
 Provides:/etc/logrotate.d/river
+Provides:/etc/elasticsearch/users.f3
+Provides:/etc/elasticsearch/users_roles.f3
 Provides:/etc/elasticsearch/roles.yml.f3
 Provides:/etc/elasticsearch/certs/elastic-certificates.p12
 Provides:/usr/lib/systemd/system/fff.service
@@ -156,6 +158,8 @@ cp $SCRATCHDIR/usr/lib64/$python_dir/site-packages/python_prctl-1.5.0-py${python
 cp $BASEDIR/etc/rsyslog.d/48-river.conf %{buildroot}/etc/rsyslog.d/48-river.conf
 cp $BASEDIR/etc/logrotate.d/river %{buildroot}/etc/logrotate.d/river
 cp $BASEDIR/python/log4j2.properties %{buildroot}/opt/fff/log4j2.properties
+cp $BASEDIR}/etc/elasticsearch/users.f3 %{buildroot}/etc/elasticsearch/users.f3
+cp $BASEDIR}/etc/elasticsearch/users_roles.f3 %{buildroot}/etc/elasticsearch/users_roles.f3
 cp $BASEDIR}/etc/elasticsearch/roles.yml.f3 %{buildroot}/etc/elasticsearch/roles.yml.f3
 cp $BASEDIR}/etc/elasticsearch/certs/elastic-certificates.p12 %{buildroot}/etc/elasticsearch/certs/elastic-certificates.p12
 
@@ -208,6 +212,8 @@ cp -R $BASEDIR/scripts/tools/mapper/{*.py,*.sh,*.md} %{buildroot}/opt/fff/tools/
 %attr( 755 ,root, root) /opt/fff/$riverfile
 %attr( 644 ,root, root) /etc/rsyslog.d/48-river.conf
 %attr( 644 ,root, root) /etc/logrotate.d/river
+%attr( 664 ,root, root) /etc/elasticsearch/users.f3
+%attr( 664 ,root, root) /etc/elasticsearch/users_roles.f3
 %attr( 664 ,root, root) /etc/elasticsearch/roles.yml.f3
 %attr( 400 ,root, root) /etc/elasticsearch/certs/elastic-certificates.p12
 %attr( 755 ,root, root) /opt/fff/tools/mapper/*.py

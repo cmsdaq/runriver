@@ -14,6 +14,7 @@ except:pass
 
 elasticsysconf = '/etc/sysconfig/elasticsearch'
 elasticconf = '/etc/elasticsearch/elasticsearch.yml'
+elasticconfdir = '/etc/elasticsearch'
 #elasticlogconf = '/etc/elasticsearch/logging.yml'
 
 es_cdaq_run2_list = ['ncsrv-c2e42-09-02', 'ncsrv-c2e42-11-02', 'ncsrv-c2e42-13-02', 'ncsrv-c2e42-19-02']
@@ -323,7 +324,7 @@ if __name__ == "__main__":
             #escfg.reg('xpack.security.transport.ssl.verification_mode', 'certificate')
             #escfg.reg('xpack.security.transport.ssl.keystore.path', 'certs/elastic-certificates.p12')
             #escfg.reg('xpack.security.transport.ssl.truststore.path', 'certs/elastic-certificates.p12')
-            escfg.reg('xpack.security.authc', "{anonymous:{roles:read_anon,authz_exception:true}}")
+            escfg.reg('xpack.security.authc', "{anonymous:{roles:[read_anon,superuser],authz_exception:true}}")
 
             escfg.reg('bootstrap.system_call_filter','false')
             escfg.reg('transport.compress','true')
@@ -350,4 +351,8 @@ if __name__ == "__main__":
             escfg.reg('cluster.max_shards_per_node','10000')
             escfg.reg('search.max_buckets','1000000')
             escfg.commit()
+            #copy auth config
+            shutil.copy(os.path.join(elasticconfdir,'users.f3'), os.path.join(elasticconfdir,'users'))
+            shutil.copy(os.path.join(elasticconfdir,'users_roles.f3'), os.path.join(elasticconfdir,'users_roles'))
+            shutil.copy(os.path.join(elasticconfdir,'roles.yml.f3'), os.path.join(elasticconfdir,'roles.yml'))
 
