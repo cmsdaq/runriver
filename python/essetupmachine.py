@@ -318,13 +318,13 @@ if __name__ == "__main__":
             escfg.reg('http.cors.enabled','true')
             escfg.reg('http.cors.allow-origin','"*"')
             #AUTH
-            escfg.reg('xpack.security.enabled', 'false') #not for now until everything is in place
-            escfg.reg('xpack.security.transport.ssl.enabled', 'false')
-            #default?:
-            #escfg.reg('xpack.security.transport.ssl.verification_mode', 'certificate')
-            #escfg.reg('xpack.security.transport.ssl.keystore.path', 'certs/elastic-certificates.p12')
-            #escfg.reg('xpack.security.transport.ssl.truststore.path', 'certs/elastic-certificates.p12')
-            escfg.reg('xpack.security.authc', "{anonymous:{roles:[read_anon,superuser],authz_exception:true}}")
+            escfg.reg('xpack.security.enabled', 'true')
+            escfg.reg('xpack.security.transport.ssl.enabled', 'true')
+            escfg.reg('xpack.security.transport.ssl.verification_mode', 'certificate')
+            escfg.reg('xpack.security.transport.ssl.keystore.path', 'certs/elastic-certificates.p12')
+            escfg.reg('xpack.security.transport.ssl.truststore.path', 'certs/elastic-certificates.p12')
+            escfg.reg('xpack.security.authc.anonymous.roles','["superuser","read_anon"]') #for now it is permissive
+            escfg.reg('xpack.security.authc.anonymous.authz_exception','true')
 
             escfg.reg('bootstrap.system_call_filter','false')
             escfg.reg('transport.compress','true')

@@ -85,7 +85,7 @@ cd $TOPDIR
 # we are done here, write the specs and make the fu***** rpm
 cat > fffmeta-elastic.spec <<EOF
 Name: $PACKAGENAME
-Version: 2.8.0
+Version: 2.8.1
 Release: 0
 Summary: hlt daemon
 License: gpl
@@ -96,7 +96,8 @@ Source: none
 %define _topdir $TOPDIR
 BuildArch: $BUILD_ARCH
 AutoReqProv: no
-Requires:elasticsearch => 7.2.0, cx_Oracle >= 5.1.2, java-1.8.0-oracle-headless >= 1.8.0.45, php >= 5.3.3, php-oci8 >= 1.4.9
+#Requires:elasticsearch => 7.2.0, cx_Oracle >= 5.1.2, java-1.8.0-oracle-headless >= 1.8.0.45, php >= 5.3.3, php-oci8 >= 1.4.9
+Requires:elasticsearch => 7.2.0, java-1.8.0-oracle-headless >= 1.8.0.45, php >= 5.3.3, php-oci8 >= 1.4.9, python34
 
 Provides:/opt/fff/configurefff.sh
 Provides:/opt/fff/essetupmachine.py
@@ -158,10 +159,10 @@ cp $SCRATCHDIR/usr/lib64/$python_dir/site-packages/python_prctl-1.5.0-py${python
 cp $BASEDIR/etc/rsyslog.d/48-river.conf %{buildroot}/etc/rsyslog.d/48-river.conf
 cp $BASEDIR/etc/logrotate.d/river %{buildroot}/etc/logrotate.d/river
 cp $BASEDIR/python/log4j2.properties %{buildroot}/opt/fff/log4j2.properties
-cp $BASEDIR}/etc/elasticsearch/users.f3 %{buildroot}/etc/elasticsearch/users.f3
-cp $BASEDIR}/etc/elasticsearch/users_roles.f3 %{buildroot}/etc/elasticsearch/users_roles.f3
-cp $BASEDIR}/etc/elasticsearch/roles.yml.f3 %{buildroot}/etc/elasticsearch/roles.yml.f3
-cp $BASEDIR}/etc/elasticsearch/certs/elastic-certificates.p12 %{buildroot}/etc/elasticsearch/certs/elastic-certificates.p12
+cp $BASEDIR/etc/elasticsearch/users.f3       %{buildroot}/etc/elasticsearch/users.f3
+cp $BASEDIR/etc/elasticsearch/users_roles.f3 %{buildroot}/etc/elasticsearch/users_roles.f3
+cp $BASEDIR/etc/elasticsearch/roles.yml.f3   %{buildroot}/etc/elasticsearch/roles.yml.f3
+cp $BASEDIR/etc/elasticsearch/certs/elastic-certificates.p12 %{buildroot}/etc/elasticsearch/certs/elastic-certificates.p12
 
 cp $BASEDIR/python/*.py %{buildroot}/opt/fff/
 
@@ -212,7 +213,7 @@ cp -R $BASEDIR/scripts/tools/mapper/{*.py,*.sh,*.md} %{buildroot}/opt/fff/tools/
 %attr( 755 ,root, root) /opt/fff/$riverfile
 %attr( 644 ,root, root) /etc/rsyslog.d/48-river.conf
 %attr( 644 ,root, root) /etc/logrotate.d/river
-%attr( 664 ,root, root) /etc/elasticsearch/users.f3
+%attr( 400 ,root, root) /etc/elasticsearch/users.f3
 %attr( 664 ,root, root) /etc/elasticsearch/users_roles.f3
 %attr( 664 ,root, root) /etc/elasticsearch/roles.yml.f3
 %attr( 400 ,root, root) /etc/elasticsearch/certs/elastic-certificates.p12
@@ -242,10 +243,11 @@ python3.4 /opt/fff/essetupmachine.py
 #update permissions in case new rpm changed uid/guid
 chown -R elasticsearch:elasticsearch /var/log/elasticsearch
 chown -R elasticsearch:elasticsearch /elasticsearch/lib/elasticsearch
-chown elasticsearch:elasticsearch /etc/elasticsearch/roles.yml.f3
+chown elasticsearch:elasticsearch /etc/elasticsearch/roles.yml* /etc/elasticsearch/users*
 chown elasticsearch:elasticsearch /etc/elasticsearch/certs/elastic-certificates.p12
 chmod a+r -R /etc/elasticsearch
 chmod a+r -R /var/log/elasticsearch
+chmod 400 /etc/elasticsearch/users.f3 /etc/elasticsearch/users
 
 ##echo "Installing plugins..."
 ##/opt/fff/esplugins/uninstall.sh /usr/share/elasticsearch $pluginname1 > /dev/null
