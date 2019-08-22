@@ -1,7 +1,7 @@
 f3root:$2a$10$Vpc0LRVgmpmTGgyeTuhaqO7/j7ur6mt6Zt.bQ5geBYZATHAyBowZW
 allwriter:$2a$10$DqHypKYQXCkP4EsOjYzuWuY3zjFRQisONJn7OCZ7CbSYtjqZbsr5S
-hltdwriter:cmshltdjsondwriter
+hltdwriter:cmshltdjsonwriter
 testwriter:cmstestwriter
 riverwriter:cmswritejarriver
-mergingwriter:cmsmergeandwritecompletion
+mergingwriter:cmsmergerstransfers
 lustrewriter:cmslustrediskinfo
