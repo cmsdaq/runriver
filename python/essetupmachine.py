@@ -352,7 +352,7 @@ if __name__ == "__main__":
             escfg.reg('search.max_buckets','1000000')
             escfg.commit()
             #copy auth config
-            shutil.copy(os.path.join(elasticconfdir,'users.f3'), os.path.join(elasticconfdir,'users'))
-            shutil.copy(os.path.join(elasticconfdir,'users_roles.f3'), os.path.join(elasticconfdir,'users_roles'))
-            shutil.copy(os.path.join(elasticconfdir,'roles.yml.f3'), os.path.join(elasticconfdir,'roles.yml'))
+            shutil.copy2(os.path.join(elasticconfdir,'users.f3'), os.path.join(elasticconfdir,'users'))
+            shutil.copy2(os.path.join(elasticconfdir,'users_roles.f3'), os.path.join(elasticconfdir,'users_roles'))
+            shutil.copy2(os.path.join(elasticconfdir,'roles.yml.f3'), os.path.join(elasticconfdir,'roles.yml'))
 

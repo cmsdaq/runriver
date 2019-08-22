@@ -2,6 +2,6 @@ superuser:f3root
 central_hltd_writer:hltdwriter
 central_merging_writer:mergingwriter
 central_lustre_writer:lustrewriter
-test_conddb_writer:testconddbwriter
+test_writer:testwriter
 central_riverwriter:riverwriter
 all_writer:allwriter

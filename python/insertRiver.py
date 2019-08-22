@@ -3,11 +3,30 @@ from __future__ import print_function
 
 import sys
 import json
+import base64
 import requests
 
-headers={'Content-Type':'application/json'}
+elastic_user_conf = "/etc/elasticsearch/users"
+elastic_username = "riverwriter"
+def parse_elastic_pwd():
+  with open(elastic_user_conf,'r') as fp:
+    for line in fp.readlines():
+      tok = line.strip("\n").split(':')
+      if len(tok)>1:
+        if tok[0]==elastic_username:
+          elasticvar = {
+                         "user":elastic_username,
+                         "pass":tok[1],
+                         "encoded":"Basic %s" % base64.standard_b64encode((elastic_username+":"+tok[1]).encode('ascii'))
+                       }
+          return elasticvar
+  return None
 
 def insertRiver(args):
+
+  elasticinfo = parse_elastic_pwd()
+  headers={'Content-Type':'application/json','Authorization':elasticinfo["encoded"]}
+
   try:
     rivertype=args[1]
   except:

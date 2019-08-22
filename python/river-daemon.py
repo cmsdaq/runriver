@@ -30,6 +30,7 @@ except Exception as ex:
 #local:
 import demote
 from riverMapping import riverInstMapping
+from insertRiver import parse_elastic_pwd
 
 #helper chown
 def chown_file(user,fd):
@@ -63,9 +64,11 @@ jar_path_dv  = "/opt/fff/river_dv.jar"
 jar_logparam="-Dlog4j.configurationFile=/opt/fff/log4j2.properties"
 
 keep_running = True
-#river doc mapping
 
-headers={'Content-Type':'application/json'}
+#read elasticsearch credentials
+elasticinfo = parse_elastic_pwd()
+print("user:"+elasticinfo["user"])
+headers={'Content-Type':'application/json','Authorization':elasticinfo["encoded"]}
 
 def query(conn,method,path,query=None,retry=False):
 

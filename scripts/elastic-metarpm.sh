@@ -85,7 +85,7 @@ cd $TOPDIR
 # we are done here, write the specs and make the fu***** rpm
 cat > fffmeta-elastic.spec <<EOF
 Name: $PACKAGENAME
-Version: 2.8.1
+Version: 2.8.2
 Release: 0
 Summary: hlt daemon
 License: gpl
@@ -213,10 +213,10 @@ cp -R $BASEDIR/scripts/tools/mapper/{*.py,*.sh,*.md} %{buildroot}/opt/fff/tools/
 %attr( 755 ,root, root) /opt/fff/$riverfile
 %attr( 644 ,root, root) /etc/rsyslog.d/48-river.conf
 %attr( 644 ,root, root) /etc/logrotate.d/river
-%attr( 400 ,root, root) /etc/elasticsearch/users.f3
-%attr( 664 ,root, root) /etc/elasticsearch/users_roles.f3
-%attr( 664 ,root, root) /etc/elasticsearch/roles.yml.f3
-%attr( 400 ,root, root) /etc/elasticsearch/certs/elastic-certificates.p12
+%attr( 400 ,elasticsearch, elasticsearch) /etc/elasticsearch/users.f3
+%attr( 664 ,elasticsearch, elasticsearch) /etc/elasticsearch/users_roles.f3
+%attr( 664 ,elasticsearch, elasticsearch) /etc/elasticsearch/roles.yml.f3
+%attr( 400 ,elasticsearch, elasticsearch) /etc/elasticsearch/certs/elastic-certificates.p12
 %attr( 755 ,root, root) /opt/fff/tools/mapper/*.py
 %attr( 755 ,root, root) /opt/fff/tools/mapper/*.sh
 %attr( 644 ,root, root) /opt/fff/tools/mapper/*.pyc
@@ -243,9 +243,10 @@ python3.4 /opt/fff/essetupmachine.py
 #update permissions in case new rpm changed uid/guid
 chown -R elasticsearch:elasticsearch /var/log/elasticsearch
 chown -R elasticsearch:elasticsearch /elasticsearch/lib/elasticsearch
-chown elasticsearch:elasticsearch /etc/elasticsearch/roles.yml* /etc/elasticsearch/users*
-chown elasticsearch:elasticsearch /etc/elasticsearch/certs/elastic-certificates.p12
-chmod a+r -R /etc/elasticsearch
+
+#chown elasticsearch:elasticsearch /etc/elasticsearch/roles.yml* /etc/elasticsearch/users*
+#chown elasticsearch:elasticsearch /etc/elasticsearch/certs/elastic-certificates.p12
+chmod a+xr -R /etc/elasticsearch
 chmod a+r -R /var/log/elasticsearch
 chmod 400 /etc/elasticsearch/users.f3 /etc/elasticsearch/users
 

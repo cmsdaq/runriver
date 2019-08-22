@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.lang.InterruptedException;
 import java.util.concurrent.ExecutionException;
 import java.net.UnknownHostException;
-//import java.io.File;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.Date;
@@ -50,6 +49,7 @@ public class AbstractRunRiverThread extends Thread  {
     protected final Map<String, Object> settings;
     protected final RestHighLevelClient client;
 
+
     //Runrivercomponent
     public String es_local_host;
     public String es_local_cluster;
@@ -66,6 +66,7 @@ public class AbstractRunRiverThread extends Thread  {
     public String river_esindex;
     public String es_central_cluster;
     public Boolean perbu;
+
 
     public SimpleDateFormat sdf;
 
@@ -104,7 +105,6 @@ public class AbstractRunRiverThread extends Thread  {
         river_esindex = XContentMapValues.nodeStringValue(rSettings.get("river_esindex"), "river");
         es_central_cluster= XContentMapValues.nodeStringValue(rSettings.get("es_central_cluster"), "es-cdaq");
         perbu =  Boolean.valueOf(XContentMapValues.nodeStringValue(rSettings.get("streaminfo_per_bu"), "true"));
-        //perbu =  Boolean.valueOf(XContentMapValues.nodeStringValue(rSettings.get("streaminfo_per_bu"), "false"));
 
         interval = polling_interval;
         
@@ -199,7 +199,6 @@ public class AbstractRunRiverThread extends Thread  {
         String jsonTxt = IOUtils.toString( is );
         return jsonTxt;
     }
-
 
     public void updateRiverDoc() throws IOException,InterruptedException,ExecutionException {
 

@@ -4,13 +4,22 @@ package org.fffriver;
 import java.io.IOException;
 import java.util.Map;
 import java.util.HashMap;
+import java.io.FileReader;
+import java.io.BufferedReader;
 //import java.net.InetAddress;
 //import java.net.InetSocketAddress;
 import org.apache.http.HttpHost;
 
 //ELASTICSEARCH
 //import org.elasticsearch.client.Client;
+import org.apache.http.client.CredentialsProvider;
+import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.impl.nio.client.HttpAsyncClientBuilder;
 
+import org.elasticsearch.client.RestClientBuilder;
+import org.elasticsearch.client.RestClientBuilder.HttpClientConfigCallback;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.client.RequestOptions;
@@ -25,6 +34,9 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 
 public class Main {
+  
+  protected static final String es_users_file = "/etc/elasticsearch/users";
+  protected static final String es_writer_user = "riverwriter";
 
   public static void main(String[] argv) {
 
@@ -50,15 +62,44 @@ public class Main {
     else if (river_runnumber == 0) role = "monitor";
     else role = "collector";
 
+    String es_writer_pass = new String();
+    try {
+      es_writer_pass = parseWriterAuth();
+    }
+    catch (IOException e) {
+      logger.error("IOException reading credentials: ", e);
+      System.exit(11);
+    }
+    catch (Exception e) {
+      logger.error("Exception reading credentials: ", e);
+      System.exit(12);
+    }
+
+    final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+        credentialsProvider.setCredentials(AuthScope.ANY,
+        new UsernamePasswordCredentials(es_writer_user, es_writer_pass));
+
     //start REST client
     try {
-      //ES 2.X API:
-
       //Settings settings = Settings.builder().put("cluster.name", river_escluster).build();
-      client =  new RestHighLevelClient(
-        RestClient.builder(
-          new HttpHost("localhost",9200,"http"))
-      );
+      RestClientBuilder builder = RestClient.builder(new HttpHost("localhost", 9200, "http"))
+         .setHttpClientConfigCallback(new HttpClientConfigCallback() {
+           @Override
+           public HttpAsyncClientBuilder customizeHttpClient(HttpAsyncClientBuilder httpClientBuilder) {
+             return httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider);
+           }
+         });
+
+      client =  new RestHighLevelClient( builder);
+      /*
+        RestClient.builder(new HttpHost("localhost",9200,"http"))
+                  .setHttpClientConfigCallback(new RestClientBuilder.HttpClientConfigCallback() {
+                    @Override
+                    public HttpAsyncClientBuilder customizeHttpClient(HttpAsyncClientBuilder httpClientBuilder) {
+                      return httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider);
+                    }
+                  });
+      );*/
     }
     catch (Exception e) {
       logger.error("RESTClient exception: ", e);
@@ -129,4 +170,22 @@ public class Main {
     }
 
   }
+
+  private static String parseWriterAuth() throws IOException, Exception {
+     String writer_pass = new String();
+     String nextLine;
+     String prefix = es_writer_user+":";
+     BufferedReader br = new BufferedReader(new FileReader(es_users_file));
+     while ((nextLine = br.readLine()) != null) {
+       if (nextLine.startsWith(es_writer_user+":")) {
+         writer_pass = nextLine.substring(prefix.length());
+         break;
+       }
+     }
+     if (writer_pass.isEmpty() || es_writer_user.isEmpty())
+       throw new Exception("No elasticsearch user or password found");
+
+     return writer_pass;
+  }
+
 }
