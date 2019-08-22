@@ -1,8 +1,20 @@
 #!/bin/bash -e
 
-alias python=`readlink /usr/bin/python2`
-#python_dir=`readlink /usr/bin/python2`
-python_dir=`python -c 'import platform; print("python"+platform.python_version_tuple()[0]+"."+platform.python_version_tuple()[1])'`
+#supported python 3.4 (or higher)
+pythonlink="python3.4"
+
+while ! [ "$pythonlink" = "" ]
+do
+  pythonlinklast=$pythonlink
+  readlink /usr/bin/$pythonlink > pytmp | true
+  pythonlink=`cat pytmp`
+  rm -rf pytmp
+  #echo "running readlink /usr/bin/$pythonlinklast --> /usr/bin/$pythonlink"
+done
+pythonlinklast=`basename $pythonlinklast`
+echo "will compile packages for: $pythonlinklast"
+pyexec=$pythonlinklast
+python_dir=$pythonlinklast
 python_version=${python_dir:6}
 
 BUILD_ARCH=noarch
@@ -45,22 +57,20 @@ fi
 cp -r $BASEDIR/libpython $SCRATCHDIR/
 echo "Moving files to their compile scratch area"
 
-cd $SCRATCHDIR/libpython/python-prctl
 #python-prctl
-./setup.py -q build
-python - <<EOF
+cd $SCRATCHDIR/libpython/python-prctl
+$pyexec ./setup.py -q build
+$pyexec - <<EOF
 import py_compile
 py_compile.compile("build/lib.linux-x86_64-${python_version}/prctl.py")
 EOF
-python -O - <<EOF
+$pyexec -O - <<EOF
 import py_compile
 py_compile.compile("build/lib.linux-x86_64-${python_version}/prctl.py")
 EOF
 mkdir -p $SCRATCHDIR/usr/lib64/$python_dir/site-packages
-cp build/lib.linux-x86_64-${python_version}/prctl.pyo $SCRATCHDIR/usr/lib64/${python_dir}/site-packages/
-cp build/lib.linux-x86_64-${python_version}/prctl.py  $SCRATCHDIR/usr/lib64/${python_dir}/site-packages/
-cp build/lib.linux-x86_64-${python_version}/prctl.pyc $SCRATCHDIR/usr/lib64/${python_dir}/site-packages/
-cp build/lib.linux-x86_64-${python_version}/_prctl.so $SCRATCHDIR/usr/lib64/${python_dir}/site-packages/
+mkdir -p $TOPDIR/usr/lib64/$python_dir/site-packages
+cp build/lib.linux-x86_64-${python_version}/*prctl.* $TOPDIR/usr/lib64/$python_dir/site-packages/
 cat > $SCRATCHDIR/usr/lib64/${python_dir}/site-packages/python_prctl-1.5.0-py${python_version}.egg-info <<EOF
 Metadata-Version: 1.0
 Name: python-prctl
@@ -85,7 +95,7 @@ cd $TOPDIR
 # we are done here, write the specs and make the fu***** rpm
 cat > fffmeta-elastic.spec <<EOF
 Name: $PACKAGENAME
-Version: 2.8.2
+Version: 2.8.3
 Release: 0
 Summary: hlt daemon
 License: gpl
@@ -97,7 +107,7 @@ Source: none
 BuildArch: $BUILD_ARCH
 AutoReqProv: no
 #Requires:elasticsearch => 7.2.0, cx_Oracle >= 5.1.2, java-1.8.0-oracle-headless >= 1.8.0.45, php >= 5.3.3, php-oci8 >= 1.4.9
-Requires:elasticsearch => 7.2.0, java-1.8.0-oracle-headless >= 1.8.0.45, php >= 5.3.3, php-oci8 >= 1.4.9, python34
+Requires:elasticsearch => 7.2.0, java-1.8.0-oracle-headless >= 1.8.0.45, php >= 5.3.3, php-oci8 >= 1.4.9, python34, python34-requests
 
 Provides:/opt/fff/configurefff.sh
 Provides:/opt/fff/essetupmachine.py
@@ -122,10 +132,11 @@ Provides:/etc/elasticsearch/roles.yml.f3
 Provides:/etc/elasticsearch/certs/elastic-certificates.p12
 Provides:/usr/lib/systemd/system/fff.service
 Provides:/usr/lib/systemd/system/riverd.service
-Provides:/usr/lib64/$python_dir/site-packages/prctl.py
-Provides:/usr/lib64/$python_dir/site-packages/prctl.pyc
-Provides:/usr/lib64/$python_dir/site-packages/_prctl.so
-Provides:/usr/lib64/$python_dir/site-packages/python_prctl-1.5.0-py${python_version}.egg-info
+Provides:/usr/lib64/$python_dir/site-packages/*prctl*
+#Provides:/usr/lib64/$python_dir/site-packages/prctl.py
+#Provides:/usr/lib64/$python_dir/site-packages/prctl.pyc
+#Provides:/usr/lib64/$python_dir/site-packages/_prctl.so
+#Provides:/usr/lib64/$python_dir/site-packages/python_prctl-1.5.0-py${python_version}.egg-info
 
 %description
 fffmeta configuration setup package
@@ -150,11 +161,7 @@ mkdir -p \$RPM_BUILD_ROOT
 %__install -d "%{buildroot}/etc/elasticsearch"
 %__install -d "%{buildroot}/etc/elasticsearch/certs"
 
-cp $SCRATCHDIR/usr/lib64/$python_dir/site-packages/prctl.py %{buildroot}/usr/lib64/$python_dir/site-packages/
-cp $SCRATCHDIR/usr/lib64/$python_dir/site-packages/prctl.pyc %{buildroot}/usr/lib64/$python_dir/site-packages/
-cp $SCRATCHDIR/usr/lib64/$python_dir/site-packages/prctl.pyo %{buildroot}/usr/lib64/$python_dir/site-packages/
-cp $SCRATCHDIR/usr/lib64/$python_dir/site-packages/_prctl.so %{buildroot}/usr/lib64/$python_dir/site-packages/
-cp $SCRATCHDIR/usr/lib64/$python_dir/site-packages/python_prctl-1.5.0-py${python_version}.egg-info  %{buildroot}/usr/lib64/$python_dir/site-packages/
+cp $SCRATCHDIR/usr/lib64/$python_dir/site-packages/*prctl* %{buildroot}/usr/lib64/$python_dir/site-packages/
 
 cp $BASEDIR/etc/rsyslog.d/48-river.conf %{buildroot}/etc/rsyslog.d/48-river.conf
 cp $BASEDIR/etc/logrotate.d/river %{buildroot}/etc/logrotate.d/river
@@ -222,11 +229,7 @@ cp -R $BASEDIR/scripts/tools/mapper/{*.py,*.sh,*.md} %{buildroot}/opt/fff/tools/
 %attr( 644 ,root, root) /opt/fff/tools/mapper/*.pyc
 %attr( 644 ,root, root) /opt/fff/tools/mapper/*.pyo
 %attr( 644 ,root, root) /opt/fff/tools/mapper/*.md
-%attr( 755 ,root, root) /usr/lib64/$python_dir/site-packages/prctl.py
-%attr( 755 ,root, root) /usr/lib64/$python_dir/site-packages/prctl.pyo
-%attr( 755 ,root, root) /usr/lib64/$python_dir/site-packages/prctl.pyc
-%attr( 755 ,root, root) /usr/lib64/$python_dir/site-packages/_prctl.so
-%attr( 755 ,root, root) /usr/lib64/$python_dir/site-packages/python_prctl-1.5.0-py${python_version}.egg-info
+%attr( 755 ,root, root) /usr/lib64/${python_dir}/site-packages/*prctl*
 
 %post
 #echo "post install trigger"
@@ -237,8 +240,8 @@ ln -s -f $riverfile /opt/fff/river.jar
 %triggerin -- elasticsearch
 #echo "triggered on elasticsearch update or install as well as this rpm update"
 
-python3.4 /opt/fff/essetupmachine.py restore
-python3.4 /opt/fff/essetupmachine.py
+$pyexec /opt/fff/essetupmachine.py restore
+$pyexec /opt/fff/essetupmachine.py
 
 #update permissions in case new rpm changed uid/guid
 chown -R elasticsearch:elasticsearch /var/log/elasticsearch
@@ -288,7 +291,7 @@ if [ \$1 == 0 ]; then
   #delete symbolic links
   rm -rf /opt/fff/river_dv.jar /opt/fff/river.jar
 
-  python2 /opt/fff/essetupmachine.py restore
+  $pyexec /opt/fff/essetupmachine.py restore
 fi
 
 #%verifyscript

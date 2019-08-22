@@ -1,4 +1,4 @@
-#!/bin/env python
+#!/bin/env python3.4
 from __future__ import print_function
 import sys
 import os
@@ -83,7 +83,7 @@ def query(conn,method,path,query=None,retry=False):
       creq = conn.request(method,path,query,headers=headers)
       cresp = conn.getresponse()
       cstatus = cresp.status
-      cdata = cresp.read()
+      cdata = cresp.read().decode()
       conn_success=True
       break
     except Exception as ex:
@@ -216,11 +216,11 @@ class river_thread(threading.Thread):
       if self.path: qdpath = self.path
       else:
         qdpath = '/dev/null'
-      print("running",["/usr/bin/python", qdpath])
+      print("running",["/usr/bin/python3.4", qdpath])
       self.fdo = os.open('/var/log/river/'+self.riverid+'.log',os.O_WRONLY | os.O_CREAT | os.O_APPEND)
       #tentatively change log file ownership to what the process will be
       chown_file('es-cdaq',self.fdo)
-      self.proc = subprocess.Popen(["/usr/bin/python",qdpath,self.riverid],preexec_fn=preexec_function_escdaq,close_fds=True,shell=False,stdout=self.fdo,stderr=self.fdo,env=env_copy)
+      self.proc = subprocess.Popen(["/usr/bin/python3.4",qdpath,self.riverid],preexec_fn=preexec_function_escdaq,close_fds=True,shell=False,stdout=self.fdo,stderr=self.fdo,env=env_copy)
       self.start() #start thread to pick up the process
       return True #if success, else False
 

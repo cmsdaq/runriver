@@ -1,4 +1,4 @@
-#!/bin/env python
+#!/bin/env python3.4
 from __future__ import print_function
 
 import sys
@@ -17,7 +17,7 @@ def parse_elastic_pwd():
           elasticvar = {
                          "user":elastic_username,
                          "pass":tok[1],
-                         "encoded":"Basic %s" % base64.standard_b64encode((elastic_username+":"+tok[1]).encode('ascii'))
+                         "encoded":"Basic %s" % (base64.standard_b64encode((elastic_username+":"+tok[1]).encode('ascii')).decode())
                        }
           return elasticvar
   return None
