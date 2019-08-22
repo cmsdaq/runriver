@@ -69,8 +69,7 @@ import py_compile
 py_compile.compile("build/lib.linux-x86_64-${python_version}/prctl.py")
 EOF
 mkdir -p $SCRATCHDIR/usr/lib64/$python_dir/site-packages
-mkdir -p $TOPDIR/usr/lib64/$python_dir/site-packages
-cp build/lib.linux-x86_64-${python_version}/*prctl.* $TOPDIR/usr/lib64/$python_dir/site-packages/
+cp -R build/lib.linux-x86_64-${python_version}/*prctl* ${SCRATCHDIR}/usr/lib64/$python_dir/site-packages/
 cat > $SCRATCHDIR/usr/lib64/${python_dir}/site-packages/python_prctl-1.5.0-py${python_version}.egg-info <<EOF
 Metadata-Version: 1.0
 Name: python-prctl
@@ -133,10 +132,8 @@ Provides:/etc/elasticsearch/certs/elastic-certificates.p12
 Provides:/usr/lib/systemd/system/fff.service
 Provides:/usr/lib/systemd/system/riverd.service
 Provides:/usr/lib64/$python_dir/site-packages/*prctl*
-#Provides:/usr/lib64/$python_dir/site-packages/prctl.py
-#Provides:/usr/lib64/$python_dir/site-packages/prctl.pyc
-#Provides:/usr/lib64/$python_dir/site-packages/_prctl.so
-#Provides:/usr/lib64/$python_dir/site-packages/python_prctl-1.5.0-py${python_version}.egg-info
+Provides:/usr/lib64/$python_dir/site-packages/__pycache__/prctl.*
+Provides:/usr/lib64/$python_dir/site-packages/python_prctl-1.5.0-py${python_version}.egg-info
 
 %description
 fffmeta configuration setup package
@@ -230,6 +227,7 @@ cp -R $BASEDIR/scripts/tools/mapper/{*.py,*.sh,*.md} %{buildroot}/opt/fff/tools/
 %attr( 644 ,root, root) /opt/fff/tools/mapper/*.pyo
 %attr( 644 ,root, root) /opt/fff/tools/mapper/*.md
 %attr( 755 ,root, root) /usr/lib64/${python_dir}/site-packages/*prctl*
+%attr( 755 ,root, root) /usr/lib64/${python_dir}/site-packages/__pycache__/prctl*
 
 %post
 #echo "post install trigger"
