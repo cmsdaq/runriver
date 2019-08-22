@@ -323,7 +323,7 @@ if __name__ == "__main__":
             escfg.reg('xpack.security.transport.ssl.verification_mode', 'certificate')
             escfg.reg('xpack.security.transport.ssl.keystore.path', 'certs/elastic-certificates.p12')
             escfg.reg('xpack.security.transport.ssl.truststore.path', 'certs/elastic-certificates.p12')
-            escfg.reg('xpack.security.authc.anonymous.roles','["superuser","read_anon"]') #for now it is permissive
+            escfg.reg('xpack.security.authc.anonymous.roles','["superuser","read_anon","write_anon_temp"]') #permissive
             escfg.reg('xpack.security.authc.anonymous.authz_exception','true')
 
             escfg.reg('bootstrap.system_call_filter','false')

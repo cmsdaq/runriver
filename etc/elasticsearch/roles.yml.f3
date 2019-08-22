@@ -10,6 +10,12 @@ read_anon:
     - names: ['*']
       privileges: ['read','monitor','view_index_metadata']
 
+write_anon_temp:
+  cluster: [ 'monitor' ]
+  indices:
+    - names: ['merging_*_write','lustre_info','test_conddb']
+      privileges: ['read','write','monitor','view_index_metadata']
+
 #----------------------------------------------------
 #hltd
 central_hltd_writer: #updates used by transfer scripts (later a special user could be added to authenticate)
