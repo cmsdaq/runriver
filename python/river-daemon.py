@@ -70,6 +70,10 @@ elasticinfo = parse_elastic_pwd()
 print("user:"+elasticinfo["user"])
 headers={'Content-Type':'application/json','Authorization':elasticinfo["encoded"]}
 
+env_copy = os.environ.copy()
+env_copy["ELASTICUSER"]=elasticinfo["user"]
+env_copy["ELASTICPASS"]=elasticinfo["pass"]
+
 def query(conn,method,path,query=None,retry=False):
 
   cnt=0
@@ -205,7 +209,7 @@ class river_thread(threading.Thread):
       self.fdo = os.open('/var/log/river/'+self.riverid+'.log',os.O_WRONLY | os.O_CREAT | os.O_APPEND)
       #tentatively change log file ownership to what the process will be
       chown_file('es-cdaq',self.fdo)
-      self.proc = subprocess.Popen(["/usr/bin/node",qdpath,self.riverid],preexec_fn=preexec_function_escdaq,close_fds=True,shell=False,stdout=self.fdo,stderr=self.fdo)
+      self.proc = subprocess.Popen(["/usr/bin/node",qdpath,self.riverid],preexec_fn=preexec_function_escdaq,close_fds=True,shell=False,stdout=self.fdo,stderr=self.fdo,env=env_copy)
       self.start() #start thread to pick up the process
       return True #if success, else False
     elif self.process_type=='python':
@@ -216,7 +220,7 @@ class river_thread(threading.Thread):
       self.fdo = os.open('/var/log/river/'+self.riverid+'.log',os.O_WRONLY | os.O_CREAT | os.O_APPEND)
       #tentatively change log file ownership to what the process will be
       chown_file('es-cdaq',self.fdo)
-      self.proc = subprocess.Popen(["/usr/bin/python",qdpath,self.riverid],preexec_fn=preexec_function_escdaq,close_fds=True,shell=False,stdout=self.fdo,stderr=self.fdo)
+      self.proc = subprocess.Popen(["/usr/bin/python",qdpath,self.riverid],preexec_fn=preexec_function_escdaq,close_fds=True,shell=False,stdout=self.fdo,stderr=self.fdo,env=env_copy)
       self.start() #start thread to pick up the process
       return True #if success, else False
 
