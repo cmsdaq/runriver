@@ -1,4 +1,4 @@
-#!/bin/env python
+#!/bin/env python3.4
 
 from __future__ import print_function 
 
@@ -20,25 +20,25 @@ class elasticUpdater:
 
         self.url="localhost"
         #update 3 explicitly specified indices
-	system=sys.argv[1]
-	try:
+        system=sys.argv[1]
+        try:
           year=sys.argv[2]
-	except:
-	  year=""
+        except:
+          year=""
         res = requests.get('http://'+self.url+':9200/_aliases')
-        aliases = json.loads(res.content)
+        aliases = json.loads(res.content.decode())
 #        old_idx_list = []
 #        actions = []
         selected = {}
         for idx in aliases:
-	    for k in aliases[idx]["aliases"].keys():
-	      if "_"+system+year in k or k.startswith(system+year):
-		selected[idx]={}
+            for k in aliases[idx]["aliases"].keys():
+              if "_"+system+year in k or k.startswith(system+year):
+                selected[idx]={}
 
         #!/bin/env python
         now = datetime.datetime.now()
         newdate=str(now.year)+"-"+str(now.month).zfill(2)+"-"+str(now.day).zfill(2)
-	print("curl -H \"Content-Type:application/json\" -XPUT es-cdaq:9200/_snapshot/es_cdaq_run2_backup/snapshot_"+system+year+"_"+newdate,"-d'"+'{"indices":"'+','.join(selected.keys())+'"}'+"'")
+        print("curl -H \"Content-Type:application/json\" -XPUT es-cdaq:9200/_snapshot/es_cdaq_run2_backup/snapshot_"+system+year+"_"+newdate,"-d'"+'{"indices":"'+','.join(selected.keys())+'"}'+"'")
 #            for alias in aliases[idx]["aliases"]:
 #              if alias in ['runindex_'+sys.argv[3],'runindex_'+sys.argv[3]+'_read','runindex_'+sys.argv[3]+'_write',
 #                           'boxinfo_'+sys.argv[3],'boxinfo_'+sys.argv[3]+'_read','boxinfo_'+sys.argv[3]+'_write',

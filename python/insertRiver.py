@@ -6,6 +6,7 @@ import json
 import base64
 import requests
 
+escdaq_user_conf = "/cmsnfses-web/es-web/AUTH/river-users.jsn"
 elastic_user_conf = "/etc/elasticsearch/users"
 elastic_username = "riverwriter"
 def parse_elastic_pwd():
@@ -21,6 +22,10 @@ def parse_elastic_pwd():
                        }
           return elasticvar
   return None
+
+def parse_esweb_pwd(pwd):
+  with open(escdaq_user_conf) as f:
+    return json.load(f)[pwd]['pwd']
 
 def insertRiver(args):
 

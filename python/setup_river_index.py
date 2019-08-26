@@ -9,7 +9,7 @@ import json
 
 sys.path.append('/opt/fff')
 
-from insertRiver import insertRiver
+from insertRiver import insertRiver,parse_esweb_pwd
 
 from riverMapping import riverInstMapping
 
@@ -25,7 +25,7 @@ now = datetime.datetime.now()
 newdate = str(now.year)+str(now.month).zfill(2)+str(now.day).zfill(2)
 
 print("creating index: river_"+newdate)
-ret = requests.put("http://localhost:9200/river_"+newdate,json.dumps({"mappings":riverInstMapping,"settings":riverInstSettings}),headers={'Content-Type':'application/json'})
+ret = requests.put("http://localhost:9200/river_"+newdate,json.dumps({"mappings":riverInstMapping,"settings":riverInstSettings}),headers={'Content-Type':'application/json'},auth=("f3root",parse_esweb_pwd("f3root")))
 print(ret.content)
 
 from updatemappings import elasticUpdater

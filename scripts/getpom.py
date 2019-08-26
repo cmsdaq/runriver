@@ -1,4 +1,4 @@
-#!/bin/env python3
+#!/bin/env python3.4
 import sys
 import xml.etree.ElementTree as EM
 tree = EM.parse(sys.argv[1])

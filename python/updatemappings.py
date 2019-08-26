@@ -2,6 +2,7 @@
 from __future__ import print_function
 import sys
 #allow importing files from running directory (mapping)
+sys.path.append('/opt/fff')
 sys.path.append(".")
 import os
 
@@ -11,9 +12,15 @@ try:
 except:
   import json
 
+from insertRiver import parse_esweb_pwd
 
+f3_root="f3root"
+f3_pwd=parse_esweb_pwd(f3_root)
+authset=(f3_root,f3_pwd)
 
 headers={'Content-Type':'application/json'}
+
+
 
 try:
   import mappings
@@ -105,7 +112,7 @@ class elasticUpdater:
 
           data = json.dumps({"actions":actions})
           print(data)
-          res = requests.post('http://'+self.url+':9200/_aliases',data,headers=headers)
+          res = requests.post('http://'+self.url+':9200/_aliases',data,headers=headers,auth=authset)
           print(res.status_code)
 
           print("current",sub,"alias removed from indices: ",",".join(set(old_idx_list)).strip('"'))
@@ -137,7 +144,7 @@ class elasticUpdater:
 
           data = json.dumps({"actions":actions})
           print(data)
-          res = requests.post('http://'+self.url+':9200/_aliases',data,headers=headers)
+          res = requests.post('http://'+self.url+':9200/_aliases',data,headers=headers,auth=authset)
           print(res.status_code)
 
           print("current",argv[4],"alias removed from indices: ",",".join(set(old_idx_list)).strip('"'))
@@ -159,7 +166,7 @@ class elasticUpdater:
 
           data = json.dumps({"actions":actions})
           print(data)
-          res = requests.post('http://'+self.url+':9200/_aliases',data,headers=headers)
+          res = requests.post('http://'+self.url+':9200/_aliases',data,headers=headers,auth=authset)
           print(res.status_code,res.content)
 
           print("current",sub,"alias removed from indices: ",",".join(set(old_idx_list)).strip('"'))
@@ -177,7 +184,7 @@ class elasticUpdater:
 
     def updateIndexMappingMaybe(self,index_name,mapping):
         #update in case of new documents added to mapping definition
-        res = requests.post('http://'+self.url+':9200/'+index_name+'/_mapping/',json.dumps(mapping),headers=headers)
+        res = requests.post('http://'+self.url+':9200/'+index_name+'/_mapping/',json.dumps(mapping),headers=headers,auth=authset)
         if res.status_code==200:
             print(index_name)
         else:
