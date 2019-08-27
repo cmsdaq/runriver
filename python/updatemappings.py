@@ -65,7 +65,7 @@ class elasticUpdater:
           #copy single index mapping to another
           res = requests.get('http://'+self.url+':9200/'+argv[3]+'/_mapping',headers=headers) #NOTE: in es7 will drop type name (but this is just copy)
           if res.status_code==200:
-            res_j = json.loads(res.content)
+            res_j = json.loads(res.content.decode())
             for idx in res_j:
               #else:alias
               new_mapping = res_j[idx]['mappings']
@@ -74,7 +74,7 @@ class elasticUpdater:
               break
         elif argv[2]=="aliases":
           res = requests.get('http://'+self.url+':9200/_aliases',headers=headers)
-          aliases = json.loads(res.content)
+          aliases = json.loads(res.content.decode())
           old_idx_list = []
           actions = []
           sub =  argv[3]
@@ -123,7 +123,7 @@ class elasticUpdater:
          sub =  argv[3]
          if not sub=="merging": #exclude this special case
           res = requests.get('http://'+self.url+':9200/_aliases',headers=headers)
-          aliases = json.loads(res.content)
+          aliases = json.loads(res.content.decode())
           old_idx_list = []
           actions = []
           for idx in aliases:
@@ -152,7 +152,7 @@ class elasticUpdater:
         elif argv[2]=="riveralias":
 
           res = requests.get('http://'+self.url+':9200/_aliases',headers=headers)
-          aliases = json.loads(res.content)
+          aliases = json.loads(res.content.decode())
           old_idx_list = []
           actions = []
           for idx in aliases:
@@ -167,7 +167,7 @@ class elasticUpdater:
           data = json.dumps({"actions":actions})
           print(data)
           res = requests.post('http://'+self.url+':9200/_aliases',data,headers=headers,auth=authset)
-          print(res.status_code,res.content)
+          print(res.status_code,res.content.decode())
 
           print("current",sub,"alias removed from indices: ",",".join(set(old_idx_list)).strip('"'))
           
@@ -188,7 +188,7 @@ class elasticUpdater:
         if res.status_code==200:
             print(index_name)
         else:
-            print("FAILED",index_name,res.status_code,res.content)
+            print("FAILED",index_name,res.status_code,res.content.decode())
 
 if __name__ == "__main__":
 

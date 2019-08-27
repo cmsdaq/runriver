@@ -90,7 +90,7 @@ curl --user ${usr}:${pass} -H "Content-Type:application/json" -XPUT localhost:92
 echo
 echo "#executing inject mapping:"
 #reads elasticsearch credentials (needs full sudo on the machine)
-sudo sudo -u elasticsearch /usr/bin/java -jar ${RIVERJARPREFIX}/river.jar mapping ${subsystem} localhost es-cdaq runindex_${subsystem}_${newdate} 0
+sudo -u es-cdaq /usr/bin/java -jar ${RIVERJARPREFIX}/river.jar mapping ${subsystem} localhost es-cdaq runindex_${subsystem}_${newdate} 0
 #reads es-cdaq credentials (superuser)
 sudo -u es-cdaq ${UPDSCRIPTPREFIX}/updatemappings.py localhost auto runindex_${subsystem}_${newdate} boxinfo_${subsystem}_${newdate} hltdlogs_${subsystem}_${newdate}
 sudo -u es-cdaq ${UPDSCRIPTPREFIX}/updatemappings.py localhost copy runindex_${subsystem}_${newdate} merging_${subsystem}_${newdate}

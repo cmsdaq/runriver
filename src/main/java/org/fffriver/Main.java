@@ -6,8 +6,14 @@ import java.util.Map;
 import java.util.HashMap;
 import java.io.FileReader;
 import java.io.BufferedReader;
-//import java.net.InetAddress;
-//import java.net.InetSocketAddress;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
+
+import net.sf.json.JSONObject;
+import net.sf.json.JSONSerializer;
+import org.apache.commons.io.IOUtils;
+
 import org.apache.http.HttpHost;
 
 //ELASTICSEARCH
@@ -38,6 +44,9 @@ public class Main {
   protected static final String es_users_file = "/etc/elasticsearch/users";
   protected static final String es_writer_user = "riverwriter";
 
+  protected static final String escdaq_users_file = "/cmsnfses-web/es-web/AUTH/river-users.jsn";
+  protected static final String escdaq_user = "f3root";
+
   public static void main(String[] argv) {
 
     //DNS cache timeout (60 seconds)
@@ -62,22 +71,42 @@ public class Main {
     else if (river_runnumber == 0) role = "monitor";
     else role = "collector";
 
+    String es_user = new String();
     String es_writer_pass = new String();
-    try {
-      es_writer_pass = parseWriterAuth();
+
+    if (role.equals("mapping")) {
+      es_user = escdaq_user;
+      try {
+        es_writer_pass = parseRootAuth();
+      }
+      catch (IOException e) {
+        logger.error("IOException reading credentials: ", e);
+        System.exit(11);
+      }
+      catch (Exception e) {
+        logger.error("Exception reading credentials: ", e);
+        System.exit(12);
+      }
+
     }
-    catch (IOException e) {
-      logger.error("IOException reading credentials: ", e);
-      System.exit(11);
-    }
-    catch (Exception e) {
-      logger.error("Exception reading credentials: ", e);
-      System.exit(12);
+    else {
+      es_user = es_writer_user;
+      try {
+        es_writer_pass = parseWriterAuth();
+      }
+      catch (IOException e) {
+        logger.error("IOException reading credentials: ", e);
+        System.exit(11);
+      }
+      catch (Exception e) {
+        logger.error("Exception reading credentials: ", e);
+        System.exit(12);
+      }
     }
 
     final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
         credentialsProvider.setCredentials(AuthScope.ANY,
-        new UsernamePasswordCredentials(es_writer_user, es_writer_pass));
+        new UsernamePasswordCredentials(es_user, es_writer_pass));
 
     //start REST client
     try {
@@ -170,6 +199,16 @@ public class Main {
     }
 
   }
+
+  private static String parseRootAuth() throws IOException, Exception {
+     InputStream is = new FileInputStream(new File(escdaq_users_file));
+     JSONObject json = (JSONObject) JSONSerializer.toJSON(IOUtils.toString(is));
+     String writer_pass = json.getJSONObject(escdaq_user).getString("pwd");
+     if (writer_pass.isEmpty() || escdaq_user.isEmpty())
+       throw new Exception("No elasticsearch user or password found");
+     return writer_pass;
+  }
+
 
   private static String parseWriterAuth() throws IOException, Exception {
      String writer_pass = new String();
