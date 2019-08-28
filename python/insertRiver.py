@@ -6,7 +6,7 @@ import json
 import base64
 import requests
 
-escdaq_user_conf = "/cmsnfses-web/es-web/AUTH/river-users.jsn"
+escdaq_user_conf = "/cmsnfses-web/es-web/AUTH/river-users.json"
 elastic_user_conf = "/etc/elasticsearch/users"
 elastic_username = "riverwriter"
 def parse_elastic_pwd():

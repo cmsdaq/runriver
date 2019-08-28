@@ -44,7 +44,7 @@ public class Main {
   protected static final String es_users_file = "/etc/elasticsearch/users";
   protected static final String es_writer_user = "riverwriter";
 
-  protected static final String escdaq_users_file = "/cmsnfses-web/es-web/AUTH/river-users.jsn";
+  protected static final String escdaq_users_file = "/cmsnfses-web/es-web/AUTH/river-users.json";
   protected static final String escdaq_user = "f3root";
 
   public static void main(String[] argv) {
