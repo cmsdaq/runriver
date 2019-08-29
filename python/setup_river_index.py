@@ -18,6 +18,7 @@ riverInstSettings = {
             "codec" : "best_compression",
             "number_of_shards" : "1",
             "number_of_replicas" : "1", #1 replica for 2-host setup. Later will increase to 2
+            "priority":21
     }
 }
 

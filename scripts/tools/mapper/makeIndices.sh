@@ -63,9 +63,9 @@ year=${newdate:0:4}   ## or put explicit year if newdate doesn't start with year
 
 #------------------------------
 #set ingest processor with set field and overwrite with timestamp. Use unix time format.
-#echo "#setting ingest processor to apply injection timestamp:"
-#curl --user ${usr}:${pass} -H "Content-Type:application/json" -XPOST localhost:9200/_scripts/timestampscript  -d'{"script":{"lang":"painless","source":"ctx.injdate = new Date().getTime()"}}'
-#curl --user ${usr}:${pass} -H "Content-Type:application/json" -XPUT localhost:9200/_ingest/pipeline/dateinjector?pretty  -d'{"description":"inject timestamp", "processors":[{"script":{"id":"timestampscript"}}]}'
+echo "#setting ingest processor to apply injection timestamp:"
+curl --user ${usr}:${pass} -H "Content-Type:application/json" -XPOST localhost:9200/_scripts/timestampscript  -d'{"script":{"lang":"painless","source":"ctx.injdate = new Date().getTime()"}}'
+curl --user ${usr}:${pass} -H "Content-Type:application/json" -XPUT localhost:9200/_ingest/pipeline/dateinjector?pretty  -d'{"description":"inject timestamp", "processors":[{"script":{"id":"timestampscript"}}]}'
 
 #TODO: in LS2 number f replicas for runindex_cdaq is 1. With more servers this can be again 2. Also applies to "river" indices
 
@@ -73,15 +73,15 @@ year=${newdate:0:4}   ## or put explicit year if newdate doesn't start with year
 #make indices
 echo "make ${subsystem}_${newdate}"
 
-curl --user ${usr}:${pass} -H "Content-Type:application/json" -XPUT localhost:9200/runindex_${subsystem}_${newdate}?pretty    -d'{"settings":{"index":{"number_of_shards" : "'$shards'",   "number_of_replicas" : "'$repl'","codec" : "best_compression"'${ingest}'}, "translog" : {"durability" : "async","flush_threshold_size":"4g"},"analysis" : {"analyzer" : {"default" : {"type" : "keyword"}}}}}' #-u fffadmin:$2
+curl --user ${usr}:${pass} -H "Content-Type:application/json" -XPUT localhost:9200/runindex_${subsystem}_${newdate}?pretty    -d'{"settings":{"index":{"number_of_shards" : "'$shards'",   "number_of_replicas" : "'$repl'","codec" : "best_compression"'${ingest}',"priority":18}, "translog" : {"durability" : "async","flush_threshold_size":"4g"},"analysis" : {"analyzer" : {"default" : {"type" : "keyword"}}}}}' #-u fffadmin:$2
 
-curl --user ${usr}:${pass} -H "Content-Type:application/json" -XPUT localhost:9200/merging_${subsystem}_${newdate}?pretty     -d'{"settings":{"index":{"number_of_shards" : "'$shards'",   "number_of_replicas" : "'$repl'","codec" : "best_compression"'${ingest}'}, "translog" : {"durability" : "async","flush_threshold_size":"4g"},"analysis" : {"analyzer" : {"default" : {"type" : "keyword"}}}}}' #-u fffadmin:$2
+curl --user ${usr}:${pass} -H "Content-Type:application/json" -XPUT localhost:9200/merging_${subsystem}_${newdate}?pretty     -d'{"settings":{"index":{"number_of_shards" : "'$shards'",   "number_of_replicas" : "'$repl'","codec" : "best_compression"'${ingest}',"priority":17}, "translog" : {"durability" : "async","flush_threshold_size":"4g"},"analysis" : {"analyzer" : {"default" : {"type" : "keyword"}}}}}' #-u fffadmin:$2
 
-curl --user ${usr}:${pass} -H "Content-Type:application/json" -XPUT localhost:9200/boxinfo_${subsystem}_${newdate}?pretty     -d'{"settings":{"index":{"number_of_shards" : "'$shardsbox'","number_of_replicas" : "'$repl'","codec" : "best_compression"},            "translog" : {"durability" : "async","flush_threshold_size":"4g"},"analysis" : {"analyzer" : {"default" : {"type" : "keyword"}}}}}' #-u fffadmin:$2
+curl --user ${usr}:${pass} -H "Content-Type:application/json" -XPUT localhost:9200/boxinfo_${subsystem}_${newdate}?pretty     -d'{"settings":{"index":{"number_of_shards" : "'$shardsbox'","number_of_replicas" : "'$repl'","codec" : "best_compression",           "priority":20}, "translog" : {"durability" : "async","flush_threshold_size":"4g"},"analysis" : {"analyzer" : {"default" : {"type" : "keyword"}}}}}' #-u fffadmin:$2
 
-curl --user ${usr}:${pass} -H "Content-Type:application/json" -XPUT localhost:9200/reshistory_${subsystem}_${newdate}?pretty  -d'{"settings":{"index":{"number_of_shards" : "'$shards'",   "number_of_replicas" : "'$repl'","codec" : "best_compression"'${ingest}'}, "translog" : {"durability" : "async","flush_threshold_size":"4g"},"analysis" : {"analyzer" : {"default" : {"type" : "keyword"}}}}}' #-u fffadmin:$2
+curl --user ${usr}:${pass} -H "Content-Type:application/json" -XPUT localhost:9200/reshistory_${subsystem}_${newdate}?pretty  -d'{"settings":{"index":{"number_of_shards" : "'$shards'",   "number_of_replicas" : "'$repl'","codec" : "best_compression"'${ingest}'},               "translog" : {"durability" : "async","flush_threshold_size":"4g"},"analysis" : {"analyzer" : {"default" : {"type" : "keyword"}}}}}' #-u fffadmin:$2
 
-curl --user ${usr}:${pass} -H "Content-Type:application/json" -XPUT localhost:9200/hltdlogs_${subsystem}_${newdate}?pretty    -d'{"settings":{"index":{"number_of_shards" : "'$shardslog'","number_of_replicas" : "'$repl'","codec" : "best_compression"'${ingest}'}, "translog" : {"durability" : "async","flush_threshold_size":"4g"},"analysis":{"analyzer":{"prefix-test-analyzer":{"type":"custom","tokenizer":"prefix-test-tokenizer"}},"tokenizer":{"prefix-test-tokenizer":{"type": "path_hierarchy","delimiter":" "}}}}}' #-u fffadmin:$2
+curl --user ${usr}:${pass} -H "Content-Type:application/json" -XPUT localhost:9200/hltdlogs_${subsystem}_${newdate}?pretty    -d'{"settings":{"index":{"number_of_shards" : "'$shardslog'","number_of_replicas" : "'$repl'","codec" : "best_compression"'${ingest}',"priority":16}, "translog" : {"durability" : "async","flush_threshold_size":"4g"},"analysis":{"analyzer":{"prefix-test-analyzer":{"type":"custom","tokenizer":"prefix-test-tokenizer"}},"tokenizer":{"prefix-test-tokenizer":{"type": "path_hierarchy","delimiter":" "}}}}}' #-u fffadmin:$2
 
 #configure ingest
 
