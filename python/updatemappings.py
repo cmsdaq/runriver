@@ -97,7 +97,7 @@ class elasticUpdater:
 
           #set common aliases (will be removed at some point)
           actions.append({"add":{"alias":"runindex_"+sub+"_read","index":"merging"+isuf}})
-          actions.append({"add":{"alias":"boxinfo_"+sub+"_read","index":"reshistory"+isuf}})
+          #actions.append({"add":{"alias":"boxinfo_"+sub+"_read","index":"reshistory"+isuf}})
 
           #adding all-year index if required
           if len(argv)>5 and argv[5].isdigit():
@@ -108,7 +108,7 @@ class elasticUpdater:
 
             #these are still under other index:
             actions.append({"add":{"alias":"runindex_"+year_sub+"_read","index":"merging"+isuf}})
-            actions.append({"add":{"alias":"boxinfo_"+year_sub+"_read","index":"reshistory"+isuf}})
+            #actions.append({"add":{"alias":"boxinfo_"+year_sub+"_read","index":"reshistory"+isuf}})
 
           data = json.dumps({"actions":actions})
           print(data)
